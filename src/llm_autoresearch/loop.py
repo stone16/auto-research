@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import logging
+import signal
+import threading
 from pathlib import Path
+from types import FrameType
 
 from .evaluator import evaluate_answers
 from .feedback import append_judge_feedback, load_feedback_context, save_judge_review
@@ -167,6 +170,11 @@ def run_iteration(
                 iteration,
             )
 
+    # Extract dimension scores from judge report for use by stop conditions
+    dimension_scores: dict[str, float] | None = None
+    if judge_report is not None:
+        dimension_scores = judge_report.dimension_scores
+
     return IterationOutcome(
         iteration=iteration,
         status=status,
@@ -177,7 +185,33 @@ def run_iteration(
         experiment_title=response.experiment_title,
         change_summary=response.change_summary,
         priority_dimension=priority_dimension,
+        dimension_scores=dimension_scores,
     )
+
+
+def install_sigint_handler(
+    shutdown_event: threading.Event,
+) -> signal.Handlers:
+    """Create and return a SIGINT handler that sets the shutdown event.
+
+    The returned callable can also be used directly for testing without
+    actually registering it as a signal handler.
+
+    Args:
+        shutdown_event: Event to set when SIGINT is received.
+
+    Returns:
+        The handler callable (compatible with signal.signal).
+    """
+
+    def _handler(signum: int, frame: FrameType | None) -> None:
+        logger.info("SIGINT received, finishing current iteration before exiting...")
+        shutdown_event.set()
+
+    return _handler
+
+
+_MAX_CONSECUTIVE_CRASHES = 3
 
 
 def run_loop(
@@ -186,6 +220,7 @@ def run_loop(
     judge_kind: str,
     tag: str,
     stop_conditions: StopConditions | None = None,
+    shutdown_event: threading.Event | None = None,
 ) -> list[IterationOutcome]:
     """Run iterations continuously with the full produce-evaluate-judge-feedback cycle.
 
@@ -198,12 +233,23 @@ def run_loop(
         judge_kind: Provider kind for the judge (mock, codex, claude).
         tag: Tag for the autoresearch branch name.
         stop_conditions: When to stop iterating. None means unlimited.
+        shutdown_event: Optional threading.Event for graceful SIGINT shutdown.
+            If not provided, one is created and a SIGINT handler is installed.
 
     Returns:
         List of IterationOutcome for each completed iteration.
     """
     if stop_conditions is None:
         stop_conditions = StopConditions()
+
+    # Setup SIGINT handling
+    own_event = shutdown_event is None
+    if shutdown_event is None:
+        shutdown_event = threading.Event()
+    if own_event:
+        original_handler = signal.getsignal(signal.SIGINT)
+        handler = install_sigint_handler(shutdown_event)
+        signal.signal(signal.SIGINT, handler)
 
     # Create the autoresearch branch
     init_branch(tag, cwd=run_dir)
@@ -213,28 +259,95 @@ def run_loop(
 
     outcomes: list[IterationOutcome] = []
     iteration_count = 0
+    consecutive_discards = 0
+    consecutive_crashes = 0
 
-    while True:
-        # Check stop conditions before running
-        if stop_conditions.max_iterations is not None:
-            if iteration_count >= stop_conditions.max_iterations:
+    try:
+        while True:
+            # Check shutdown event (SIGINT)
+            if shutdown_event.is_set():
+                logger.info("Shutdown requested, exiting loop.")
                 break
 
-        outcome = run_iteration(
-            run_dir=run_dir,
-            provider_kind=producer_kind,
-            judge_provider=judge_provider,
-        )
-        outcomes.append(outcome)
-        iteration_count += 1
+            # Check max_iterations stop condition
+            if stop_conditions.max_iterations is not None:
+                if iteration_count >= stop_conditions.max_iterations:
+                    break
 
-        # Print one-line summary
-        dim_info = f"dimension: {outcome.priority_dimension}" if outcome.priority_dimension else "dimension: n/a"
-        print(
-            f"iteration {outcome.iteration} | "
-            f"score {outcome.candidate_score:.2f} | "
-            f"status {outcome.status} | "
-            f"{dim_info}"
-        )
+            # Check max_consecutive_discard stop condition
+            if stop_conditions.max_consecutive_discard is not None:
+                if consecutive_discards >= stop_conditions.max_consecutive_discard:
+                    logger.info(
+                        "Stopping: %d consecutive discards reached limit of %d.",
+                        consecutive_discards,
+                        stop_conditions.max_consecutive_discard,
+                    )
+                    break
+
+            try:
+                outcome = run_iteration(
+                    run_dir=run_dir,
+                    provider_kind=producer_kind,
+                    judge_provider=judge_provider,
+                )
+            except Exception:
+                consecutive_crashes += 1
+                logger.warning(
+                    "Iteration crashed (%d consecutive). Skipping.",
+                    consecutive_crashes,
+                    exc_info=True,
+                )
+                if consecutive_crashes >= _MAX_CONSECUTIVE_CRASHES:
+                    logger.error(
+                        "Halting: %d consecutive crashes detected. "
+                        "Check provider configuration and logs for diagnostics.",
+                        consecutive_crashes,
+                    )
+                    break
+                iteration_count += 1
+                continue
+
+            # Successful iteration: reset crash counter
+            consecutive_crashes = 0
+
+            outcomes.append(outcome)
+            iteration_count += 1
+
+            # Track consecutive discards
+            if outcome.status == "discard":
+                consecutive_discards += 1
+            else:
+                consecutive_discards = 0
+
+            # Print one-line summary
+            dim_info = (
+                f"dimension: {outcome.priority_dimension}"
+                if outcome.priority_dimension
+                else "dimension: n/a"
+            )
+            print(
+                f"iteration {outcome.iteration} | "
+                f"score {outcome.candidate_score:.2f} | "
+                f"status {outcome.status} | "
+                f"{dim_info}"
+            )
+
+            # Check dimension_threshold stop condition (after iteration)
+            if stop_conditions.dimension_threshold is not None:
+                if outcome.dimension_scores is not None and outcome.dimension_scores:
+                    threshold = stop_conditions.dimension_threshold
+                    if all(
+                        score >= threshold
+                        for score in outcome.dimension_scores.values()
+                    ):
+                        logger.info(
+                            "Stopping: all dimension scores above threshold %.2f.",
+                            threshold,
+                        )
+                        break
+    finally:
+        # Restore original signal handler if we installed one
+        if own_event:
+            signal.signal(signal.SIGINT, original_handler)
 
     return outcomes

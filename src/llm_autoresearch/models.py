@@ -282,6 +282,8 @@ class StopConditions:
     """Configuration for when to stop the loop."""
 
     max_iterations: int | None = None
+    max_consecutive_discard: int | None = None
+    dimension_threshold: float | None = None
 
 
 @dataclass
@@ -295,4 +297,5 @@ class IterationOutcome:
     experiment_title: str
     change_summary: str
     priority_dimension: str = ""
+    dimension_scores: dict[str, float] | None = None
 

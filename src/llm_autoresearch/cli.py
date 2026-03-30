@@ -67,6 +67,18 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Maximum number of iterations (default: unlimited)",
     )
+    loop_parser.add_argument(
+        "--max-consecutive-discard",
+        type=int,
+        default=None,
+        help="Stop after N consecutive discards (default: unlimited)",
+    )
+    loop_parser.add_argument(
+        "--dimension-threshold",
+        type=float,
+        default=None,
+        help="Stop when all dimension scores exceed this threshold (default: none)",
+    )
     return parser
 
 
@@ -99,7 +111,11 @@ def cmd_iterate(args: argparse.Namespace) -> int:
 
 
 def cmd_loop(args: argparse.Namespace) -> int:
-    stop = StopConditions(max_iterations=args.max_iterations)
+    stop = StopConditions(
+        max_iterations=args.max_iterations,
+        max_consecutive_discard=args.max_consecutive_discard,
+        dimension_threshold=args.dimension_threshold,
+    )
     outcomes = run_loop(
         run_dir=Path(args.run_dir),
         producer_kind=args.producer,

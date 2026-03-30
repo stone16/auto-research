@@ -388,5 +388,650 @@ class TestLoopSummaryOutput(unittest.TestCase):
             self.assertIn("status", output.lower())
 
 
+# ---------------------------------------------------------------------------
+# Test: StopConditions new fields (Checkpoint 06b)
+# ---------------------------------------------------------------------------
+
+
+class TestStopConditionsExtended(unittest.TestCase):
+    """Test that StopConditions has the new fields for 06b."""
+
+    def test_max_consecutive_discard_default_none(self) -> None:
+        from llm_autoresearch.models import StopConditions
+
+        sc = StopConditions()
+        self.assertIsNone(sc.max_consecutive_discard)
+
+    def test_max_consecutive_discard_set(self) -> None:
+        from llm_autoresearch.models import StopConditions
+
+        sc = StopConditions(max_consecutive_discard=3)
+        self.assertEqual(sc.max_consecutive_discard, 3)
+
+    def test_dimension_threshold_default_none(self) -> None:
+        from llm_autoresearch.models import StopConditions
+
+        sc = StopConditions()
+        self.assertIsNone(sc.dimension_threshold)
+
+    def test_dimension_threshold_set(self) -> None:
+        from llm_autoresearch.models import StopConditions
+
+        sc = StopConditions(dimension_threshold=0.8)
+        self.assertAlmostEqual(sc.dimension_threshold, 0.8)
+
+
+# ---------------------------------------------------------------------------
+# Test: IterationOutcome new field dimension_scores (Checkpoint 06b)
+# ---------------------------------------------------------------------------
+
+
+class TestIterationOutcomeDimensionScores(unittest.TestCase):
+    """Test that IterationOutcome has a dimension_scores field."""
+
+    def test_dimension_scores_default_none(self) -> None:
+        from llm_autoresearch.models import IterationOutcome
+
+        outcome = IterationOutcome(
+            iteration=1,
+            status="keep",
+            candidate_score=0.5,
+            previous_best=0.0,
+            knowledge_chars=100,
+            artifact_dir="/tmp/test",
+            experiment_title="test",
+            change_summary="test",
+        )
+        self.assertIsNone(outcome.dimension_scores)
+
+    def test_dimension_scores_set(self) -> None:
+        from llm_autoresearch.models import IterationOutcome
+
+        scores = {"accuracy": 0.8, "coverage": 0.6}
+        outcome = IterationOutcome(
+            iteration=1,
+            status="keep",
+            candidate_score=0.7,
+            previous_best=0.0,
+            knowledge_chars=100,
+            artifact_dir="/tmp/test",
+            experiment_title="test",
+            change_summary="test",
+            dimension_scores=scores,
+        )
+        self.assertEqual(outcome.dimension_scores, scores)
+
+
+# ---------------------------------------------------------------------------
+# Test: max_consecutive_discard stop condition (Checkpoint 06b)
+# ---------------------------------------------------------------------------
+
+
+class TestMaxConsecutiveDiscard(unittest.TestCase):
+    """Test that run_loop stops after N consecutive discards."""
+
+    def test_stops_after_consecutive_discards(self) -> None:
+        """run_loop should stop when max_consecutive_discard is exceeded.
+
+        The mock provider produces deterministic results. We run enough
+        iterations that all will be discards (after the first keep) and
+        verify the loop stops at the right point.
+        """
+        from unittest.mock import patch
+
+        from llm_autoresearch.loop import run_loop
+        from llm_autoresearch.models import IterationOutcome, StopConditions
+        from llm_autoresearch.run_files import init_run
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "discard-run"
+            init_run(run_dir, topic=None, provider_kind="mock", example=True)
+            _init_test_repo(run_dir)
+
+            # Make run_iteration always return "discard" outcomes
+            call_count = 0
+
+            def mock_run_iteration(**kwargs):
+                nonlocal call_count
+                call_count += 1
+                return IterationOutcome(
+                    iteration=call_count,
+                    status="discard",
+                    candidate_score=0.1,
+                    previous_best=0.5,
+                    knowledge_chars=100,
+                    artifact_dir=str(run_dir / f"artifacts/iteration-{call_count:04d}"),
+                    experiment_title=f"mock-{call_count}",
+                    change_summary="test",
+                    priority_dimension="accuracy",
+                )
+
+            stop = StopConditions(max_consecutive_discard=3, max_iterations=100)
+            with patch("llm_autoresearch.loop.run_iteration", side_effect=mock_run_iteration):
+                outcomes = run_loop(
+                    run_dir=run_dir,
+                    producer_kind="mock",
+                    judge_kind="mock",
+                    tag="discard-test",
+                    stop_conditions=stop,
+                )
+
+            # Should have stopped after 3 consecutive discards
+            self.assertEqual(len(outcomes), 3)
+
+    def test_discard_counter_resets_on_keep(self) -> None:
+        """If a 'keep' occurs, consecutive discard counter resets."""
+        from unittest.mock import patch
+
+        from llm_autoresearch.loop import run_loop
+        from llm_autoresearch.models import IterationOutcome, StopConditions
+        from llm_autoresearch.run_files import init_run
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "reset-run"
+            init_run(run_dir, topic=None, provider_kind="mock", example=True)
+            _init_test_repo(run_dir)
+
+            # Pattern: discard, discard, keep, discard, discard, discard (stop at 6)
+            call_count = 0
+            statuses = ["discard", "discard", "keep", "discard", "discard", "discard"]
+
+            def mock_run_iteration(**kwargs):
+                nonlocal call_count
+                call_count += 1
+                idx = min(call_count - 1, len(statuses) - 1)
+                return IterationOutcome(
+                    iteration=call_count,
+                    status=statuses[idx],
+                    candidate_score=0.5 if statuses[idx] == "keep" else 0.1,
+                    previous_best=0.0,
+                    knowledge_chars=100,
+                    artifact_dir=str(run_dir / f"artifacts/iteration-{call_count:04d}"),
+                    experiment_title=f"mock-{call_count}",
+                    change_summary="test",
+                    priority_dimension="accuracy",
+                )
+
+            stop = StopConditions(max_consecutive_discard=3, max_iterations=100)
+            with patch("llm_autoresearch.loop.run_iteration", side_effect=mock_run_iteration):
+                outcomes = run_loop(
+                    run_dir=run_dir,
+                    producer_kind="mock",
+                    judge_kind="mock",
+                    tag="reset-test",
+                    stop_conditions=stop,
+                )
+
+            # 6 iterations: 2 discards, 1 keep (resets), then 3 discards (triggers stop)
+            self.assertEqual(len(outcomes), 6)
+
+
+# ---------------------------------------------------------------------------
+# Test: dimension_threshold stop condition (Checkpoint 06b)
+# ---------------------------------------------------------------------------
+
+
+class TestDimensionThreshold(unittest.TestCase):
+    """Test that run_loop stops when all dimension scores exceed the threshold."""
+
+    def test_stops_when_all_dimensions_above_threshold(self) -> None:
+        """If all dimension scores are above threshold, loop should stop."""
+        from unittest.mock import patch
+
+        from llm_autoresearch.loop import run_loop
+        from llm_autoresearch.models import IterationOutcome, StopConditions
+        from llm_autoresearch.run_files import init_run
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "threshold-run"
+            init_run(run_dir, topic=None, provider_kind="mock", example=True)
+            _init_test_repo(run_dir)
+
+            call_count = 0
+
+            def mock_run_iteration(**kwargs):
+                nonlocal call_count
+                call_count += 1
+                # All dimension scores above 0.8 threshold
+                return IterationOutcome(
+                    iteration=call_count,
+                    status="keep",
+                    candidate_score=0.9,
+                    previous_best=0.0,
+                    knowledge_chars=100,
+                    artifact_dir=str(run_dir / f"artifacts/iteration-{call_count:04d}"),
+                    experiment_title=f"mock-{call_count}",
+                    change_summary="test",
+                    priority_dimension="accuracy",
+                    dimension_scores={"accuracy": 0.9, "coverage": 0.85},
+                )
+
+            stop = StopConditions(dimension_threshold=0.8, max_iterations=100)
+            with patch("llm_autoresearch.loop.run_iteration", side_effect=mock_run_iteration):
+                outcomes = run_loop(
+                    run_dir=run_dir,
+                    producer_kind="mock",
+                    judge_kind="mock",
+                    tag="threshold-test",
+                    stop_conditions=stop,
+                )
+
+            # Should stop after 1 iteration since all scores are above threshold
+            self.assertEqual(len(outcomes), 1)
+
+    def test_continues_when_some_dimensions_below_threshold(self) -> None:
+        """If some dimension scores are below threshold, loop continues."""
+        from unittest.mock import patch
+
+        from llm_autoresearch.loop import run_loop
+        from llm_autoresearch.models import IterationOutcome, StopConditions
+        from llm_autoresearch.run_files import init_run
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "below-threshold-run"
+            init_run(run_dir, topic=None, provider_kind="mock", example=True)
+            _init_test_repo(run_dir)
+
+            call_count = 0
+
+            def mock_run_iteration(**kwargs):
+                nonlocal call_count
+                call_count += 1
+                # First 2 iterations: coverage below threshold; 3rd: all above
+                if call_count < 3:
+                    scores = {"accuracy": 0.9, "coverage": 0.5}
+                else:
+                    scores = {"accuracy": 0.9, "coverage": 0.85}
+                return IterationOutcome(
+                    iteration=call_count,
+                    status="keep",
+                    candidate_score=0.7,
+                    previous_best=0.0,
+                    knowledge_chars=100,
+                    artifact_dir=str(run_dir / f"artifacts/iteration-{call_count:04d}"),
+                    experiment_title=f"mock-{call_count}",
+                    change_summary="test",
+                    priority_dimension="coverage",
+                    dimension_scores=scores,
+                )
+
+            stop = StopConditions(dimension_threshold=0.8, max_iterations=100)
+            with patch("llm_autoresearch.loop.run_iteration", side_effect=mock_run_iteration):
+                outcomes = run_loop(
+                    run_dir=run_dir,
+                    producer_kind="mock",
+                    judge_kind="mock",
+                    tag="below-test",
+                    stop_conditions=stop,
+                )
+
+            # Should run 3 iterations (first 2 below threshold, 3rd triggers stop)
+            self.assertEqual(len(outcomes), 3)
+
+    def test_skips_threshold_check_when_no_dimension_scores(self) -> None:
+        """If dimension_scores is None, threshold check is skipped."""
+        from unittest.mock import patch
+
+        from llm_autoresearch.loop import run_loop
+        from llm_autoresearch.models import IterationOutcome, StopConditions
+        from llm_autoresearch.run_files import init_run
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "no-scores-run"
+            init_run(run_dir, topic=None, provider_kind="mock", example=True)
+            _init_test_repo(run_dir)
+
+            call_count = 0
+
+            def mock_run_iteration(**kwargs):
+                nonlocal call_count
+                call_count += 1
+                return IterationOutcome(
+                    iteration=call_count,
+                    status="keep",
+                    candidate_score=0.9,
+                    previous_best=0.0,
+                    knowledge_chars=100,
+                    artifact_dir=str(run_dir / f"artifacts/iteration-{call_count:04d}"),
+                    experiment_title=f"mock-{call_count}",
+                    change_summary="test",
+                    priority_dimension="",
+                    dimension_scores=None,  # No scores available
+                )
+
+            stop = StopConditions(dimension_threshold=0.8, max_iterations=3)
+            with patch("llm_autoresearch.loop.run_iteration", side_effect=mock_run_iteration):
+                outcomes = run_loop(
+                    run_dir=run_dir,
+                    producer_kind="mock",
+                    judge_kind="mock",
+                    tag="no-scores-test",
+                    stop_conditions=stop,
+                )
+
+            # Should run all 3 iterations (threshold check skipped without scores)
+            self.assertEqual(len(outcomes), 3)
+
+
+# ---------------------------------------------------------------------------
+# Test: Crash recovery (Checkpoint 06b)
+# ---------------------------------------------------------------------------
+
+
+class TestCrashRecovery(unittest.TestCase):
+    """Test that a crash in one iteration does not kill the loop."""
+
+    def test_single_crash_does_not_kill_loop(self) -> None:
+        """If run_iteration raises on one iteration, loop continues."""
+        from unittest.mock import patch
+
+        from llm_autoresearch.loop import run_loop
+        from llm_autoresearch.models import IterationOutcome, StopConditions
+        from llm_autoresearch.run_files import init_run
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "crash-run"
+            init_run(run_dir, topic=None, provider_kind="mock", example=True)
+            _init_test_repo(run_dir)
+
+            call_count = 0
+
+            def mock_run_iteration(**kwargs):
+                nonlocal call_count
+                call_count += 1
+                if call_count == 2:
+                    raise RuntimeError("Simulated crash on iteration 2")
+                return IterationOutcome(
+                    iteration=call_count,
+                    status="keep",
+                    candidate_score=0.5,
+                    previous_best=0.0,
+                    knowledge_chars=100,
+                    artifact_dir=str(run_dir / f"artifacts/iteration-{call_count:04d}"),
+                    experiment_title=f"mock-{call_count}",
+                    change_summary="test",
+                    priority_dimension="accuracy",
+                )
+
+            stop = StopConditions(max_iterations=3)
+            with patch("llm_autoresearch.loop.run_iteration", side_effect=mock_run_iteration):
+                outcomes = run_loop(
+                    run_dir=run_dir,
+                    producer_kind="mock",
+                    judge_kind="mock",
+                    tag="crash-test",
+                    stop_conditions=stop,
+                )
+
+            # Should have 2 successful outcomes (iterations 1 and 3, iteration 2 crashed)
+            self.assertEqual(len(outcomes), 2)
+
+    def test_three_consecutive_crashes_halt_loop(self) -> None:
+        """After 3 consecutive crashes, loop halts with diagnostic message."""
+        import logging
+        from unittest.mock import patch
+
+        from llm_autoresearch.loop import run_loop
+        from llm_autoresearch.models import StopConditions
+        from llm_autoresearch.run_files import init_run
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "multi-crash-run"
+            init_run(run_dir, topic=None, provider_kind="mock", example=True)
+            _init_test_repo(run_dir)
+
+            call_count = 0
+
+            def mock_run_iteration(**kwargs):
+                nonlocal call_count
+                call_count += 1
+                raise RuntimeError(f"Simulated crash on iteration {call_count}")
+
+            stop = StopConditions(max_iterations=10)
+            with patch("llm_autoresearch.loop.run_iteration", side_effect=mock_run_iteration):
+                with self.assertLogs("llm_autoresearch.loop", level=logging.ERROR) as cm:
+                    outcomes = run_loop(
+                        run_dir=run_dir,
+                        producer_kind="mock",
+                        judge_kind="mock",
+                        tag="multi-crash-test",
+                        stop_conditions=stop,
+                    )
+
+            # Should have 0 successful outcomes (all crashed)
+            self.assertEqual(len(outcomes), 0)
+            # Should have exactly 3 calls (halted after 3 consecutive crashes)
+            self.assertEqual(call_count, 3)
+            # Should log an error about consecutive crashes
+            error_messages = [r for r in cm.output if "consecutive crash" in r.lower()]
+            self.assertTrue(len(error_messages) > 0, "Should log consecutive crash halt message")
+
+    def test_crash_counter_resets_on_success(self) -> None:
+        """Consecutive crash counter resets after a successful iteration."""
+        from unittest.mock import patch
+
+        from llm_autoresearch.loop import run_loop
+        from llm_autoresearch.models import IterationOutcome, StopConditions
+        from llm_autoresearch.run_files import init_run
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "crash-reset-run"
+            init_run(run_dir, topic=None, provider_kind="mock", example=True)
+            _init_test_repo(run_dir)
+
+            call_count = 0
+            # Pattern: crash, crash, success, crash, crash, crash (halt at 6)
+            crash_pattern = [True, True, False, True, True, True]
+
+            def mock_run_iteration(**kwargs):
+                nonlocal call_count
+                call_count += 1
+                idx = min(call_count - 1, len(crash_pattern) - 1)
+                if crash_pattern[idx]:
+                    raise RuntimeError(f"Simulated crash on call {call_count}")
+                return IterationOutcome(
+                    iteration=call_count,
+                    status="keep",
+                    candidate_score=0.5,
+                    previous_best=0.0,
+                    knowledge_chars=100,
+                    artifact_dir=str(run_dir / f"artifacts/iteration-{call_count:04d}"),
+                    experiment_title=f"mock-{call_count}",
+                    change_summary="test",
+                    priority_dimension="accuracy",
+                )
+
+            stop = StopConditions(max_iterations=100)
+            with patch("llm_autoresearch.loop.run_iteration", side_effect=mock_run_iteration):
+                outcomes = run_loop(
+                    run_dir=run_dir,
+                    producer_kind="mock",
+                    judge_kind="mock",
+                    tag="crash-reset-test",
+                    stop_conditions=stop,
+                )
+
+            # Should have 1 successful outcome (call 3), then halt at call 6 (3 consecutive)
+            self.assertEqual(len(outcomes), 1)
+            self.assertEqual(call_count, 6)
+
+
+# ---------------------------------------------------------------------------
+# Test: SIGINT handling (Checkpoint 06b)
+# ---------------------------------------------------------------------------
+
+
+class TestSIGINTHandling(unittest.TestCase):
+    """Test that SIGINT sets a shutdown event and the loop checks it."""
+
+    def test_shutdown_event_stops_loop_immediately(self) -> None:
+        """If shutdown event is set before loop runs, loop exits with 0 iterations."""
+        import threading
+        from unittest.mock import patch
+
+        from llm_autoresearch.loop import run_loop
+        from llm_autoresearch.models import StopConditions
+        from llm_autoresearch.run_files import init_run
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "sigint-run"
+            init_run(run_dir, topic=None, provider_kind="mock", example=True)
+            _init_test_repo(run_dir)
+
+            # Pre-set the shutdown event
+            shutdown = threading.Event()
+            shutdown.set()
+
+            stop = StopConditions(max_iterations=100)
+            outcomes = run_loop(
+                run_dir=run_dir,
+                producer_kind="mock",
+                judge_kind="mock",
+                tag="sigint-test",
+                stop_conditions=stop,
+                shutdown_event=shutdown,
+            )
+
+            # Should exit immediately with no iterations
+            self.assertEqual(len(outcomes), 0)
+
+    def test_shutdown_event_after_first_iteration(self) -> None:
+        """If shutdown event is set during first iteration, loop exits after that iteration."""
+        import threading
+        from unittest.mock import patch
+
+        from llm_autoresearch.loop import run_loop
+        from llm_autoresearch.models import IterationOutcome, StopConditions
+        from llm_autoresearch.run_files import init_run
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "sigint-after-run"
+            init_run(run_dir, topic=None, provider_kind="mock", example=True)
+            _init_test_repo(run_dir)
+
+            shutdown = threading.Event()
+            call_count = 0
+
+            def mock_run_iteration(**kwargs):
+                nonlocal call_count
+                call_count += 1
+                # Set shutdown after first iteration completes
+                shutdown.set()
+                return IterationOutcome(
+                    iteration=call_count,
+                    status="keep",
+                    candidate_score=0.5,
+                    previous_best=0.0,
+                    knowledge_chars=100,
+                    artifact_dir=str(run_dir / f"artifacts/iteration-{call_count:04d}"),
+                    experiment_title=f"mock-{call_count}",
+                    change_summary="test",
+                    priority_dimension="accuracy",
+                )
+
+            stop = StopConditions(max_iterations=100)
+            with patch("llm_autoresearch.loop.run_iteration", side_effect=mock_run_iteration):
+                outcomes = run_loop(
+                    run_dir=run_dir,
+                    producer_kind="mock",
+                    judge_kind="mock",
+                    tag="sigint-after-test",
+                    stop_conditions=stop,
+                    shutdown_event=shutdown,
+                )
+
+            # Should have exactly 1 iteration (shutdown set after first)
+            self.assertEqual(len(outcomes), 1)
+
+    def test_sigint_handler_sets_event(self) -> None:
+        """The install_sigint_handler function should set the event on simulated call."""
+        import threading
+
+        from llm_autoresearch.loop import install_sigint_handler
+
+        shutdown = threading.Event()
+        handler = install_sigint_handler(shutdown)
+
+        # Verify event is not set initially
+        self.assertFalse(shutdown.is_set())
+
+        # Simulate calling the handler (signal number and frame are irrelevant)
+        handler(2, None)  # SIGINT = signal 2
+
+        # Event should now be set
+        self.assertTrue(shutdown.is_set())
+
+
+# ---------------------------------------------------------------------------
+# Test: CLI flags for new stop conditions (Checkpoint 06b)
+# ---------------------------------------------------------------------------
+
+
+class TestLoopCLIExtended(unittest.TestCase):
+    """Test new CLI flags --max-consecutive-discard and --dimension-threshold."""
+
+    def test_max_consecutive_discard_flag(self) -> None:
+        from llm_autoresearch.cli import build_parser
+
+        parser = build_parser()
+        args = parser.parse_args([
+            "loop", "/tmp/t", "--tag", "x", "--max-consecutive-discard", "5",
+        ])
+        self.assertEqual(args.max_consecutive_discard, 5)
+
+    def test_max_consecutive_discard_default_none(self) -> None:
+        from llm_autoresearch.cli import build_parser
+
+        parser = build_parser()
+        args = parser.parse_args(["loop", "/tmp/t", "--tag", "x"])
+        self.assertIsNone(args.max_consecutive_discard)
+
+    def test_dimension_threshold_flag(self) -> None:
+        from llm_autoresearch.cli import build_parser
+
+        parser = build_parser()
+        args = parser.parse_args([
+            "loop", "/tmp/t", "--tag", "x", "--dimension-threshold", "0.85",
+        ])
+        self.assertAlmostEqual(args.dimension_threshold, 0.85)
+
+    def test_dimension_threshold_default_none(self) -> None:
+        from llm_autoresearch.cli import build_parser
+
+        parser = build_parser()
+        args = parser.parse_args(["loop", "/tmp/t", "--tag", "x"])
+        self.assertIsNone(args.dimension_threshold)
+
+    def test_cmd_loop_passes_new_stop_conditions(self) -> None:
+        """cmd_loop should pass new stop conditions to run_loop."""
+        from unittest.mock import patch
+
+        from llm_autoresearch.cli import cmd_loop
+
+        # Create a namespace that simulates parsed args
+        import argparse
+
+        args = argparse.Namespace(
+            run_dir="/tmp/test",
+            tag="test",
+            producer="mock",
+            judge="mock",
+            max_iterations=10,
+            max_consecutive_discard=5,
+            dimension_threshold=0.9,
+        )
+
+        with patch("llm_autoresearch.cli.run_loop", return_value=[]) as mock_loop:
+            cmd_loop(args)
+            call_kwargs = mock_loop.call_args
+            stop = call_kwargs[1]["stop_conditions"] if "stop_conditions" in call_kwargs[1] else call_kwargs[0][4] if len(call_kwargs[0]) > 4 else None
+            # Access via keyword args
+            stop = mock_loop.call_args.kwargs.get("stop_conditions") or mock_loop.call_args[1].get("stop_conditions")
+            self.assertIsNotNone(stop)
+            self.assertEqual(stop.max_iterations, 10)
+            self.assertEqual(stop.max_consecutive_discard, 5)
+            self.assertAlmostEqual(stop.dimension_threshold, 0.9)
+
+
 if __name__ == "__main__":
     unittest.main()
