@@ -3,7 +3,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from .loop import run_iteration
+from .loop import run_iteration, run_loop
+from .models import StopConditions
 from .run_files import init_run
 
 
@@ -37,6 +38,47 @@ def build_parser() -> argparse.ArgumentParser:
         "--provider-command",
         help="Command string for the command provider",
     )
+
+    loop_parser = subparsers.add_parser(
+        "loop",
+        help="Run continuous research iterations with produce-judge-feedback cycle",
+    )
+    loop_parser.add_argument("run_dir", help="Directory for the run")
+    loop_parser.add_argument(
+        "--tag",
+        required=True,
+        help="Tag for the autoresearch branch (creates autoresearch/<tag>)",
+    )
+    loop_parser.add_argument(
+        "--producer",
+        default="mock",
+        choices=["mock", "cli", "codex", "claude"],
+        help="Producer provider kind (default: mock)",
+    )
+    loop_parser.add_argument(
+        "--judge",
+        default="mock",
+        choices=["mock", "cli", "codex", "claude"],
+        help="Judge provider kind (default: mock)",
+    )
+    loop_parser.add_argument(
+        "--max-iterations",
+        type=int,
+        default=None,
+        help="Maximum number of iterations (default: unlimited)",
+    )
+    loop_parser.add_argument(
+        "--max-consecutive-discard",
+        type=int,
+        default=None,
+        help="Stop after N consecutive discards (default: unlimited)",
+    )
+    loop_parser.add_argument(
+        "--dimension-threshold",
+        type=float,
+        default=None,
+        help="Stop when all dimension scores exceed this threshold (default: none)",
+    )
     return parser
 
 
@@ -68,6 +110,23 @@ def cmd_iterate(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_loop(args: argparse.Namespace) -> int:
+    stop = StopConditions(
+        max_iterations=args.max_iterations,
+        max_consecutive_discard=args.max_consecutive_discard,
+        dimension_threshold=args.dimension_threshold,
+    )
+    outcomes = run_loop(
+        run_dir=Path(args.run_dir),
+        producer_kind=args.producer,
+        judge_kind=args.judge,
+        tag=args.tag,
+        stop_conditions=stop,
+    )
+    print(f"\nLoop complete: {len(outcomes)} iterations")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -75,5 +134,7 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_init(args)
     if args.subcommand == "iterate":
         return cmd_iterate(args)
+    if args.subcommand == "loop":
+        return cmd_loop(args)
     parser.error(f"Unsupported command: {args.subcommand}")
     return 2

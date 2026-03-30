@@ -7,7 +7,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .models import BenchmarkItem, RunConfig, RunState, SourceDocument
+import re
+
+from .models import BenchmarkItem, GoalState, QualityDimension, RunConfig, RunState, SourceDocument
 from .templates import (
     default_benchmark,
     default_knowledge_base,
@@ -43,6 +45,8 @@ class RunPaths:
     state_path: Path
     sources_dir: Path
     artifacts_dir: Path
+    judge_feedback_path: Path
+    human_feedback_path: Path
 
 
 @dataclass
@@ -55,6 +59,7 @@ class RunContext:
     benchmark: list[BenchmarkItem]
     state: RunState
     sources: list[SourceDocument]
+    goal_state: GoalState = None  # type: ignore[assignment]
 
 
 def utc_now_iso() -> str:
@@ -84,6 +89,8 @@ def build_paths(run_dir: Path) -> RunPaths:
         state_path=run_dir / "state.json",
         sources_dir=run_dir / "sources",
         artifacts_dir=run_dir / "artifacts",
+        judge_feedback_path=run_dir / "judge_feedback.md",
+        human_feedback_path=run_dir / "human_feedback.md",
     )
 
 
@@ -151,6 +158,64 @@ def parse_source_document(path: Path) -> SourceDocument:
     )
 
 
+def _extract_section(markdown: str, heading: str) -> str | None:
+    """Extract text between a ## heading and the next ## heading (or end of file).
+
+    Returns None if the heading is not found.
+    """
+    pattern = re.compile(
+        r"^##\s+" + re.escape(heading) + r"\s*$",
+        re.MULTILINE,
+    )
+    match = pattern.search(markdown)
+    if match is None:
+        return None
+    start = match.end()
+    # Find the next ## heading or end of string
+    next_heading = re.search(r"^##\s+", markdown[start:], re.MULTILINE)
+    if next_heading:
+        section_text = markdown[start : start + next_heading.start()]
+    else:
+        section_text = markdown[start:]
+    return section_text.strip()
+
+
+def parse_goal_state(topic_markdown: str) -> GoalState:
+    """Parse goal state and quality dimensions from topic markdown.
+
+    Raises ValueError if:
+    - The Quality Dimensions section is missing entirely
+    - The Quality Dimensions section exists but no valid dimensions are parsed
+    """
+    # Parse done_definition from ## Goal State
+    goal_section = _extract_section(topic_markdown, "Goal State")
+    done_definition = goal_section if goal_section else ""
+
+    # Parse quality dimensions from ## Quality Dimensions
+    # Gracefully handle legacy topic.md files that don't have this section
+    dim_section = _extract_section(topic_markdown, "Quality Dimensions")
+    if dim_section is None:
+        return GoalState(done_definition=done_definition, dimensions=[])
+
+    # Parse lines matching: - **Name**: Description
+    dimension_pattern = re.compile(
+        r"^\s*-\s+\*\*(.+?)\*\*\s*:\s*(.+)$",
+        re.MULTILINE,
+    )
+    dimensions = [
+        QualityDimension(name=m.group(1).strip(), description=m.group(2).strip())
+        for m in dimension_pattern.finditer(dim_section)
+    ]
+
+    if not dimensions:
+        raise ValueError(
+            "The '## Quality Dimensions' section exists but no valid dimensions were parsed. "
+            "Expected format: - **Dimension Name**: Description text"
+        )
+
+    return GoalState(done_definition=done_definition, dimensions=dimensions)
+
+
 def load_run_context(run_dir: Path) -> RunContext:
     paths = build_paths(run_dir)
     required = [
@@ -176,15 +241,19 @@ def load_run_context(run_dir: Path) -> RunContext:
         for path in sorted(paths.sources_dir.glob("*.md"))
     ]
 
+    topic_markdown = paths.topic_path.read_text(encoding="utf-8")
+    goal_state = parse_goal_state(topic_markdown)
+
     return RunContext(
         paths=paths,
         config=config,
-        topic_markdown=paths.topic_path.read_text(encoding="utf-8"),
+        topic_markdown=topic_markdown,
         program_markdown=paths.program_path.read_text(encoding="utf-8"),
         knowledge_base_markdown=paths.knowledge_path.read_text(encoding="utf-8"),
         benchmark=benchmark,
         state=state,
         sources=sources,
+        goal_state=goal_state,
     )
 
 

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import json
+import os
 import shlex
+import signal
 import subprocess
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -35,9 +38,11 @@ class BaseProvider:
 
 class MockProvider(BaseProvider):
     def invoke(self, task: ProviderTask) -> dict[str, Any]:
-        if task.task_type != "research_iteration":
-            raise ProviderError(f"Unsupported mock task type: {task.task_type}")
-        return self._research_iteration(task.payload)
+        if task.task_type == "research_iteration":
+            return self._research_iteration(task.payload)
+        if task.task_type == "judge_evaluation":
+            return self._judge_evaluation(task.payload)
+        raise ProviderError(f"Unsupported mock task type: {task.task_type}")
 
     def _research_iteration(self, payload: dict[str, Any]) -> dict[str, Any]:
         topic = payload["topic"]
@@ -112,6 +117,37 @@ class MockProvider(BaseProvider):
         )
         return response.to_dict()
 
+    def _judge_evaluation(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Generate a mock judge evaluation response.
+
+        Reads the configured dimensions from the task payload and returns
+        reasonable scores for each dimension.
+        """
+        goal_state = payload.get("goal_state", {})
+        dimensions = goal_state.get("dimensions", [])
+
+        # Generate scores for each configured dimension
+        # Use a deterministic pattern: 6-8 range for mock scores
+        dimension_scores: dict[str, int] = {}
+        base_score = 7
+        for i, dim in enumerate(dimensions):
+            name = dim.get("name", f"dim_{i}")
+            # Alternate between 6 and 8 for variety
+            dimension_scores[name] = base_score + (1 if i % 2 == 0 else -1)
+
+        # Identify the lowest-scoring dimension as priority
+        if dimension_scores:
+            priority_dimension = min(dimension_scores, key=dimension_scores.get)  # type: ignore[arg-type]
+        else:
+            priority_dimension = "unknown"
+
+        return {
+            "dimension_scores": dimension_scores,
+            "review_markdown": "Mock judge review: candidate shows adequate coverage with room for improvement.",
+            "priority_dimension": priority_dimension,
+            "improvement_suggestion": "Add more specific evidence and citations to strengthen claims.",
+        }
+
 
 class CommandProvider(BaseProvider):
     def __init__(self, command: str, cwd: Path | None = None) -> None:
@@ -143,10 +179,158 @@ class CommandProvider(BaseProvider):
             raise ProviderError(f"Command provider returned invalid JSON: {exc}") from exc
 
 
-def create_provider(kind: str, command: str = "", cwd: Path | None = None) -> BaseProvider:
+_DEFAULT_TIMEOUT = 300  # 5 minutes
+
+
+class CliAgentProvider(BaseProvider):
+    """Provider that spawns a CLI agent (codex, claude, etc.) via subprocess.
+
+    The provider writes the task JSON to a temp file, builds the command from
+    cli_binary + cli_flags + prompt content, and parses JSON from stdout.
+
+    Uses subprocess.Popen with process group management (os.setsid / os.killpg)
+    to ensure child processes are terminated on timeout.
+    """
+
+    def __init__(
+        self,
+        cli_binary: str,
+        cli_flags: str = "",
+        role: str = "producer",
+        timeout: int = _DEFAULT_TIMEOUT,
+    ) -> None:
+        self.cli_binary = cli_binary
+        self.cli_flags = cli_flags
+        self.role = role
+        self.timeout = timeout
+
+    def invoke(self, task: ProviderTask) -> dict[str, Any]:
+        prompt_content = json.dumps(task.to_dict(), indent=2)
+
+        # Write prompt to temp file to avoid OS argv length limits (f4 fix)
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False
+        ) as tmp:
+            tmp.write(prompt_content)
+            prompt_file = tmp.name
+
+        try:
+            # Build command without embedding prompt in argv (avoids OS length limits).
+            # Prompt is delivered via stdin; -p gets the temp file path as a hint.
+            cmd_parts = [self.cli_binary] + shlex.split(self.cli_flags) + [
+                "-p", prompt_file
+            ]
+
+            proc = subprocess.Popen(
+                cmd_parts,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                preexec_fn=os.setsid,
+            )
+        except FileNotFoundError as exc:
+            os.unlink(prompt_file)
+            raise ProviderError(
+                f"CLI binary not found: {self.cli_binary}"
+            ) from exc
+        except OSError as exc:
+            os.unlink(prompt_file)
+            raise ProviderError(
+                f"Failed to spawn CLI process: {exc}"
+            ) from exc
+
+        try:
+            # Send prompt via stdin as well for tools that prefer it
+            stdout, stderr = proc.communicate(
+                input=prompt_content, timeout=self.timeout
+            )
+        except subprocess.TimeoutExpired:
+            # Kill entire process group: SIGTERM first, then SIGKILL if still alive
+            try:
+                os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            except OSError:
+                proc.kill()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait(timeout=5)
+            raise ProviderError(
+                f"CLI agent timeout after {self.timeout}s: {self.cli_binary}"
+            )
+        finally:
+            # Close pipe descriptors to prevent resource leaks (f5 fix)
+            for pipe in (proc.stdout, proc.stderr):
+                if pipe is not None:
+                    try:
+                        pipe.close()
+                    except OSError:
+                        pass
+            os.unlink(prompt_file)
+
+        if proc.returncode != 0:
+            raise ProviderError(
+                f"CLI agent exited with code {proc.returncode}: "
+                f"{stderr.strip() if stderr else '(no stderr)'}"
+            )
+
+        return self._extract_json(stdout)
+
+    @staticmethod
+    def _extract_json(stdout: str) -> dict[str, Any]:
+        """Find the first '{' in stdout and parse JSON from there.
+
+        This handles CLI tools that emit non-JSON preamble (status messages,
+        progress indicators) before the actual JSON output.
+        """
+        brace_idx = stdout.find("{")
+        if brace_idx == -1:
+            raise ProviderError(
+                "CLI agent stdout contains no JSON object. "
+                f"Output: {stdout[:200]}"
+            )
+        json_str = stdout[brace_idx:]
+        try:
+            return json.loads(json_str)
+        except json.JSONDecodeError as exc:
+            raise ProviderError(
+                f"CLI agent returned invalid JSON: {exc}. "
+                f"Raw output (from first brace): {json_str[:200]}"
+            ) from exc
+
+
+# Pre-configured CLI agent patterns
+_CLI_PRESETS: dict[str, tuple[str, str]] = {
+    "codex": ("codex", "-q --json --approval-mode full-auto"),
+    "claude": ("claude", "--output-format json --dangerously-skip-permissions"),
+}
+
+
+def create_provider(
+    kind: str,
+    command: str = "",
+    cwd: Path | None = None,
+    cli_binary: str = "",
+    cli_flags: str = "",
+    role: str = "producer",
+) -> BaseProvider:
     normalized = kind.strip().lower()
     if normalized == "mock":
         return MockProvider()
     if normalized == "command":
         return CommandProvider(command=command, cwd=cwd)
+    if normalized in _CLI_PRESETS:
+        preset_binary, preset_flags = _CLI_PRESETS[normalized]
+        return CliAgentProvider(
+            cli_binary=cli_binary or preset_binary,
+            cli_flags=cli_flags or preset_flags,
+            role=role,
+        )
+    if normalized == "cli":
+        return CliAgentProvider(
+            cli_binary=cli_binary,
+            cli_flags=cli_flags,
+            role=role,
+        )
     raise ProviderError(f"Unsupported provider kind: {kind}")

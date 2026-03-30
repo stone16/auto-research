@@ -40,6 +40,17 @@ def default_topic(topic: str) -> str:
         - Define the boundaries of this run.
         - Describe what "good understanding" means for this topic.
         - Note which ambiguities should be resolved by future iterations.
+
+        ## Goal State
+
+        A thorough, well-sourced understanding of the core mechanisms and evidence behind: {topic}
+
+        ## Quality Dimensions
+
+        - **Causal Completeness**: All major causal pathways and mechanisms are identified and explained
+        - **Evidence Density**: Claims are backed by specific source references with cited IDs
+        - **Coverage Breadth**: All key sub-topics and relevant aspects are addressed
+        - **Conciseness**: No redundant, repetitive, or filler content; information is dense and organized
         """
     )
 

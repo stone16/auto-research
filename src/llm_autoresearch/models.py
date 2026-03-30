@@ -172,18 +172,21 @@ class RunState:
 class EvaluationConfig:
     minimum_improvement: float = 0.01
     allow_tie_if_shorter: bool = True
+    gate_threshold: float = 0.0
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "EvaluationConfig":
         return cls(
             minimum_improvement=float(data.get("minimum_improvement", 0.01)),
             allow_tie_if_shorter=bool(data.get("allow_tie_if_shorter", True)),
+            gate_threshold=float(data.get("gate_threshold", 0.0)),
         )
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "minimum_improvement": self.minimum_improvement,
             "allow_tie_if_shorter": self.allow_tie_if_shorter,
+            "gate_threshold": self.gate_threshold,
         }
 
 
@@ -207,11 +210,34 @@ class ProviderConfig:
 
 
 @dataclass
+class CliAgentConfig:
+    """Configuration for a CLI agent role (producer or judge)."""
+
+    cli: str = ""
+    flags: str = ""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "CliAgentConfig":
+        return cls(
+            cli=str(data.get("cli", "")),
+            flags=str(data.get("flags", "")),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "cli": self.cli,
+            "flags": self.flags,
+        }
+
+
+@dataclass
 class RunConfig:
     topic: str
     slug: str
     provider: ProviderConfig = field(default_factory=ProviderConfig)
     evaluation: EvaluationConfig = field(default_factory=EvaluationConfig)
+    producer: CliAgentConfig = field(default_factory=CliAgentConfig)
+    judge: CliAgentConfig = field(default_factory=CliAgentConfig)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "RunConfig":
@@ -220,6 +246,8 @@ class RunConfig:
             slug=str(data["slug"]),
             provider=ProviderConfig.from_dict(data.get("provider", {})),
             evaluation=EvaluationConfig.from_dict(data.get("evaluation", {})),
+            producer=CliAgentConfig.from_dict(data.get("producer", {})),
+            judge=CliAgentConfig.from_dict(data.get("judge", {})),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -228,7 +256,34 @@ class RunConfig:
             "slug": self.slug,
             "provider": self.provider.to_dict(),
             "evaluation": self.evaluation.to_dict(),
+            "producer": self.producer.to_dict(),
+            "judge": self.judge.to_dict(),
         }
+
+
+@dataclass
+class QualityDimension:
+    """A single quality dimension scored on a 0-10 scale (normalized to 0.0-1.0 by dividing by 10)."""
+
+    name: str
+    description: str
+
+
+@dataclass
+class GoalState:
+    """Goal state for a research topic: defines when research is 'done' and how to measure quality."""
+
+    done_definition: str
+    dimensions: list[QualityDimension]
+
+
+@dataclass
+class StopConditions:
+    """Configuration for when to stop the loop."""
+
+    max_iterations: int | None = None
+    max_consecutive_discard: int | None = None
+    dimension_threshold: float | None = None
 
 
 @dataclass
@@ -241,4 +296,6 @@ class IterationOutcome:
     artifact_dir: str
     experiment_title: str
     change_summary: str
+    priority_dimension: str = ""
+    dimension_scores: dict[str, float] | None = None
 
