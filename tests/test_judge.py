@@ -425,5 +425,61 @@ class TestScoringFlow(unittest.TestCase):
         self.assertTrue(result)
 
 
+# ---------------------------------------------------------------------------
+# Test: safe_run_judge graceful fallback
+# ---------------------------------------------------------------------------
+
+class TestSafeRunJudge(unittest.TestCase):
+    """Test that safe_run_judge returns None on provider crash instead of raising."""
+
+    def test_returns_none_on_provider_error(self) -> None:
+        from llm_autoresearch.judge import safe_run_judge
+
+        mock_provider = MagicMock()
+        mock_provider.invoke.side_effect = ProviderError("CLI crashed")
+
+        result = safe_run_judge(
+            goal_state=_sample_goal_state(),
+            candidate_kb="# KB",
+            benchmark_answers=[],
+            judge_provider=mock_provider,
+        )
+        self.assertIsNone(result)
+
+    def test_returns_none_on_value_error(self) -> None:
+        from llm_autoresearch.judge import safe_run_judge
+
+        mock_provider = MagicMock()
+        mock_provider.invoke.return_value = {"bad": "response"}
+
+        result = safe_run_judge(
+            goal_state=_sample_goal_state(),
+            candidate_kb="# KB",
+            benchmark_answers=[],
+            judge_provider=mock_provider,
+        )
+        self.assertIsNone(result)
+
+    def test_returns_report_on_success(self) -> None:
+        from llm_autoresearch.judge import safe_run_judge
+
+        mock_provider = MagicMock()
+        mock_provider.invoke.return_value = {
+            "dimension_scores": {"causal_completeness": 8, "evidence_density": 6},
+            "review_markdown": "Good work.",
+            "priority_dimension": "evidence_density",
+            "improvement_suggestion": "Add more citations.",
+        }
+
+        result = safe_run_judge(
+            goal_state=_sample_goal_state(),
+            candidate_kb="# KB",
+            benchmark_answers=[],
+            judge_provider=mock_provider,
+        )
+        self.assertIsNotNone(result)
+        self.assertAlmostEqual(result.overall_score, 0.7)
+
+
 if __name__ == "__main__":
     unittest.main()

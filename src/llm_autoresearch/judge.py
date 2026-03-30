@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .models import BenchmarkAnswer, GoalState, QualityDimension
-from .providers import BaseProvider, ProviderTask
+from .providers import BaseProvider, ProviderError, ProviderTask
 
 logger = logging.getLogger(__name__)
 
@@ -238,3 +238,22 @@ def run_judge(
 
     raw_response = judge_provider.invoke(task)
     return parse_judge_response(raw_response, goal_state.dimensions)
+
+
+def safe_run_judge(
+    goal_state: GoalState,
+    candidate_kb: str,
+    benchmark_answers: list[BenchmarkAnswer],
+    judge_provider: BaseProvider,
+) -> JudgeReport | None:
+    """Graceful wrapper around run_judge for use in the loop.
+
+    Returns None (instead of raising) when the judge CLI crashes or returns
+    malformed output, allowing the caller to fall back to deterministic-only
+    scoring.
+    """
+    try:
+        return run_judge(goal_state, candidate_kb, benchmark_answers, judge_provider)
+    except (ProviderError, ValueError) as exc:
+        logger.warning("Judge failed, falling back to deterministic scoring: %s", exc)
+        return None
