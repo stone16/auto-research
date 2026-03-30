@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 
 from .evaluator import evaluate_answers
+from .feedback import load_feedback_context
 from .git import commit_iteration, reset_last_commit
 from .models import IterationOutcome, ResearchResponse
 from .providers import ProviderTask, create_provider
@@ -60,6 +61,7 @@ def run_iteration(
 
     iteration = context.state.iteration + 1
     history = load_recent_results(context.paths, limit=5)
+    feedback = load_feedback_context(context.paths)
     task = ProviderTask(
         task_type="research_iteration",
         instructions=build_iteration_instructions(),
@@ -72,6 +74,8 @@ def run_iteration(
             "sources": [source.to_dict() for source in context.sources],
             "history": history,
             "state": context.state.to_dict(),
+            "judge_feedback": feedback["judge_feedback"],
+            "human_feedback": feedback["human_feedback"],
         },
     )
 
