@@ -278,6 +278,13 @@ class GoalState:
 
 
 @dataclass
+class StopConditions:
+    """Configuration for when to stop the loop."""
+
+    max_iterations: int | None = None
+
+
+@dataclass
 class IterationOutcome:
     iteration: int
     status: str
@@ -287,4 +294,5 @@ class IterationOutcome:
     artifact_dir: str
     experiment_title: str
     change_summary: str
+    priority_dimension: str = ""
 
