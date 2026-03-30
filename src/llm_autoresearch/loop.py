@@ -96,7 +96,7 @@ def run_iteration(
     judge_report = None
     priority_dimension = ""
 
-    if judge_provider is not None:
+    if judge_provider is not None and context.goal_state.dimensions:
         gate_threshold = context.config.evaluation.gate_threshold
         if should_invoke_judge(evaluation.total_score, gate_threshold):
             judge_report = safe_run_judge(
@@ -307,7 +307,7 @@ def run_loop(
                         consecutive_crashes,
                     )
                     break
-                iteration_count += 1
+                # Crashes don't consume the iteration budget
                 continue
 
             # Successful iteration: reset crash counter

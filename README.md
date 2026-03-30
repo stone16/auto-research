@@ -6,7 +6,7 @@ This project generalizes that into a reusable CLI tool with pluggable providers,
 
 ## Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────┐
 │                     CLI (cli.py)                     │
 │  autoresearch init | iterate | loop                  │
@@ -59,7 +59,7 @@ The git history becomes a clean ratchet — only improvements survive. Every att
 
 ### Scoring Pipeline
 
-```
+```text
 Candidate → Deterministic Evaluator (boolean gate)
                     │
                     ├── Below threshold → auto-discard (skip judge)
@@ -110,7 +110,7 @@ uv run autoresearch loop runs/my-topic --producer claude --judge codex
 
 Each research run is self-contained in a directory:
 
-```
+```text
 runs/my-topic/
 ├── run.json              # Config (topic, slug, provider settings)
 ├── topic.md              # Scope, goal state, quality dimensions

@@ -763,8 +763,8 @@ class TestCrashRecovery(unittest.TestCase):
                     stop_conditions=stop,
                 )
 
-            # Should have 2 successful outcomes (iterations 1 and 3, iteration 2 crashed)
-            self.assertEqual(len(outcomes), 2)
+            # Crashes don't consume iteration budget — 3 successful outcomes total
+            self.assertEqual(len(outcomes), 3)
 
     def test_three_consecutive_crashes_halt_loop(self) -> None:
         """After 3 consecutive crashes, loop halts with diagnostic message."""

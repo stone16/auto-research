@@ -215,9 +215,10 @@ class CliAgentProvider(BaseProvider):
             prompt_file = tmp.name
 
         try:
-            # Pass prompt content directly as -p arg (not shell subst syntax)
+            # Build command without embedding prompt in argv (avoids OS length limits).
+            # Prompt is delivered via stdin; -p gets the temp file path as a hint.
             cmd_parts = [self.cli_binary] + shlex.split(self.cli_flags) + [
-                "-p", prompt_content
+                "-p", prompt_file
             ]
 
             proc = subprocess.Popen(
@@ -245,12 +246,16 @@ class CliAgentProvider(BaseProvider):
                 input=prompt_content, timeout=self.timeout
             )
         except subprocess.TimeoutExpired:
-            # Kill entire process group to ensure child processes are also terminated
+            # Kill entire process group: SIGTERM first, then SIGKILL if still alive
             try:
                 os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
             except OSError:
                 proc.kill()
-            proc.wait()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait(timeout=5)
             raise ProviderError(
                 f"CLI agent timeout after {self.timeout}s: {self.cli_binary}"
             )
