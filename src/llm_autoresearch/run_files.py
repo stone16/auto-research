@@ -45,6 +45,8 @@ class RunPaths:
     state_path: Path
     sources_dir: Path
     artifacts_dir: Path
+    judge_feedback_path: Path
+    human_feedback_path: Path
 
 
 @dataclass
@@ -87,6 +89,8 @@ def build_paths(run_dir: Path) -> RunPaths:
         state_path=run_dir / "state.json",
         sources_dir=run_dir / "sources",
         artifacts_dir=run_dir / "artifacts",
+        judge_feedback_path=run_dir / "judge_feedback.md",
+        human_feedback_path=run_dir / "human_feedback.md",
     )
 
 
