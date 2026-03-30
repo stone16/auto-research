@@ -197,20 +197,25 @@ class TestEnsureCleanState(unittest.TestCase):
             # Should not raise
             ensure_clean_state(cwd=repo)
 
-    def test_dirty_tracked_file_raises(self) -> None:
+    def test_dirty_ratchet_file_raises(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             repo = _init_test_repo(Path(tmp))
-            # Modify a tracked file
-            (repo / "README.md").write_text("# Modified\n")
+            (repo / "knowledge_base.md").write_text("# KB\n")
+            _run_git(["add", "knowledge_base.md"], cwd=repo)
+            _run_git(["commit", "-m", "Add KB"], cwd=repo)
+            (repo / "knowledge_base.md").write_text("# Modified\n")
             with self.assertRaises(RuntimeError) as ctx:
                 ensure_clean_state(cwd=repo)
             self.assertIn("dirty", str(ctx.exception).lower())
 
-    def test_staged_changes_raise(self) -> None:
+    def test_staged_ratchet_changes_raise(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             repo = _init_test_repo(Path(tmp))
-            (repo / "README.md").write_text("# Modified\n")
-            _run_git(["add", "README.md"], cwd=repo)
+            (repo / "results.tsv").write_text("header\n")
+            _run_git(["add", "results.tsv"], cwd=repo)
+            _run_git(["commit", "-m", "Add results"], cwd=repo)
+            (repo / "results.tsv").write_text("header\nrow1\n")
+            _run_git(["add", "results.tsv"], cwd=repo)
             with self.assertRaises(RuntimeError) as ctx:
                 ensure_clean_state(cwd=repo)
             self.assertIn("dirty", str(ctx.exception).lower())
@@ -220,6 +225,12 @@ class TestEnsureCleanState(unittest.TestCase):
             repo = _init_test_repo(Path(tmp))
             (repo / "some_new_file.txt").write_text("new\n")
             # Untracked files should NOT cause an error
+            ensure_clean_state(cwd=repo)
+
+    def test_unrelated_repo_changes_are_ok(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = _init_test_repo(Path(tmp))
+            (repo / "README.md").write_text("# Modified outside ratchet\n")
             ensure_clean_state(cwd=repo)
 
 

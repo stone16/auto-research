@@ -10,7 +10,7 @@ from .evaluator import evaluate_answers
 from .feedback import append_judge_feedback, load_feedback_context, save_judge_review
 from .git import commit_iteration, ensure_clean_state, init_branch, reset_last_commit
 from .judge import safe_run_judge, should_invoke_judge
-from .models import IterationOutcome, ResearchResponse, StopConditions
+from .models import CliAgentConfig, IterationOutcome, ResearchResponse, StopConditions
 from .providers import BaseProvider, ProviderTask, create_provider
 from .run_files import (
     append_results_row,
@@ -22,6 +22,37 @@ from .run_files import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _create_provider_for_role(
+    kind: str,
+    role_config: CliAgentConfig,
+    role: str,
+) -> BaseProvider:
+    normalized = kind.strip().lower()
+
+    if normalized == "cli":
+        return create_provider(
+            normalized,
+            cli_binary=role_config.cli,
+            cli_flags=role_config.flags,
+            role=role,
+        )
+
+    if normalized in {"codex", "claude"}:
+        cli_binary = ""
+        cli_flags = ""
+        if not role_config.cli or role_config.cli.strip().lower() == normalized:
+            cli_binary = role_config.cli
+            cli_flags = role_config.flags
+        return create_provider(
+            normalized,
+            cli_binary=cli_binary,
+            cli_flags=cli_flags,
+            role=role,
+        )
+
+    return create_provider(normalized, role=role)
 
 
 def build_iteration_instructions() -> str:
@@ -57,11 +88,21 @@ def run_iteration(
     provider_kind: str | None = None,
     command: str | None = None,
     judge_provider: BaseProvider | None = None,
+    producer_provider: BaseProvider | None = None,
 ) -> IterationOutcome:
     context = load_run_context(run_dir)
     resolved_kind = provider_kind or context.config.provider.kind
     resolved_command = command if command is not None else context.config.provider.command
-    provider = create_provider(resolved_kind, command=resolved_command)
+    provider = producer_provider
+    if provider is None:
+        if resolved_kind in {"cli", "codex", "claude"}:
+            provider = _create_provider_for_role(
+                resolved_kind,
+                context.config.producer,
+                role="producer",
+            )
+        else:
+            provider = create_provider(resolved_kind, command=resolved_command)
     previous_best = context.state.best_score
 
     iteration = context.state.iteration + 1
@@ -257,8 +298,17 @@ def run_loop(
         handler = install_sigint_handler(shutdown_event)
         signal.signal(signal.SIGINT, handler)
 
-    # Create the judge provider
-    judge_provider = create_provider(judge_kind)
+    config = load_run_context(run_dir).config
+    producer_provider = _create_provider_for_role(
+        producer_kind,
+        config.producer,
+        role="producer",
+    )
+    judge_provider = _create_provider_for_role(
+        judge_kind,
+        config.judge,
+        role="judge",
+    )
 
     outcomes: list[IterationOutcome] = []
     iteration_count = 0
@@ -292,6 +342,7 @@ def run_loop(
                     run_dir=run_dir,
                     provider_kind=producer_kind,
                     judge_provider=judge_provider,
+                    producer_provider=producer_provider,
                 )
             except Exception:
                 consecutive_crashes += 1
