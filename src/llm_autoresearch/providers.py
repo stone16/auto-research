@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
 import shlex
+import signal
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -143,10 +145,115 @@ class CommandProvider(BaseProvider):
             raise ProviderError(f"Command provider returned invalid JSON: {exc}") from exc
 
 
-def create_provider(kind: str, command: str = "", cwd: Path | None = None) -> BaseProvider:
+_DEFAULT_TIMEOUT = 300  # 5 minutes
+
+
+class CliAgentProvider(BaseProvider):
+    """Provider that spawns a CLI agent (codex, claude, etc.) via subprocess.
+
+    The provider writes the task JSON to a temp file, builds the command from
+    cli_binary + cli_flags + prompt content, and parses JSON from stdout.
+
+    Uses subprocess.Popen with process group management (os.setsid / os.killpg)
+    to ensure child processes are terminated on timeout.
+    """
+
+    def __init__(
+        self,
+        cli_binary: str,
+        cli_flags: str = "",
+        role: str = "producer",
+        timeout: int = _DEFAULT_TIMEOUT,
+    ) -> None:
+        self.cli_binary = cli_binary
+        self.cli_flags = cli_flags
+        self.role = role
+        self.timeout = timeout
+
+    def invoke(self, task: ProviderTask) -> dict[str, Any]:
+        prompt_content = json.dumps(task.to_dict(), indent=2)
+
+        # Build command: cli_binary + cli_flags (split) + prompt_content
+        cmd_parts = [self.cli_binary] + shlex.split(self.cli_flags) + [prompt_content]
+
+        try:
+            proc = subprocess.Popen(
+                cmd_parts,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                preexec_fn=os.setsid,
+            )
+        except FileNotFoundError as exc:
+            raise ProviderError(
+                f"CLI binary not found: {self.cli_binary}"
+            ) from exc
+        except OSError as exc:
+            raise ProviderError(
+                f"Failed to spawn CLI process: {exc}"
+            ) from exc
+
+        try:
+            stdout, stderr = proc.communicate(timeout=self.timeout)
+        except subprocess.TimeoutExpired:
+            # Kill entire process group to ensure child processes are also terminated
+            try:
+                os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            except OSError:
+                proc.kill()
+            proc.wait()
+            raise ProviderError(
+                f"CLI agent timeout after {self.timeout}s: {self.cli_binary}"
+            )
+
+        if proc.returncode != 0:
+            raise ProviderError(
+                f"CLI agent exited with code {proc.returncode}: "
+                f"{stderr.strip() if stderr else '(no stderr)'}"
+            )
+
+        return self._extract_json(stdout)
+
+    @staticmethod
+    def _extract_json(stdout: str) -> dict[str, Any]:
+        """Find the first '{' in stdout and parse JSON from there.
+
+        This handles CLI tools that emit non-JSON preamble (status messages,
+        progress indicators) before the actual JSON output.
+        """
+        brace_idx = stdout.find("{")
+        if brace_idx == -1:
+            raise ProviderError(
+                "CLI agent stdout contains no JSON object. "
+                f"Output: {stdout[:200]}"
+            )
+        json_str = stdout[brace_idx:]
+        try:
+            return json.loads(json_str)
+        except json.JSONDecodeError as exc:
+            raise ProviderError(
+                f"CLI agent returned invalid JSON: {exc}. "
+                f"Raw output (from first brace): {json_str[:200]}"
+            ) from exc
+
+
+def create_provider(
+    kind: str,
+    command: str = "",
+    cwd: Path | None = None,
+    cli_binary: str = "",
+    cli_flags: str = "",
+    role: str = "producer",
+) -> BaseProvider:
     normalized = kind.strip().lower()
     if normalized == "mock":
         return MockProvider()
     if normalized == "command":
         return CommandProvider(command=command, cwd=cwd)
+    if normalized == "cli":
+        return CliAgentProvider(
+            cli_binary=cli_binary,
+            cli_flags=cli_flags,
+            role=role,
+        )
     raise ProviderError(f"Unsupported provider kind: {kind}")
