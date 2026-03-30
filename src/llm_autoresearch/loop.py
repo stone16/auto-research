@@ -242,20 +242,20 @@ def run_loop(
     if stop_conditions is None:
         stop_conditions = StopConditions()
 
-    # Setup SIGINT handling
+    # Ensure clean state and create branch BEFORE installing signal handler
+    # so early failures don't leak the custom handler into the caller
+    ensure_clean_state(cwd=run_dir)
+    init_branch(tag, cwd=run_dir)
+
+    # Setup SIGINT handling (after setup that can raise)
     own_event = shutdown_event is None
     if shutdown_event is None:
         shutdown_event = threading.Event()
+    original_handler = None
     if own_event:
         original_handler = signal.getsignal(signal.SIGINT)
         handler = install_sigint_handler(shutdown_event)
         signal.signal(signal.SIGINT, handler)
-
-    # Ensure clean state before starting the loop
-    ensure_clean_state(cwd=run_dir)
-
-    # Create the autoresearch branch
-    init_branch(tag, cwd=run_dir)
 
     # Create the judge provider
     judge_provider = create_provider(judge_kind)
@@ -350,7 +350,7 @@ def run_loop(
                         break
     finally:
         # Restore original signal handler if we installed one
-        if own_event:
+        if own_event and original_handler is not None:
             signal.signal(signal.SIGINT, original_handler)
 
     return outcomes

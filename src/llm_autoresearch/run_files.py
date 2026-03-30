@@ -192,12 +192,10 @@ def parse_goal_state(topic_markdown: str) -> GoalState:
     done_definition = goal_section if goal_section else ""
 
     # Parse quality dimensions from ## Quality Dimensions
+    # Gracefully handle legacy topic.md files that don't have this section
     dim_section = _extract_section(topic_markdown, "Quality Dimensions")
     if dim_section is None:
-        raise ValueError(
-            "Topic markdown is missing a '## Quality Dimensions' section. "
-            "At least one quality dimension is required."
-        )
+        return GoalState(done_definition=done_definition, dimensions=[])
 
     # Parse lines matching: - **Name**: Description
     dimension_pattern = re.compile(

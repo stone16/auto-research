@@ -160,6 +160,10 @@ def parse_judge_response(
             raise ValueError(f"Judge response missing required key: '{key}'")
 
     raw_scores = raw["dimension_scores"]
+    if not isinstance(raw_scores, dict):
+        raise ValueError(
+            f"Judge response 'dimension_scores' must be an object, got {type(raw_scores).__name__}"
+        )
     configured_names = {dim.name for dim in configured_dimensions}
 
     # Warn about unrecognized dimensions
@@ -261,6 +265,6 @@ def safe_run_judge(
     """
     try:
         return run_judge(goal_state, candidate_kb, benchmark_answers, judge_provider)
-    except (ProviderError, ValueError) as exc:
+    except (ProviderError, ValueError, TypeError, KeyError) as exc:
         logger.warning("Judge failed, falling back to deterministic scoring: %s", exc)
         return None

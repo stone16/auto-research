@@ -52,13 +52,13 @@ def build_parser() -> argparse.ArgumentParser:
     loop_parser.add_argument(
         "--producer",
         default="mock",
-        choices=["mock", "codex", "claude"],
+        choices=["mock", "cli", "codex", "claude"],
         help="Producer provider kind (default: mock)",
     )
     loop_parser.add_argument(
         "--judge",
         default="mock",
-        choices=["mock", "codex", "claude"],
+        choices=["mock", "cli", "codex", "claude"],
         help="Judge provider kind (default: mock)",
     )
     loop_parser.add_argument(

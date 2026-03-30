@@ -215,9 +215,9 @@ class CliAgentProvider(BaseProvider):
             prompt_file = tmp.name
 
         try:
-            # Build command referencing the temp file via -p flag
+            # Pass prompt content directly as -p arg (not shell subst syntax)
             cmd_parts = [self.cli_binary] + shlex.split(self.cli_flags) + [
-                "-p", f"$(cat {prompt_file})"
+                "-p", prompt_content
             ]
 
             proc = subprocess.Popen(

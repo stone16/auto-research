@@ -160,7 +160,7 @@ uv run autoresearch loop runs/example \
 # Inspect results
 cat runs/example/results.tsv
 cat runs/example/knowledge_base.md
-git log --oneline  # Only kept iterations appear
+git log --oneline autoresearch/example-run  # Only kept iterations appear
 ```
 
 ## Creating a Research Topic

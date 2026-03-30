@@ -178,9 +178,9 @@ Done definition here.
 
 Done.
 """
-        with self.assertRaises(ValueError) as ctx:
-            parse_goal_state(md)
-        self.assertIn("dimension", str(ctx.exception).lower())
+        result = parse_goal_state(md)
+        self.assertEqual(result.dimensions, [])
+        self.assertEqual(result.done_definition, "Done.")
 
     def test_parse_multiline_done_definition(self) -> None:
         """Done definition can span multiple lines until next section."""
