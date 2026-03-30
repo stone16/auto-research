@@ -4,4 +4,16 @@ __pycache__/
 .pytest_cache/
 .DS_Store
 
-runs/*/artifacts/
+# User-specific research runs (each user creates their own topics)
+runs/
+
+# Harness orchestration state (per-task, ephemeral)
+.harness/*/
+!.harness/retro/
+!.harness/retro/**
+!.harness/config.json
+
+# Planning artifacts (session-specific)
+findings.md
+progress.md
+task_plan.md

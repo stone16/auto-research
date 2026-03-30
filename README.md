@@ -1,145 +1,261 @@
 # LLM Auto Research
 
-This project is a reusable skeleton for topic-specific, LLM-driven research loops.
+A provider-agnostic framework for autonomous, LLM-driven research loops. Inspired by [karpathy/autoresearch](https://github.com/karpathy/autoresearch) — the core idea is simple: mutate a knowledge base, score the change, keep or discard, repeat.
 
-It borrows the core abstraction from `karpathy/autoresearch`:
+This project generalizes that into a reusable CLI tool with pluggable providers, a git-backed ratchet mechanism, goal-anchored LLM judging, and a feedback engine that gives the producer directional signal across iterations.
 
-- keep a fixed evaluator boundary,
-- mutate one primary artifact,
-- score the change,
-- keep or discard it,
-- log every attempt.
+## Architecture
 
-The first version here is intentionally provider-agnostic. It ships with a `mock` provider for smoke testing and a `command` provider contract so you can wire in any LLM later with a thin wrapper.
+```
+┌─────────────────────────────────────────────────────┐
+│                     CLI (cli.py)                     │
+│  autoresearch init | iterate | loop                  │
+└──────────────┬────────────────────┬──────────────────┘
+               │                    │
+     ┌─────────▼─────────┐  ┌──────▼──────────────────┐
+     │   Run Files Layer  │  │   Git Integration       │
+     │   (run_files.py)   │  │   (git.py)              │
+     │                    │  │                          │
+     │  RunPaths          │  │  init_branch(tag)        │
+     │  RunContext         │  │  commit_iteration()     │
+     │  init_run()        │  │  reset_last_commit()     │
+     │  load_run_context() │  │  get_current_sha()      │
+     └────────┬───────────┘  │  ensure_clean_state()    │
+              │              └──────────────────────────┘
+              │
+     ┌────────▼────────────────────────────────────────┐
+     │              Iteration Loop (loop.py)            │
+     │                                                  │
+     │  1. Load context + feedback                      │
+     │  2. Ask provider to produce candidate            │
+     │  3. Evaluate (deterministic → LLM judge)         │
+     │  4. Keep or discard                              │
+     │  5. Git commit (keep) or git reset (discard)     │
+     │  6. Accumulate feedback for next iteration       │
+     └──┬──────────┬────────────┬───────────┬──────────┘
+        │          │            │           │
+   ┌────▼───┐ ┌───▼────┐ ┌────▼───┐ ┌─────▼──────┐
+   │Provider│ │Evaluator│ │ Judge  │ │  Feedback   │
+   │        │ │         │ │        │ │  Engine     │
+   │mock    │ │determin-│ │LLM-    │ │             │
+   │command │ │istic    │ │anchored│ │judge_feed-  │
+   │cli     │ │rubric   │ │scoring │ │back.md      │
+   │(codex, │ │matching │ │        │ │human_feed-  │
+   │ claude)│ │         │ │        │ │back.md      │
+   └────────┘ └─────────┘ └────────┘ └─────────────┘
+```
 
-## Core Model
+### The Ratchet
 
-Each research run lives in its own directory and contains:
+Every iteration follows a strict keep/discard protocol:
 
-- `program.md`: human-edited research protocol for the run
-- `topic.md`: scope and goals for the topic
-- `knowledge_base.md`: the single mutable artifact
-- `benchmark.json`: fixed benchmark questions and rubrics
-- `sources/`: frozen source documents for the run
-- `results.tsv`: experiment history
-- `state.json`: current best score and iteration state
-- `artifacts/`: saved candidate outputs and evaluation reports
+1. **Produce** — The provider generates a revised `knowledge_base.md` and benchmark answers
+2. **Evaluate** — Deterministic evaluator scores benchmark answers (coverage + citations)
+3. **Judge** — LLM judge scores quality dimensions (causal completeness, evidence density, etc.)
+4. **Decide** — Keep if improved; discard otherwise
+5. **Commit** — On keep: `git commit`. On discard: `git reset HEAD~1`
 
-The loop is:
+The git history becomes a clean ratchet — only improvements survive. Every attempt is preserved in `artifacts/` for audit.
 
-1. Load the current run state.
-2. Ask a provider to propose a revised `knowledge_base.md` and answer benchmark questions.
-3. Score the candidate answers against the fixed benchmark.
-4. Keep the candidate if it improves the best score or ties while simplifying the artifact.
-5. Append the result to `results.tsv`.
+### Scoring Pipeline
+
+```
+Candidate → Deterministic Evaluator (boolean gate)
+                    │
+                    ├── Below threshold → auto-discard (skip judge)
+                    │
+                    └── Above threshold → LLM Judge
+                                              │
+                                              ├── Score each quality dimension 0-10
+                                              ├── Identify priority dimension
+                                              ├── Suggest specific improvement
+                                              │
+                                              └── overall_score → _decision()
+                                                                      │
+                                                                      ├── keep
+                                                                      └── discard
+```
+
+### Feedback Loop
+
+The producer doesn't start from scratch each iteration. It receives:
+
+- **Judge feedback** (`judge_feedback.md`) — Accumulates across iterations. Last N reviews with priority dimensions and specific suggestions.
+- **Human feedback** (`human_feedback.md`) — Hot-reloaded each iteration. Edit it while the loop runs; changes take effect on the next cycle.
+
+This gives the producer directional signal: "your evidence density is weak, strengthen citations for source-3."
+
+## Providers
+
+| Provider | Use Case | How |
+|----------|----------|-----|
+| `mock` | Framework testing | Built-in, deterministic output |
+| `command` | Any external process | Pipe JSON via stdin/stdout |
+| `cli` (codex, claude) | Real research | Spawns CLI agent as subprocess |
+
+Providers are swappable via CLI flags:
+
+```bash
+# Mock (testing)
+uv run autoresearch loop runs/my-topic --producer mock --judge mock
+
+# Real agents
+uv run autoresearch loop runs/my-topic --producer codex --judge claude
+
+# Swap roles
+uv run autoresearch loop runs/my-topic --producer claude --judge codex
+```
+
+## Run Directory Structure
+
+Each research run is self-contained in a directory:
+
+```
+runs/my-topic/
+├── run.json              # Config (topic, slug, provider settings)
+├── topic.md              # Scope, goal state, quality dimensions
+├── program.md            # Research protocol for the producer
+├── knowledge_base.md     # THE mutable artifact (what we're improving)
+├── benchmark.json        # Fixed evaluation rubric
+├── state.json            # Current iteration, best score, etc.
+├── results.tsv           # Full experiment history
+├── judge_feedback.md     # Accumulated judge reviews (auto-written)
+├── human_feedback.md     # Your live steering input (hot-reloaded)
+├── sources/              # Frozen source documents
+│   ├── source-1.md
+│   └── source-2.md
+└── artifacts/            # Every iteration's full output (audit trail)
+    ├── iteration-0001/
+    │   ├── task.json
+    │   ├── candidate.json
+    │   ├── candidate_knowledge_base.md
+    │   ├── evaluation.json
+    │   └── judge_review.md
+    └── iteration-0002/
+        └── ...
+```
+
+**Important**: `runs/` is gitignored. The framework is the open-source artifact; runs are per-user, per-topic working state. Each user creates their own runs for their own research topics.
 
 ## Quick Start
 
-Create an example run:
-
 ```bash
+# Install
+git clone https://github.com/stone16/auto-research.git
+cd auto-research
+uv sync
+
+# Create an example run
 uv run autoresearch init runs/example --example
-```
 
-Run one iteration with the built-in mock provider:
-
-```bash
+# Single iteration (for debugging)
 uv run autoresearch iterate runs/example --provider mock
-```
 
-Inspect the run:
+# Continuous loop (the real deal)
+uv run autoresearch loop runs/example \
+  --producer mock --judge mock \
+  --tag example-run \
+  --max-iterations 10
 
-```bash
+# Inspect results
 cat runs/example/results.tsv
 cat runs/example/knowledge_base.md
+git log --oneline  # Only kept iterations appear
 ```
 
-## Reusing It For New Topics
-
-Create a fresh run:
+## Creating a Research Topic
 
 ```bash
-uv run autoresearch init runs/my-topic --topic "History of GLP-1 agonists"
+uv run autoresearch init runs/glp1-agonists --topic "History of GLP-1 agonists"
 ```
 
 Then edit:
+1. **`topic.md`** — Define the goal state and quality dimensions (what "done" looks like)
+2. **`program.md`** — Instructions for the producer LLM
+3. **`benchmark.json`** — Evaluation rubric with must-include facts and required citations
+4. **`sources/`** — Add your source documents (the frozen evidence set)
 
-- `runs/my-topic/topic.md`
-- `runs/my-topic/program.md`
-- `runs/my-topic/benchmark.json`
-- files under `runs/my-topic/sources/`
-
-After that, run iterations:
+Start the loop:
 
 ```bash
-uv run autoresearch iterate runs/my-topic --provider mock
+uv run autoresearch loop runs/glp1-agonists \
+  --producer codex --judge claude \
+  --tag glp1-v1 \
+  --max-iterations 50 \
+  --dimension-threshold 0.8
 ```
 
-The `mock` provider is just for testing the framework. For a real model, use `--provider command`.
+Steer while it runs by editing `runs/glp1-agonists/human_feedback.md`:
+
+```markdown
+Focus on the timeline of FDA approvals. The chronology section is weak.
+Prioritize evidence from source-3 (the clinical trials meta-analysis).
+```
+
+## Stop Conditions
+
+The loop stops when any condition triggers:
+
+| Flag | Effect |
+|------|--------|
+| `--max-iterations N` | Stop after N iterations |
+| `--max-consecutive-discard N` | Stop after N consecutive discards (stuck) |
+| `--dimension-threshold F` | Stop when all quality dimensions exceed F |
+| Ctrl+C | Graceful shutdown (finishes current iteration) |
+| 3 consecutive crashes | Auto-halt with diagnostic |
 
 ## Command Provider Contract
 
-The command provider runs an external command, sends a JSON task to stdin, and expects JSON on stdout.
+For custom integrations, the `command` provider pipes JSON to stdin and reads JSON from stdout:
 
-Example:
-
-```bash
-uv run autoresearch iterate runs/my-topic \
-  --provider command \
-  --provider-command "python scripts/my_provider.py"
-```
-
-The wrapper command receives a JSON payload like:
-
+**Input** (sent to your command's stdin):
 ```json
 {
   "task_type": "research_iteration",
-  "instructions": "...run program and response schema...",
+  "instructions": "...",
   "payload": {
     "topic": "...",
-    "program": "...",
     "knowledge_base_markdown": "...",
     "benchmark": [...],
     "sources": [...],
-    "history": [...],
-    "state": {...}
+    "judge_feedback": "...",
+    "human_feedback": "..."
   }
 }
 ```
 
-It must return JSON like:
-
+**Output** (your command writes to stdout):
 ```json
 {
   "experiment_title": "tighten the chronology section",
-  "change_summary": "Add a concise timeline and answer benchmark item q1 more directly.",
+  "change_summary": "Added timeline, strengthened source-3 citations",
   "knowledge_base_markdown": "# ...",
   "benchmark_answers": [
-    {
-      "id": "q1",
-      "answer": "....",
-      "citations": ["source-1"]
-    }
-  ],
-  "notes": ["optional free-form notes"]
+    { "id": "q1", "answer": "...", "citations": ["source-1"] }
+  ]
 }
 ```
 
-A working local example wrapper is included at `scripts/example_command_provider.py`.
+See `scripts/example_command_provider.py` for a working example.
 
-## Benchmark Design
+## Development
 
-The default evaluator is deterministic and rubric-driven. Each benchmark item can specify:
+```bash
+# Run tests
+uv run python -m pytest tests/ -v
 
-- `must_include`: phrases or facts that should appear in the answer
-- `required_sources`: source IDs that should be cited
+# Run a single test file
+uv run python -m pytest tests/test_git.py -v
+```
 
-That means the quality of the loop depends heavily on benchmark design. For a serious run, spend time making `benchmark.json` strict and representative.
+## Design Principles
 
-## Current Limitations
+- **Zero external dependencies** — Pure Python, standard library + subprocess
+- **Git as the ratchet** — Clean history of only improvements; full audit trail in artifacts
+- **Provider agnostic** — Mock for testing, CLI agents for real work, command for anything else
+- **Human-in-the-loop** — Hot-reload feedback without restarting the loop
+- **Open-sourceable framework** — The tool is generic; your research runs are private
 
-- No built-in vendor API integration yet
-- Judge is deterministic, not LLM-based
-- Keep/discard is file-level, not git-commit-level
+## License
 
-Those are deliberate choices for the first version because they keep the framework portable and testable.
+MIT
