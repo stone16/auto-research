@@ -259,6 +259,22 @@ class RunConfig:
 
 
 @dataclass
+class QualityDimension:
+    """A single quality dimension scored on a 0-10 scale (normalized to 0.0-1.0 by dividing by 10)."""
+
+    name: str
+    description: str
+
+
+@dataclass
+class GoalState:
+    """Goal state for a research topic: defines when research is 'done' and how to measure quality."""
+
+    done_definition: str
+    dimensions: list[QualityDimension]
+
+
+@dataclass
 class IterationOutcome:
     iteration: int
     status: str
