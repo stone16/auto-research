@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from .evaluator import evaluate_answers
+from .git import commit_iteration, reset_last_commit
 from .models import IterationOutcome, ResearchResponse
 from .providers import ProviderTask, create_provider
 from .run_files import (
@@ -13,6 +15,8 @@ from .run_files import (
     write_json,
     write_text,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def build_iteration_instructions() -> str:
@@ -115,6 +119,21 @@ def run_iteration(
             "change_summary": response.change_summary,
         },
     )
+
+    # -- Git integration: commit the iteration, then reset on discard --
+    commit_sha = commit_iteration(
+        iteration=iteration,
+        experiment_title=response.experiment_title,
+        cwd=run_dir,
+    )
+    if status == "discard" and commit_sha is not None:
+        reset_ok = reset_last_commit(cwd=run_dir)
+        if not reset_ok:
+            logger.error(
+                "Failed to reset commit %s for discarded iteration %d",
+                commit_sha,
+                iteration,
+            )
 
     return IterationOutcome(
         iteration=iteration,
