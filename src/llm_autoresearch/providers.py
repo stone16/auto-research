@@ -179,7 +179,7 @@ class CommandProvider(BaseProvider):
             raise ProviderError(f"Command provider returned invalid JSON: {exc}") from exc
 
 
-_DEFAULT_TIMEOUT = 300  # 5 minutes
+_DEFAULT_TIMEOUT = 600  # 10 minutes (longer for deep research tasks)
 
 
 class CliAgentProvider(BaseProvider):
@@ -206,21 +206,61 @@ class CliAgentProvider(BaseProvider):
 
     def invoke(self, task: ProviderTask) -> dict[str, Any]:
         prompt_content = json.dumps(task.to_dict(), indent=2)
+        if Path(self.cli_binary).name == "codex":
+            return self._invoke_codex(prompt_content)
 
-        # Write prompt to temp file to avoid OS argv length limits (f4 fix)
+        stdout, stderr, returncode = self._run_process(
+            [self.cli_binary] + shlex.split(self.cli_flags) + ["-"],
+            prompt_content,
+        )
+        if returncode != 0:
+            raise ProviderError(
+                f"CLI agent exited with code {returncode}: "
+                f"{stderr.strip() if stderr else '(no stderr)'}"
+            )
+        return self._extract_json(stdout)
+
+    def _invoke_codex(self, prompt_content: str) -> dict[str, Any]:
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".json", delete=False
         ) as tmp:
-            tmp.write(prompt_content)
-            prompt_file = tmp.name
+            output_file = tmp.name
 
         try:
-            # Build command without embedding prompt in argv (avoids OS length limits).
-            # Prompt is delivered via stdin; -p gets the temp file path as a hint.
-            cmd_parts = [self.cli_binary] + shlex.split(self.cli_flags) + [
-                "-p", prompt_file
-            ]
+            stdout, stderr, returncode = self._run_process(
+                [
+                    self.cli_binary,
+                    *shlex.split(self.cli_flags),
+                    "--output-last-message",
+                    output_file,
+                    "-",
+                ],
+                prompt_content,
+            )
+            if returncode != 0:
+                raise ProviderError(
+                    f"CLI agent exited with code {returncode}: "
+                    f"{stderr.strip() if stderr else '(no stderr)'}"
+                )
 
+            output_text = Path(output_file).read_text(encoding="utf-8").strip()
+            if not output_text:
+                raise ProviderError(
+                    "Codex CLI completed without writing the final message payload."
+                )
+            return self._extract_json(output_text)
+        finally:
+            try:
+                os.unlink(output_file)
+            except OSError:
+                pass
+
+    def _run_process(
+        self,
+        cmd_parts: list[str],
+        prompt_content: str,
+    ) -> tuple[str, str, int]:
+        try:
             proc = subprocess.Popen(
                 cmd_parts,
                 stdin=subprocess.PIPE,
@@ -230,23 +270,19 @@ class CliAgentProvider(BaseProvider):
                 preexec_fn=os.setsid,
             )
         except FileNotFoundError as exc:
-            os.unlink(prompt_file)
             raise ProviderError(
                 f"CLI binary not found: {self.cli_binary}"
             ) from exc
         except OSError as exc:
-            os.unlink(prompt_file)
             raise ProviderError(
                 f"Failed to spawn CLI process: {exc}"
             ) from exc
 
         try:
-            # Send prompt via stdin as well for tools that prefer it
             stdout, stderr = proc.communicate(
                 input=prompt_content, timeout=self.timeout
             )
         except subprocess.TimeoutExpired:
-            # Kill entire process group: SIGTERM first, then SIGKILL if still alive
             try:
                 os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
             except OSError:
@@ -260,50 +296,99 @@ class CliAgentProvider(BaseProvider):
                 f"CLI agent timeout after {self.timeout}s: {self.cli_binary}"
             )
         finally:
-            # Close pipe descriptors to prevent resource leaks (f5 fix)
             for pipe in (proc.stdout, proc.stderr):
                 if pipe is not None:
                     try:
                         pipe.close()
                     except OSError:
                         pass
-            os.unlink(prompt_file)
 
-        if proc.returncode != 0:
-            raise ProviderError(
-                f"CLI agent exited with code {proc.returncode}: "
-                f"{stderr.strip() if stderr else '(no stderr)'}"
-            )
-
-        return self._extract_json(stdout)
+        return stdout, stderr, proc.returncode
 
     @staticmethod
     def _extract_json(stdout: str) -> dict[str, Any]:
-        """Find the first '{' in stdout and parse JSON from there.
-
-        This handles CLI tools that emit non-JSON preamble (status messages,
-        progress indicators) before the actual JSON output.
-        """
-        brace_idx = stdout.find("{")
-        if brace_idx == -1:
-            raise ProviderError(
-                "CLI agent stdout contains no JSON object. "
-                f"Output: {stdout[:200]}"
-            )
-        json_str = stdout[brace_idx:]
         try:
-            return json.loads(json_str)
-        except json.JSONDecodeError as exc:
+            parsed = json.loads(stdout)
+        except json.JSONDecodeError:
+            brace_idx = stdout.find("{")
+            if brace_idx == -1:
+                raise ProviderError(
+                    "CLI agent stdout contains no JSON object. "
+                    f"Output: {stdout[:200]}"
+                )
+            json_str = stdout[brace_idx:]
+            try:
+                parsed, _ = json.JSONDecoder().raw_decode(json_str)
+            except json.JSONDecodeError as exc:
+                raise ProviderError(
+                    f"CLI agent returned invalid JSON: {exc}. "
+                    f"Raw output (from first brace): {json_str[:200]}"
+                ) from exc
+
+        return CliAgentProvider._coerce_json_payload(parsed)
+
+    @staticmethod
+    def _coerce_json_payload(parsed: Any) -> dict[str, Any]:
+        if isinstance(parsed, dict):
+            return parsed
+
+        if isinstance(parsed, str):
+            try:
+                nested = json.loads(parsed)
+            except json.JSONDecodeError as exc:
+                raise ProviderError(
+                    "CLI agent returned a string that is not valid JSON: "
+                    f"{parsed[:200]}"
+                ) from exc
+            return CliAgentProvider._coerce_json_payload(nested)
+
+        if isinstance(parsed, list):
+            for item in reversed(parsed):
+                if not isinstance(item, dict):
+                    continue
+
+                result = item.get("result")
+                if isinstance(result, dict):
+                    return result
+                if isinstance(result, str):
+                    try:
+                        nested = json.loads(result)
+                    except json.JSONDecodeError:
+                        nested = None
+                    if isinstance(nested, dict):
+                        return nested
+
+                message = item.get("message")
+                if isinstance(message, dict):
+                    content = message.get("content")
+                    if isinstance(content, list):
+                        for block in reversed(content):
+                            if not isinstance(block, dict):
+                                continue
+                            text = block.get("text")
+                            if not isinstance(text, str):
+                                continue
+                            try:
+                                nested = json.loads(text)
+                            except json.JSONDecodeError:
+                                continue
+                            if isinstance(nested, dict):
+                                return nested
+
             raise ProviderError(
-                f"CLI agent returned invalid JSON: {exc}. "
-                f"Raw output (from first brace): {json_str[:200]}"
-            ) from exc
+                "CLI agent returned a JSON array but no dict payload could be extracted."
+            )
+
+        raise ProviderError(
+            "CLI agent returned JSON that is not an object. "
+            f"Type: {type(parsed).__name__}"
+        )
 
 
 # Pre-configured CLI agent patterns
 _CLI_PRESETS: dict[str, tuple[str, str]] = {
-    "codex": ("codex", "-q --json --approval-mode full-auto"),
-    "claude": ("claude", "--output-format json --dangerously-skip-permissions"),
+    "codex": ("codex", "exec --dangerously-bypass-approvals-and-sandbox"),
+    "claude": ("claude", "-p --dangerously-skip-permissions"),
 }
 
 

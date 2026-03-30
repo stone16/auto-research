@@ -134,20 +134,24 @@ def get_current_sha(*, cwd: Path) -> str:
 
 
 def ensure_clean_state(*, cwd: Path) -> None:
-    """Raise ``RuntimeError`` if the working tree has staged or unstaged changes
-    to tracked files.
+    """Raise ``RuntimeError`` if the current run has staged or unstaged changes
+    to ratchet-managed files.
 
-    Untracked files are allowed -- they do not interfere with the loop.
+    Untracked files and unrelated repo changes are allowed -- the loop only
+    needs a clean state for the files it commits itself.
     """
-    # Check for staged changes
-    staged = _git(["diff", "--cached", "--quiet"], cwd=cwd, check=False)
-    # Check for unstaged changes to tracked files
-    unstaged = _git(["diff", "--quiet"], cwd=cwd, check=False)
+    pathspec = ["--", *TRACKED_FILES]
+    staged = _git(["diff", "--cached", "--quiet", *pathspec], cwd=cwd, check=False)
+    unstaged = _git(["diff", "--quiet", *pathspec], cwd=cwd, check=False)
 
     if staged.returncode != 0 or unstaged.returncode != 0:
-        status_output = _git(["status", "--short"], cwd=cwd, check=False).stdout.strip()
+        status_output = _git(
+            ["status", "--short", *pathspec],
+            cwd=cwd,
+            check=False,
+        ).stdout.strip()
         raise RuntimeError(
             "Working tree is dirty -- staged or unstaged changes detected. "
-            "Commit or stash changes before running the autoresearch loop.\n"
+            "Commit or reset the run files before running the autoresearch loop.\n"
             f"git status:\n{status_output}"
         )

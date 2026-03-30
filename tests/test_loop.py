@@ -17,6 +17,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
@@ -68,6 +69,53 @@ class TestStopConditions(unittest.TestCase):
 
         sc = StopConditions(max_iterations=5)
         self.assertEqual(sc.max_iterations, 5)
+
+
+class TestRoleProviderResolution(unittest.TestCase):
+    """Test provider resolution for producer/judge role configs."""
+
+    def test_matching_role_cli_config_is_applied(self) -> None:
+        from llm_autoresearch.loop import _create_provider_for_role
+        from llm_autoresearch.models import CliAgentConfig
+
+        role_config = CliAgentConfig(cli="codex", flags="exec --foo")
+
+        with patch("llm_autoresearch.loop.create_provider") as mock_create:
+            sentinel = object()
+            mock_create.return_value = sentinel
+
+            result = _create_provider_for_role("codex", role_config, role="producer")
+
+        self.assertIs(result, sentinel)
+        mock_create.assert_called_once_with(
+            "codex",
+            cli_binary="codex",
+            cli_flags="exec --foo",
+            role="producer",
+        )
+
+    def test_mismatched_role_cli_config_is_ignored(self) -> None:
+        from llm_autoresearch.loop import _create_provider_for_role
+        from llm_autoresearch.models import CliAgentConfig
+
+        role_config = CliAgentConfig(
+            cli="claude",
+            flags="-p --dangerously-skip-permissions",
+        )
+
+        with patch("llm_autoresearch.loop.create_provider") as mock_create:
+            sentinel = object()
+            mock_create.return_value = sentinel
+
+            result = _create_provider_for_role("codex", role_config, role="producer")
+
+        self.assertIs(result, sentinel)
+        mock_create.assert_called_once_with(
+            "codex",
+            cli_binary="",
+            cli_flags="",
+            role="producer",
+        )
 
 
 # ---------------------------------------------------------------------------

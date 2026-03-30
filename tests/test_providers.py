@@ -181,6 +181,31 @@ print("no json here")
             with self.assertRaises(ProviderError):
                 provider.invoke(_sample_task())
 
+    def test_extracts_json_from_result_array(self) -> None:
+        """Claude-style JSON envelopes should yield the final structured result."""
+        payload = [
+            {"type": "assistant", "message": {"content": [{"type": "text", "text": "ignore me"}]}},
+            {
+                "type": "result",
+                "result": '{"experiment_title":"array-test","status":"ok"}',
+            },
+        ]
+
+        result = CliAgentProvider._extract_json(json.dumps(payload))
+        self.assertEqual(result["experiment_title"], "array-test")
+        self.assertEqual(result["status"], "ok")
+
+    def test_extracts_first_json_object_with_trailing_text(self) -> None:
+        stdout = (
+            '{"dimension_scores":{"quality":8},"priority_dimension":"quality",'
+            '"review_markdown":"good","improvement_suggestion":"none"}\n'
+            "```"
+        )
+
+        result = CliAgentProvider._extract_json(stdout)
+        self.assertEqual(result["priority_dimension"], "quality")
+        self.assertEqual(result["dimension_scores"]["quality"], 8)
+
     def test_invalid_json_after_brace(self) -> None:
         """Should raise ProviderError when JSON after { is malformed."""
         with tempfile.TemporaryDirectory() as tmp:
