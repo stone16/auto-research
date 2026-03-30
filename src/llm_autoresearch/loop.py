@@ -251,6 +251,9 @@ def run_loop(
         handler = install_sigint_handler(shutdown_event)
         signal.signal(signal.SIGINT, handler)
 
+    # Ensure clean state before starting the loop
+    ensure_clean_state(cwd=run_dir)
+
     # Create the autoresearch branch
     init_branch(tag, cwd=run_dir)
 

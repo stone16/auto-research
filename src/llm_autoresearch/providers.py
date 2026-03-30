@@ -5,6 +5,7 @@ import os
 import shlex
 import signal
 import subprocess
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -206,28 +207,43 @@ class CliAgentProvider(BaseProvider):
     def invoke(self, task: ProviderTask) -> dict[str, Any]:
         prompt_content = json.dumps(task.to_dict(), indent=2)
 
-        # Build command: cli_binary + cli_flags (split) + prompt_content
-        cmd_parts = [self.cli_binary] + shlex.split(self.cli_flags) + [prompt_content]
+        # Write prompt to temp file to avoid OS argv length limits (f4 fix)
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False
+        ) as tmp:
+            tmp.write(prompt_content)
+            prompt_file = tmp.name
 
         try:
+            # Build command referencing the temp file via -p flag
+            cmd_parts = [self.cli_binary] + shlex.split(self.cli_flags) + [
+                "-p", f"$(cat {prompt_file})"
+            ]
+
             proc = subprocess.Popen(
                 cmd_parts,
+                stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
                 preexec_fn=os.setsid,
             )
         except FileNotFoundError as exc:
+            os.unlink(prompt_file)
             raise ProviderError(
                 f"CLI binary not found: {self.cli_binary}"
             ) from exc
         except OSError as exc:
+            os.unlink(prompt_file)
             raise ProviderError(
                 f"Failed to spawn CLI process: {exc}"
             ) from exc
 
         try:
-            stdout, stderr = proc.communicate(timeout=self.timeout)
+            # Send prompt via stdin as well for tools that prefer it
+            stdout, stderr = proc.communicate(
+                input=prompt_content, timeout=self.timeout
+            )
         except subprocess.TimeoutExpired:
             # Kill entire process group to ensure child processes are also terminated
             try:
@@ -238,6 +254,15 @@ class CliAgentProvider(BaseProvider):
             raise ProviderError(
                 f"CLI agent timeout after {self.timeout}s: {self.cli_binary}"
             )
+        finally:
+            # Close pipe descriptors to prevent resource leaks (f5 fix)
+            for pipe in (proc.stdout, proc.stderr):
+                if pipe is not None:
+                    try:
+                        pipe.close()
+                    except OSError:
+                        pass
+            os.unlink(prompt_file)
 
         if proc.returncode != 0:
             raise ProviderError(
@@ -270,6 +295,13 @@ class CliAgentProvider(BaseProvider):
             ) from exc
 
 
+# Pre-configured CLI agent patterns
+_CLI_PRESETS: dict[str, tuple[str, str]] = {
+    "codex": ("codex", "-q --json --approval-mode full-auto"),
+    "claude": ("claude", "--output-format json --dangerously-skip-permissions"),
+}
+
+
 def create_provider(
     kind: str,
     command: str = "",
@@ -283,6 +315,13 @@ def create_provider(
         return MockProvider()
     if normalized == "command":
         return CommandProvider(command=command, cwd=cwd)
+    if normalized in _CLI_PRESETS:
+        preset_binary, preset_flags = _CLI_PRESETS[normalized]
+        return CliAgentProvider(
+            cli_binary=cli_binary or preset_binary,
+            cli_flags=cli_flags or preset_flags,
+            role=role,
+        )
     if normalized == "cli":
         return CliAgentProvider(
             cli_binary=cli_binary,

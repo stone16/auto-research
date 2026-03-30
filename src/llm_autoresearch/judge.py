@@ -170,12 +170,19 @@ def parse_judge_response(
             )
 
     # Build normalized scores for configured dimensions only
+    # Missing configured dimensions default to 0.0 to prevent score inflation
     dimension_scores: dict[str, float] = {}
     for name in configured_names:
         if name in raw_scores:
             raw_val = float(raw_scores[name])
             clamped = max(0.0, min(10.0, raw_val))
             dimension_scores[name] = clamped / 10.0
+        else:
+            logger.warning(
+                "Judge did not return score for configured dimension '%s'; defaulting to 0.0",
+                name,
+            )
+            dimension_scores[name] = 0.0
 
     # Compute overall_score as average of normalized scores
     if dimension_scores:
