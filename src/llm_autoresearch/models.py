@@ -172,18 +172,21 @@ class RunState:
 class EvaluationConfig:
     minimum_improvement: float = 0.01
     allow_tie_if_shorter: bool = True
+    gate_threshold: float = 0.0
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "EvaluationConfig":
         return cls(
             minimum_improvement=float(data.get("minimum_improvement", 0.01)),
             allow_tie_if_shorter=bool(data.get("allow_tie_if_shorter", True)),
+            gate_threshold=float(data.get("gate_threshold", 0.0)),
         )
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "minimum_improvement": self.minimum_improvement,
             "allow_tie_if_shorter": self.allow_tie_if_shorter,
+            "gate_threshold": self.gate_threshold,
         }
 
 
