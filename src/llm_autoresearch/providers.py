@@ -215,11 +215,10 @@ class CliAgentProvider(BaseProvider):
             prompt_file = tmp.name
 
         try:
-            # Build command without embedding prompt in argv (avoids OS length limits).
-            # Prompt is delivered via stdin; -p gets the temp file path as a hint.
-            cmd_parts = [self.cli_binary] + shlex.split(self.cli_flags) + [
-                "-p", prompt_file
-            ]
+            # Build command: prompt is delivered via stdin for both CLIs.
+            # For Codex exec: '-' as prompt arg reads from stdin.
+            # For Claude -p: positional arg '-' reads from stdin.
+            cmd_parts = [self.cli_binary] + shlex.split(self.cli_flags) + ["-"]
 
             proc = subprocess.Popen(
                 cmd_parts,
@@ -302,8 +301,8 @@ class CliAgentProvider(BaseProvider):
 
 # Pre-configured CLI agent patterns
 _CLI_PRESETS: dict[str, tuple[str, str]] = {
-    "codex": ("codex", "-q --json --approval-mode full-auto"),
-    "claude": ("claude", "--output-format json --dangerously-skip-permissions"),
+    "codex": ("codex", "exec --full-auto --json"),
+    "claude": ("claude", "-p --output-format json --dangerously-skip-permissions"),
 }
 
 
