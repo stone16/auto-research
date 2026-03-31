@@ -1,7 +1,110 @@
 from __future__ import annotations
 
+import ast
+import json
+import re
 from dataclasses import dataclass, field
 from typing import Any
+
+_SOURCE_TAG_PATTERN = re.compile(r"\[(source-[A-Za-z0-9_-]+)\]")
+
+
+def _coerce_json_like(value: Any) -> Any:
+    if not isinstance(value, str):
+        return value
+    stripped = value.strip()
+    if not stripped:
+        return value
+    if stripped[0] not in "[{":
+        return value
+    try:
+        return json.loads(stripped)
+    except json.JSONDecodeError:
+        try:
+            return ast.literal_eval(stripped)
+        except (ValueError, SyntaxError):
+            return value
+
+
+def _coerce_text_block(value: Any) -> str:
+    value = _coerce_json_like(value)
+    if value is None:
+        return ""
+    if isinstance(value, list):
+        parts = [str(item).strip() for item in value if str(item).strip()]
+        return "\n".join(f"- {part}" for part in parts)
+    if isinstance(value, dict):
+        return json.dumps(value, indent=2, sort_keys=True)
+    return str(value)
+
+
+def _coerce_string_list(value: Any) -> list[str]:
+    value = _coerce_json_like(value)
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(item) for item in value]
+    if isinstance(value, tuple | set):
+        return [str(item) for item in value]
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped:
+            return []
+        if "," in stripped:
+            parts = [part.strip() for part in stripped.split(",") if part.strip()]
+            if parts:
+                return parts
+        return [stripped]
+    return [str(value)]
+
+
+def _ordered_unique_strings(values: list[str]) -> list[str]:
+    normalized_values: list[str] = []
+    seen: set[str] = set()
+
+    for raw_value in values:
+        normalized = str(raw_value).strip()
+        if not normalized:
+            continue
+        match = _SOURCE_TAG_PATTERN.fullmatch(normalized)
+        if match is not None:
+            normalized = match.group(1)
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        normalized_values.append(normalized)
+
+    return normalized_values
+
+
+def _extract_source_tags(text: str) -> list[str]:
+    if not text:
+        return []
+    return _ordered_unique_strings(_SOURCE_TAG_PATTERN.findall(text))
+
+
+def _coerce_benchmark_answer_items(value: Any) -> list[dict[str, Any]]:
+    value = _coerce_json_like(value)
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [BenchmarkAnswer.from_dict(item).to_dict() for item in value]
+    if isinstance(value, dict):
+        if "id" in value or "answer" in value or "text" in value:
+            return [BenchmarkAnswer.from_dict(value).to_dict()]
+
+        coerced_items: list[dict[str, Any]] = []
+        for key, raw_item in value.items():
+            if isinstance(raw_item, dict):
+                item = dict(raw_item)
+            else:
+                item = {"answer": raw_item}
+            item.setdefault("id", str(key))
+            coerced_items.append(BenchmarkAnswer.from_dict(item).to_dict())
+        return coerced_items
+    raise ValueError(
+        "benchmark_answers must be a list, dict, or JSON string encoding one of those shapes."
+    )
 
 
 @dataclass
@@ -40,10 +143,23 @@ class BenchmarkAnswer:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "BenchmarkAnswer":
+        data = _coerce_json_like(data)
+        if not isinstance(data, dict):
+            raise ValueError(
+                f"Benchmark answer must be an object, got {type(data).__name__}"
+            )
+
+        answer_value = data.get("answer")
+        if answer_value is None and "text" in data:
+            answer_value = data["text"]
+        answer = _coerce_text_block(answer_value)
+        citations = _ordered_unique_strings(
+            _coerce_string_list(data.get("citations", [])) + _extract_source_tags(answer)
+        )
         return cls(
             id=str(data["id"]),
-            answer=str(data.get("answer", "")),
-            citations=[str(item) for item in data.get("citations", [])],
+            answer=answer,
+            citations=citations,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -64,14 +180,21 @@ class ResearchResponse:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "ResearchResponse":
+        data = _coerce_json_like(data)
+        if not isinstance(data, dict):
+            raise ValueError(
+                f"Research response must be an object, got {type(data).__name__}"
+            )
+
         return cls(
             experiment_title=str(data["experiment_title"]),
-            change_summary=str(data.get("change_summary", "")),
+            change_summary=_coerce_text_block(data.get("change_summary", "")),
             knowledge_base_markdown=str(data["knowledge_base_markdown"]),
             benchmark_answers=[
-                BenchmarkAnswer.from_dict(item) for item in data.get("benchmark_answers", [])
+                BenchmarkAnswer.from_dict(item)
+                for item in _coerce_benchmark_answer_items(data.get("benchmark_answers", []))
             ],
-            notes=[str(item) for item in data.get("notes", [])],
+            notes=_coerce_string_list(data.get("notes", [])),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -215,19 +338,25 @@ class CliAgentConfig:
 
     cli: str = ""
     flags: str = ""
+    timeout_seconds: int | None = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "CliAgentConfig":
+        raw_timeout = data.get("timeout_seconds")
         return cls(
             cli=str(data.get("cli", "")),
             flags=str(data.get("flags", "")),
+            timeout_seconds=int(raw_timeout) if raw_timeout is not None else None,
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        data = {
             "cli": self.cli,
             "flags": self.flags,
         }
+        if self.timeout_seconds is not None:
+            data["timeout_seconds"] = self.timeout_seconds
+        return data
 
 
 @dataclass
@@ -282,6 +411,7 @@ class StopConditions:
     """Configuration for when to stop the loop."""
 
     max_iterations: int | None = None
+    max_total_iterations: int | None = None
     max_consecutive_discard: int | None = None
     dimension_threshold: float | None = None
 
@@ -298,4 +428,3 @@ class IterationOutcome:
     change_summary: str
     priority_dimension: str = ""
     dimension_scores: dict[str, float] | None = None
-
