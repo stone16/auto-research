@@ -283,8 +283,10 @@ class TestCreateProviderCli(unittest.TestCase):
             kind="cli",
             cli_binary="codex",
             cli_flags="-q --json --approval-mode full-auto",
+            timeout=123,
         )
         self.assertIsInstance(provider, CliAgentProvider)
+        self.assertEqual(provider.timeout, 123)
 
     def test_create_cli_provider_default_flags(self) -> None:
         provider = create_provider(kind="cli", cli_binary="claude")
@@ -311,10 +313,15 @@ class TestCliAgentConfig(unittest.TestCase):
     def test_cli_agent_config_from_dict(self) -> None:
         from llm_autoresearch.models import CliAgentConfig
 
-        data = {"cli": "codex", "flags": "-q --json --approval-mode full-auto"}
+        data = {
+            "cli": "codex",
+            "flags": "-q --json --approval-mode full-auto",
+            "timeout_seconds": 1800,
+        }
         config = CliAgentConfig.from_dict(data)
         self.assertEqual(config.cli, "codex")
         self.assertEqual(config.flags, "-q --json --approval-mode full-auto")
+        self.assertEqual(config.timeout_seconds, 1800)
 
     def test_cli_agent_config_defaults(self) -> None:
         from llm_autoresearch.models import CliAgentConfig
@@ -322,6 +329,7 @@ class TestCliAgentConfig(unittest.TestCase):
         config = CliAgentConfig()
         self.assertEqual(config.cli, "")
         self.assertEqual(config.flags, "")
+        self.assertIsNone(config.timeout_seconds)
 
     def test_run_config_with_roles(self) -> None:
         from llm_autoresearch.models import CliAgentConfig, RunConfig
@@ -332,20 +340,24 @@ class TestCliAgentConfig(unittest.TestCase):
             "producer": {
                 "cli": "codex",
                 "flags": "-q --json --approval-mode full-auto",
+                "timeout_seconds": 1800,
             },
             "judge": {
                 "cli": "claude",
                 "flags": "--output-format json --dangerously-skip-permissions",
+                "timeout_seconds": 900,
             },
         }
         config = RunConfig.from_dict(data)
         self.assertEqual(config.producer.cli, "codex")
         self.assertEqual(config.producer.flags, "-q --json --approval-mode full-auto")
+        self.assertEqual(config.producer.timeout_seconds, 1800)
         self.assertEqual(config.judge.cli, "claude")
         self.assertEqual(
             config.judge.flags,
             "--output-format json --dangerously-skip-permissions",
         )
+        self.assertEqual(config.judge.timeout_seconds, 900)
 
     def test_run_config_roles_default_empty(self) -> None:
         from llm_autoresearch.models import RunConfig
@@ -363,14 +375,20 @@ class TestCliAgentConfig(unittest.TestCase):
         config = RunConfig(
             topic="test",
             slug="test-slug",
-            producer=CliAgentConfig(cli="codex", flags="-q --json"),
-            judge=CliAgentConfig(cli="claude", flags="--output-format json"),
+            producer=CliAgentConfig(cli="codex", flags="-q --json", timeout_seconds=1800),
+            judge=CliAgentConfig(
+                cli="claude",
+                flags="--output-format json",
+                timeout_seconds=900,
+            ),
         )
         d = config.to_dict()
         self.assertIn("producer", d)
         self.assertIn("judge", d)
         self.assertEqual(d["producer"]["cli"], "codex")
         self.assertEqual(d["judge"]["cli"], "claude")
+        self.assertEqual(d["producer"]["timeout_seconds"], 1800)
+        self.assertEqual(d["judge"]["timeout_seconds"], 900)
 
     def test_run_config_roundtrip(self) -> None:
         from llm_autoresearch.models import CliAgentConfig, RunConfig
@@ -378,15 +396,21 @@ class TestCliAgentConfig(unittest.TestCase):
         original = RunConfig(
             topic="test",
             slug="test-slug",
-            producer=CliAgentConfig(cli="codex", flags="-q --json"),
-            judge=CliAgentConfig(cli="claude", flags="--output-format json"),
+            producer=CliAgentConfig(cli="codex", flags="-q --json", timeout_seconds=1800),
+            judge=CliAgentConfig(
+                cli="claude",
+                flags="--output-format json",
+                timeout_seconds=900,
+            ),
         )
         d = original.to_dict()
         restored = RunConfig.from_dict(d)
         self.assertEqual(restored.producer.cli, original.producer.cli)
         self.assertEqual(restored.producer.flags, original.producer.flags)
+        self.assertEqual(restored.producer.timeout_seconds, original.producer.timeout_seconds)
         self.assertEqual(restored.judge.cli, original.judge.cli)
         self.assertEqual(restored.judge.flags, original.judge.flags)
+        self.assertEqual(restored.judge.timeout_seconds, original.judge.timeout_seconds)
 
 
 if __name__ == "__main__":

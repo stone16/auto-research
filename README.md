@@ -9,7 +9,8 @@ This project generalizes that into a reusable CLI tool with pluggable providers,
 ```text
 ┌─────────────────────────────────────────────────────┐
 │                     CLI (cli.py)                     │
-│  autoresearch init | iterate | loop                  │
+│  autoresearch init | iterate | loop | status |      │
+│  autoresearch supervise                              │
 └──────────────┬────────────────────┬──────────────────┘
                │                    │
      ┌─────────▼─────────┐  ┌──────▼──────────────────┐
@@ -119,8 +120,13 @@ runs/my-topic/
 ├── benchmark.json        # Fixed evaluation rubric
 ├── state.json            # Current iteration, best score, etc.
 ├── results.tsv           # Full experiment history
+├── loop_status.json      # Current loop lifecycle + terminal stop reason
+├── provider_status.json  # Current in-flight producer/judge activity
+├── provider_activity.jsonl # Append-only provider lifecycle events
 ├── judge_feedback.md     # Accumulated judge reviews (auto-written)
 ├── human_feedback.md     # Your live steering input (hot-reloaded)
+├── supervisor_status.json # Optional watchdog state written by `supervise`
+├── supervisor.log        # Optional watchdog heartbeat log
 ├── sources/              # Frozen source documents
 │   ├── source-1.md
 │   └── source-2.md
@@ -157,6 +163,16 @@ uv run autoresearch loop runs/example \
   --tag example-run \
   --max-iterations 10
 
+# Inspect the current runtime state
+uv run autoresearch status runs/example
+
+# Run a watchdog that restarts the loop if the main tmux session dies
+uv run autoresearch supervise runs/example \
+  --tag example-run \
+  --main-session example-run-main \
+  --sidecar-session example-run-supervisor \
+  --producer mock --judge mock
+
 # Inspect results
 cat runs/example/results.tsv
 cat runs/example/knowledge_base.md
@@ -181,7 +197,7 @@ Start the loop:
 uv run autoresearch loop runs/glp1-agonists \
   --producer codex --judge claude \
   --tag glp1-v1 \
-  --max-iterations 50 \
+  --max-total-iterations 25 \
   --dimension-threshold 0.8
 ```
 
@@ -192,6 +208,26 @@ Focus on the timeline of FDA approvals. The chronology section is weak.
 Prioritize evidence from source-3 (the clinical trials meta-analysis).
 ```
 
+For long-running real-agent runs, pair the loop with the built-in supervisor:
+
+```bash
+uv run autoresearch supervise runs/glp1-agonists \
+  --tag glp1-v1 \
+  --main-session glp1-v1-main \
+  --sidecar-session glp1-v1-supervisor \
+  --producer codex --judge claude \
+  --max-total-iterations 25 \
+  --dimension-threshold 0.8
+```
+
+`supervise` writes `supervisor_status.json` and `supervisor.log`, and will restart the
+main loop session if it disappears. Restarts use `--resume-branch`, so the watchdog can
+reattach to the existing `autoresearch/<tag>` branch instead of failing on branch reuse.
+The watchdog also reads `loop_status.json`, so a loop that ended cleanly because of
+`max_iterations`, `max_total_iterations`, `max_consecutive_discard`,
+`dimension_threshold`, or operator shutdown is reported as `stopped` instead of being
+treated like a crash and relaunched forever.
+
 ## Stop Conditions
 
 The loop stops when any condition triggers:
@@ -199,6 +235,7 @@ The loop stops when any condition triggers:
 | Flag | Effect |
 |------|--------|
 | `--max-iterations N` | Stop after N iterations |
+| `--max-total-iterations N` | Stop after N total completed iterations across restarts |
 | `--max-consecutive-discard N` | Stop after N consecutive discards (stuck) |
 | `--dimension-threshold F` | Stop when all quality dimensions exceed F |
 | Ctrl+C | Graceful shutdown (finishes current iteration) |
@@ -237,6 +274,23 @@ For custom integrations, the `command` provider pipes JSON to stdin and reads JS
 ```
 
 See `scripts/example_command_provider.py` for a working example.
+
+## Operator Notes
+
+- `runs/` is intentionally gitignored. The framework code is shareable, but live research state, artifacts, logs, and watchdog files are local working data.
+- `autoresearch status` reads `state.json`, `results.tsv`, `provider_status.json`, and `loop_status.json`. If a supervised run looks stuck, check that command before inspecting tmux manually.
+- `autoresearch supervise` is meant for long-running real-agent runs. If you need a hard cap across restarts, use `--max-total-iterations`, not just `--max-iterations`.
+- `run.json` role configs can set `producer.timeout_seconds` and `judge.timeout_seconds`. This is the right place to tune slow Codex / Claude jobs without changing framework defaults.
+- Benchmark answers are expected to have non-empty `citations`. The loop can repair empty arrays from inline `[source-*]` tags or benchmark-required sources, but missing source discipline still costs iterations.
+
+## Maintenance Notes
+
+- Keep CLI choices, README examples, and provider factory aliases in sync. If the docs say `--producer codex --judge claude`, `create_provider()` and parser choices must accept those exact strings.
+- Missing judge dimensions must count as `0`, not get dropped from the average. Partial judge payloads are a failure mode, not free score inflation.
+- Large provider payloads must go through stdin or temp files, never argv. Real runs will hit OS argument-length limits.
+- Any `subprocess.Popen(..., stdout=PIPE, stderr=PIPE)` path must close pipes in `finally`, including timeouts.
+- Supervisor changes need to preserve terminal-stop semantics. A loop that finished cleanly should not be auto-restarted and misreported as unhealthy.
+- Repo-specific agent guidance lives in `agents.md`.
 
 ## Development
 

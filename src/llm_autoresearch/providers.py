@@ -179,7 +179,17 @@ class CommandProvider(BaseProvider):
             raise ProviderError(f"Command provider returned invalid JSON: {exc}") from exc
 
 
-_DEFAULT_TIMEOUT = 600  # 10 minutes (longer for deep research tasks)
+def _load_default_timeout() -> int:
+    raw = os.getenv("LLM_AUTORESEARCH_CLI_TIMEOUT_SECONDS", "").strip()
+    if not raw:
+        return 600
+    try:
+        return int(raw)
+    except ValueError:
+        return 600
+
+
+_DEFAULT_TIMEOUT = _load_default_timeout()
 
 
 class CliAgentProvider(BaseProvider):
@@ -197,12 +207,12 @@ class CliAgentProvider(BaseProvider):
         cli_binary: str,
         cli_flags: str = "",
         role: str = "producer",
-        timeout: int = _DEFAULT_TIMEOUT,
+        timeout: int | None = None,
     ) -> None:
         self.cli_binary = cli_binary
         self.cli_flags = cli_flags
         self.role = role
-        self.timeout = timeout
+        self.timeout = timeout if timeout is not None else _DEFAULT_TIMEOUT
 
     def invoke(self, task: ProviderTask) -> dict[str, Any]:
         prompt_content = json.dumps(task.to_dict(), indent=2)
@@ -399,6 +409,7 @@ def create_provider(
     cli_binary: str = "",
     cli_flags: str = "",
     role: str = "producer",
+    timeout: int | None = None,
 ) -> BaseProvider:
     normalized = kind.strip().lower()
     if normalized == "mock":
@@ -411,11 +422,13 @@ def create_provider(
             cli_binary=cli_binary or preset_binary,
             cli_flags=cli_flags or preset_flags,
             role=role,
+            timeout=timeout,
         )
     if normalized == "cli":
         return CliAgentProvider(
             cli_binary=cli_binary,
             cli_flags=cli_flags,
             role=role,
+            timeout=timeout,
         )
     raise ProviderError(f"Unsupported provider kind: {kind}")

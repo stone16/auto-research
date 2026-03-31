@@ -10,7 +10,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from llm_autoresearch.cli import main  # noqa: E402
+from llm_autoresearch.cli import build_parser, main  # noqa: E402
 
 
 class CLISmokeTest(unittest.TestCase):
@@ -39,6 +39,41 @@ class CLISmokeTest(unittest.TestCase):
             self.assertIn("Roman concrete", knowledge_base)
             self.assertTrue((run_dir / "artifacts" / "iteration-0001" / "evaluation.json").exists())
             self.assertTrue((run_dir / "artifacts" / "iteration-0003" / "evaluation.json").exists())
+
+
+class CLIParserTest(unittest.TestCase):
+    def test_status_subcommand_parses(self) -> None:
+        parser = build_parser()
+        args = parser.parse_args(["status", "/tmp/run", "--session", "main", "--json"])
+        self.assertEqual(args.subcommand, "status")
+        self.assertEqual(args.run_dir, "/tmp/run")
+        self.assertEqual(args.session, "main")
+        self.assertTrue(args.json_output)
+
+    def test_supervise_subcommand_parses(self) -> None:
+        parser = build_parser()
+        args = parser.parse_args(
+            [
+                "supervise",
+                "/tmp/run",
+                "--tag",
+                "run-tag",
+                "--main-session",
+                "main-session",
+                "--producer",
+                "codex",
+                "--judge",
+                "claude",
+                "--interval",
+                "120",
+            ]
+        )
+        self.assertEqual(args.subcommand, "supervise")
+        self.assertEqual(args.tag, "run-tag")
+        self.assertEqual(args.main_session, "main-session")
+        self.assertEqual(args.producer, "codex")
+        self.assertEqual(args.judge, "claude")
+        self.assertEqual(args.interval, 120)
 
 
 if __name__ == "__main__":
