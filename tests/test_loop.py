@@ -70,6 +70,13 @@ class TestStopConditions(unittest.TestCase):
         sc = StopConditions(max_iterations=5)
         self.assertEqual(sc.max_iterations, 5)
 
+    def test_stop_conditions_with_max_total_iterations(self) -> None:
+        """StopConditions should accept max_total_iterations."""
+        from llm_autoresearch.models import StopConditions
+
+        sc = StopConditions(max_total_iterations=25)
+        self.assertEqual(sc.max_total_iterations, 25)
+
 
 class TestRoleProviderResolution(unittest.TestCase):
     """Test provider resolution for producer/judge role configs."""
@@ -78,7 +85,7 @@ class TestRoleProviderResolution(unittest.TestCase):
         from llm_autoresearch.loop import _create_provider_for_role
         from llm_autoresearch.models import CliAgentConfig
 
-        role_config = CliAgentConfig(cli="codex", flags="exec --foo")
+        role_config = CliAgentConfig(cli="codex", flags="exec --foo", timeout_seconds=1800)
 
         with patch("llm_autoresearch.loop.create_provider") as mock_create:
             sentinel = object()
@@ -92,6 +99,7 @@ class TestRoleProviderResolution(unittest.TestCase):
             cli_binary="codex",
             cli_flags="exec --foo",
             role="producer",
+            timeout=1800,
         )
 
     def test_mismatched_role_cli_config_is_ignored(self) -> None:
@@ -101,6 +109,7 @@ class TestRoleProviderResolution(unittest.TestCase):
         role_config = CliAgentConfig(
             cli="claude",
             flags="-p --dangerously-skip-permissions",
+            timeout_seconds=900,
         )
 
         with patch("llm_autoresearch.loop.create_provider") as mock_create:
@@ -115,6 +124,7 @@ class TestRoleProviderResolution(unittest.TestCase):
             cli_binary="",
             cli_flags="",
             role="producer",
+            timeout=900,
         )
 
 
@@ -200,6 +210,143 @@ class TestRunIterationWithJudge(unittest.TestCase):
             self.assertEqual(outcome.iteration, 1)
             self.assertIn(outcome.status, ("keep", "discard"))
 
+    def test_run_iteration_writes_provider_status(self) -> None:
+        """run_iteration should leave a provider_status.json snapshot for monitoring."""
+        import json
+
+        from llm_autoresearch.loop import run_iteration
+        from llm_autoresearch.run_files import init_run
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "test-run"
+            init_run(run_dir, topic=None, provider_kind="mock", example=True)
+            run_iteration(run_dir, provider_kind="mock")
+
+            status_path = run_dir / "provider_status.json"
+            self.assertTrue(status_path.exists())
+            status = json.loads(status_path.read_text(encoding="utf-8"))
+            self.assertEqual(status["role"], "producer")
+            self.assertEqual(status["status"], "success")
+            self.assertEqual(status["iteration"], 1)
+
+    def test_run_iteration_writes_raw_response_on_parse_error(self) -> None:
+        """Malformed provider output should be persisted for debugging."""
+        import json
+
+        from llm_autoresearch.loop import run_iteration
+        from llm_autoresearch.run_files import init_run
+
+        class BadShapeProvider:
+            def invoke(self, task):
+                return {
+                    "experiment_title": "bad-shape",
+                    "change_summary": "",
+                    "knowledge_base_markdown": "# KB",
+                    "benchmark_answers": 7,
+                }
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "test-run"
+            init_run(run_dir, topic=None, provider_kind="mock", example=True)
+
+            with self.assertRaises(ValueError):
+                run_iteration(
+                    run_dir,
+                    provider_kind="mock",
+                    producer_provider=BadShapeProvider(),
+                )
+
+            artifact_dir = run_dir / "artifacts" / "iteration-0001"
+            self.assertTrue((artifact_dir / "task.json").exists())
+            self.assertTrue((artifact_dir / "raw_response.json").exists())
+            self.assertTrue((artifact_dir / "error.txt").exists())
+
+            provider_status = json.loads((run_dir / "provider_status.json").read_text())
+            self.assertEqual(provider_status["status"], "error")
+            self.assertEqual(provider_status["raw_benchmark_answers_type"], "int")
+
+    def test_run_iteration_repairs_missing_citations_from_required_sources(self) -> None:
+        import json
+
+        from llm_autoresearch.loop import run_iteration
+        from llm_autoresearch.run_files import init_run
+
+        class EmptyCitationProvider:
+            def invoke(self, task):
+                return {
+                    "experiment_title": "repair-citations",
+                    "change_summary": "",
+                    "knowledge_base_markdown": "# KB\nIteration: 1\n",
+                    "benchmark_answers": [
+                        {
+                            "id": "q1",
+                            "answer": (
+                                "Seawater formed aluminous tobermorite and increased durability."
+                            ),
+                            "citations": [],
+                        },
+                        {
+                            "id": "q2",
+                            "answer": "Lime and volcanic ash powered a pozzolanic reaction.",
+                            "citations": [],
+                        },
+                    ],
+                }
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "repair-run"
+            init_run(run_dir, topic=None, provider_kind="mock", example=True)
+
+            outcome = run_iteration(
+                run_dir,
+                provider_kind="mock",
+                producer_provider=EmptyCitationProvider(),
+            )
+
+            self.assertEqual(outcome.iteration, 1)
+            artifact_dir = run_dir / "artifacts" / "iteration-0001"
+            candidate = json.loads((artifact_dir / "candidate.json").read_text(encoding="utf-8"))
+            answers = {item["id"]: item for item in candidate["benchmark_answers"]}
+            self.assertEqual(answers["q1"]["citations"], ["source-1"])
+            self.assertEqual(answers["q2"]["citations"], ["source-2"])
+
+            validation = json.loads((artifact_dir / "validation.json").read_text(encoding="utf-8"))
+            repaired_ids = [item["id"] for item in validation["repaired_benchmark_citations"]]
+            self.assertEqual(repaired_ids, ["q1", "q2"])
+            self.assertEqual(validation["missing_benchmark_citations"], [])
+
+            provider_status = json.loads((run_dir / "provider_status.json").read_text())
+            self.assertEqual(provider_status["status"], "success")
+            self.assertEqual(provider_status["repaired_benchmark_citations"], 2)
+            self.assertEqual(provider_status["missing_benchmark_citations"], 0)
+
+
+class TestIterationInstructions(unittest.TestCase):
+    def test_build_iteration_instructions_targets_latest_priority_dimension(self) -> None:
+        from llm_autoresearch.loop import build_iteration_instructions
+
+        instructions = build_iteration_instructions(
+            previous_best=0.8667,
+            history=[
+                {"iteration": "18", "status": "discard", "score": "0.0000"},
+                {"iteration": "19", "status": "keep", "score": "0.8667"},
+                {"iteration": "20", "status": "discard", "score": "0.8333"},
+            ],
+            judge_feedback=(
+                "## Iteration 19\n\n"
+                "**Priority dimension**: Evidence Density\n"
+                "**Improvement suggestion**: Replace opaque source IDs with concrete URLs.\n"
+            ),
+            human_feedback="Focus on the weakest dimension and avoid broad rewrites.",
+        )
+
+        self.assertIn("Current best score to beat: 0.8667.", instructions)
+        self.assertIn("iter 19 keep score 0.8667", instructions)
+        self.assertIn("Evidence Density", instructions)
+        self.assertIn("Replace opaque source IDs with concrete URLs.", instructions)
+        self.assertIn("Exploit, do not explore.", instructions)
+        self.assertIn("Every benchmark answer must include a non-empty `citations` array.", instructions)
+
 
 # ---------------------------------------------------------------------------
 # Test: run_loop function
@@ -237,6 +384,84 @@ class TestRunLoop(unittest.TestCase):
             self.assertEqual(len(outcomes), 3)
             for i, outcome in enumerate(outcomes, start=1):
                 self.assertEqual(outcome.iteration, i)
+
+    def test_run_loop_can_resume_existing_branch(self) -> None:
+        from llm_autoresearch.git import init_branch
+        from llm_autoresearch.loop import run_loop
+        from llm_autoresearch.models import StopConditions
+        from llm_autoresearch.run_files import init_run
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "resume-run"
+            init_run(run_dir, topic=None, provider_kind="mock", example=True)
+            _init_test_repo(run_dir)
+            init_branch("resume-loop", cwd=run_dir)
+            _run_git(["checkout", "main"], cwd=run_dir)
+
+            outcomes = run_loop(
+                run_dir=run_dir,
+                producer_kind="mock",
+                judge_kind="mock",
+                tag="resume-loop",
+                stop_conditions=StopConditions(max_iterations=1),
+                resume_branch=True,
+            )
+
+            self.assertEqual(len(outcomes), 1)
+            current = _run_git(["branch", "--show-current"], cwd=run_dir)
+            self.assertEqual(current, "autoresearch/resume-loop")
+
+    def test_run_loop_honors_max_total_iterations(self) -> None:
+        import json
+
+        from llm_autoresearch.loop import run_loop
+        from llm_autoresearch.models import StopConditions
+        from llm_autoresearch.run_files import init_run
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "total-cap-run"
+            init_run(run_dir, topic=None, provider_kind="mock", example=True)
+            _init_test_repo(run_dir)
+
+            state_path = run_dir / "state.json"
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+            state["iteration"] = 2
+            state_path.write_text(json.dumps(state), encoding="utf-8")
+
+            outcomes = run_loop(
+                run_dir=run_dir,
+                producer_kind="mock",
+                judge_kind="mock",
+                tag="total-cap",
+                stop_conditions=StopConditions(max_total_iterations=2),
+            )
+
+            self.assertEqual(outcomes, [])
+
+    def test_run_loop_writes_loop_status_for_clean_stop(self) -> None:
+        import json
+
+        from llm_autoresearch.loop import run_loop
+        from llm_autoresearch.models import StopConditions
+        from llm_autoresearch.run_files import init_run
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "status-run"
+            init_run(run_dir, topic=None, provider_kind="mock", example=True)
+            _init_test_repo(run_dir)
+
+            outcomes = run_loop(
+                run_dir=run_dir,
+                producer_kind="mock",
+                judge_kind="mock",
+                tag="status-stop",
+                stop_conditions=StopConditions(max_iterations=1),
+            )
+
+            self.assertEqual(len(outcomes), 1)
+            loop_status = json.loads((run_dir / "loop_status.json").read_text(encoding="utf-8"))
+            self.assertEqual(loop_status["status"], "stopped")
+            self.assertEqual(loop_status["stop_reason"], "max_iterations")
 
 
 # ---------------------------------------------------------------------------
@@ -1050,6 +1275,15 @@ class TestLoopCLIExtended(unittest.TestCase):
         args = parser.parse_args(["loop", "/tmp/t", "--tag", "x"])
         self.assertIsNone(args.dimension_threshold)
 
+    def test_max_total_iterations_flag(self) -> None:
+        from llm_autoresearch.cli import build_parser
+
+        parser = build_parser()
+        args = parser.parse_args([
+            "loop", "/tmp/t", "--tag", "x", "--max-total-iterations", "25",
+        ])
+        self.assertEqual(args.max_total_iterations, 25)
+
     def test_cmd_loop_passes_new_stop_conditions(self) -> None:
         """cmd_loop should pass new stop conditions to run_loop."""
         from unittest.mock import patch
@@ -1065,6 +1299,7 @@ class TestLoopCLIExtended(unittest.TestCase):
             producer="mock",
             judge="mock",
             max_iterations=10,
+            max_total_iterations=25,
             max_consecutive_discard=5,
             dimension_threshold=0.9,
         )
@@ -1077,6 +1312,7 @@ class TestLoopCLIExtended(unittest.TestCase):
             stop = mock_loop.call_args.kwargs.get("stop_conditions") or mock_loop.call_args[1].get("stop_conditions")
             self.assertIsNotNone(stop)
             self.assertEqual(stop.max_iterations, 10)
+            self.assertEqual(stop.max_total_iterations, 25)
             self.assertEqual(stop.max_consecutive_discard, 5)
             self.assertAlmostEqual(stop.dimension_threshold, 0.9)
 

@@ -15,6 +15,7 @@ if str(SRC) not in sys.path:
 from llm_autoresearch.git import (
     COMMIT_PREFIX,
     commit_iteration,
+    ensure_branch,
     ensure_clean_state,
     get_current_sha,
     init_branch,
@@ -72,6 +73,17 @@ class TestInitBranch(unittest.TestCase):
             init_branch("my-topic-2024", cwd=repo)
             current = _run_git(["branch", "--show-current"], cwd=repo)
             self.assertEqual(current, "autoresearch/my-topic-2024")
+
+    def test_ensure_branch_reuses_existing_when_allowed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = _init_test_repo(Path(tmp))
+            init_branch("resume-me", cwd=repo)
+            _run_git(["checkout", "main"], cwd=repo)
+
+            ensure_branch("resume-me", cwd=repo, allow_existing=True)
+
+            current = _run_git(["branch", "--show-current"], cwd=repo)
+            self.assertEqual(current, "autoresearch/resume-me")
 
 
 class TestCommitIteration(unittest.TestCase):

@@ -42,15 +42,29 @@ def init_branch(tag: str, *, cwd: Path) -> str:
 
     Returns the branch name.
     """
-    branch_name = f"{BRANCH_PREFIX}{tag}"
+    return ensure_branch(tag, cwd=cwd, allow_existing=False)
 
-    # Check whether branch already exists (local)
+
+def ensure_branch(tag: str, *, cwd: Path, allow_existing: bool = False) -> str:
+    """Ensure the repo is on ``autoresearch/<tag>``.
+
+    When ``allow_existing`` is False, behaves like ``init_branch()`` and raises
+    if the branch already exists. When True, reuses the existing branch by
+    checking it out instead of failing.
+    """
+    branch_name = f"{BRANCH_PREFIX}{tag}"
     result = _git(["rev-parse", "--verify", branch_name], cwd=cwd, check=False)
     if result.returncode == 0:
-        raise ValueError(
-            f"Branch '{branch_name}' already exists. "
-            "Delete it manually or choose a different tag to avoid silent resume."
-        )
+        if not allow_existing:
+            raise ValueError(
+                f"Branch '{branch_name}' already exists. "
+                "Delete it manually or choose a different tag to avoid silent resume."
+            )
+        current_branch = _git(["branch", "--show-current"], cwd=cwd).stdout.strip()
+        if current_branch != branch_name:
+            _git(["checkout", branch_name], cwd=cwd)
+        logger.info("Reusing existing branch %s", branch_name)
+        return branch_name
 
     _git(["checkout", "-b", branch_name], cwd=cwd)
     logger.info("Created and switched to branch %s", branch_name)
