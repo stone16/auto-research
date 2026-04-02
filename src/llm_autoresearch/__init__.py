@@ -1,4 +1,4 @@
-"""Reusable LLM Auto Research skeleton."""
+"""Provider-agnostic framework for autonomous LLM research loops."""
 
 __all__ = ["__version__"]
 

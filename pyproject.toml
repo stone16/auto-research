@@ -1,10 +1,42 @@
 [project]
 name = "llm-autoresearch"
 version = "0.1.0"
-description = "Provider-agnostic LLM Auto Research skeleton"
+description = "Provider-agnostic framework for autonomous, benchmarked LLM research loops"
 readme = "README.md"
 requires-python = ">=3.11"
+license = { text = "MIT" }
+keywords = [
+    "llm",
+    "autonomous research",
+    "research automation",
+    "agentic workflow",
+    "knowledge base",
+    "benchmarking",
+    "evaluation",
+    "codex",
+    "claude",
+    "human-in-the-loop",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/stone16/auto-research"
+Documentation = "https://github.com/stone16/auto-research/tree/main/docs"
+Examples = "https://github.com/stone16/auto-research/tree/main/examples"
+Repository = "https://github.com/stone16/auto-research"
+Issues = "https://github.com/stone16/auto-research/issues"
 
 [project.scripts]
 autoresearch = "llm_autoresearch.cli:main"

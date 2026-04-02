@@ -12,7 +12,9 @@ from .supervisor import build_loop_command, default_python_executable, supervise
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Reusable LLM Auto Research skeleton")
+    parser = argparse.ArgumentParser(
+        description="Provider-agnostic framework for autonomous, benchmarked LLM research loops"
+    )
     subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
     init_parser = subparsers.add_parser("init", help="Initialize a new research run")
