@@ -1,0 +1,72 @@
+[
+  {
+    "id": "module-coverage-data-connector",
+    "question": "List all candidate tools for the Data Connector module with full field details",
+    "rubric": "At least 3 candidates, each with name/repo/language/install/platforms/verdict populated",
+    "must_include": ["py-clob-client", "pmxt", "kalshi-python"],
+    "required_sources": ["polymarket-oss-ecosystem-survey"]
+  },
+  {
+    "id": "module-coverage-realtime-feed",
+    "question": "List all candidate tools for the Realtime Feed module",
+    "rubric": "At least 2 candidates with WebSocket support documented",
+    "must_include": ["real-time-data-client"],
+    "required_sources": ["polymarket-oss-ecosystem-survey"]
+  },
+  {
+    "id": "module-coverage-execution",
+    "question": "List all candidate tools for the Order Executor module",
+    "rubric": "At least 3 candidates covering both Polymarket and Kalshi execution",
+    "must_include": ["py-clob-client", "rs-clob-client"],
+    "required_sources": ["polymarket-oss-ecosystem-survey"]
+  },
+  {
+    "id": "module-coverage-arbitrage",
+    "question": "List all candidate tools for the Arbitrage Calculator module",
+    "rubric": "At least 2 candidates with cross-market arbitrage support",
+    "must_include": ["prediction-market-arbitrage-bot"],
+    "required_sources": ["polymarket-oss-ecosystem-survey"]
+  },
+  {
+    "id": "module-coverage-backtesting",
+    "question": "List all candidate tools for the Backtesting Engine module",
+    "rubric": "At least 2 candidates with prediction market adapter support",
+    "must_include": ["nautilus_trader"],
+    "required_sources": ["polymarket-oss-ecosystem-survey"]
+  },
+  {
+    "id": "module-coverage-analytics",
+    "question": "List all candidate tools for the Analytics/Dashboard module",
+    "rubric": "At least 2 candidates with trade monitoring capabilities",
+    "must_include": [],
+    "required_sources": ["polymarket-oss-ecosystem-survey"]
+  },
+  {
+    "id": "module-coverage-risk",
+    "question": "List candidate tools for the Risk Manager module, or document that none exist",
+    "rubric": "Either candidates with position sizing support, or explicit gap documentation",
+    "must_include": [],
+    "required_sources": ["polymarket-oss-ecosystem-survey"]
+  },
+  {
+    "id": "module-coverage-embedding",
+    "question": "List candidate tools for the Embedding Engine module",
+    "rubric": "At least 2 candidates for text embedding with market description support",
+    "must_include": ["sentence-transformers"],
+    "required_sources": ["prediction-market-signal-aggregation"]
+  },
+  {
+    "id": "cross-module-mapping",
+    "question": "Which tools span multiple modules? Map each cross-module tool to every module it covers",
+    "rubric": "At least 3 cross-module tools identified with coverage boundaries",
+    "must_include": ["pmxt", "Polymarket/agents"],
+    "required_sources": ["polymarket-oss-ecosystem-survey"]
+  },
+  {
+    "id": "recommendations",
+    "question": "For each module, recommend a first-choice and backup tool with rationale",
+    "rubric": "Every module has a recommendation. Rationale references specific capabilities and limitations",
+    "must_include": [],
+    "required_sources": ["polymarket-oss-ecosystem-survey", "prediction-market-signal-aggregation"]
+  }
+]
