@@ -148,12 +148,35 @@ def get_current_sha(*, cwd: Path) -> str:
 
 
 def ensure_clean_state(*, cwd: Path) -> None:
-    """Raise ``RuntimeError`` if the current run has staged or unstaged changes
-    to ratchet-managed files.
+    """Raise ``RuntimeError`` if the current run cannot use git safely.
+
+    Two distinct failure modes are reported with distinct messages so the
+    caller can tell them apart:
+
+    1. ``cwd`` is not inside a git work tree at all. This happens when a
+       user initializes a run directory outside any repository (for example
+       under /tmp). The loop needs git to snapshot each iteration as a
+       commit, so the caller must move the run into a git-managed directory.
+    2. ``cwd`` is inside a git work tree but the ratchet-managed files
+       (``knowledge_base.md``, ``state.json``, ``results.tsv``) have staged
+       or unstaged changes. The loop refuses to overwrite in-flight local
+       edits.
 
     Untracked files and unrelated repo changes are allowed -- the loop only
     needs a clean state for the files it commits itself.
     """
+    inside = _git(
+        ["rev-parse", "--is-inside-work-tree"], cwd=cwd, check=False
+    )
+    if inside.returncode != 0 or inside.stdout.strip() != "true":
+        raise RuntimeError(
+            f"{cwd} is not inside a git work tree. "
+            "The autoresearch loop snapshots each iteration as a git commit, "
+            "so the run directory must live inside a git repository. "
+            "Move the run into a tracked directory (for example runs/<tag> "
+            "inside this repo) and retry."
+        )
+
     pathspec = ["--", *TRACKED_FILES]
     staged = _git(["diff", "--cached", "--quiet", *pathspec], cwd=cwd, check=False)
     unstaged = _git(["diff", "--quiet", *pathspec], cwd=cwd, check=False)

@@ -245,6 +245,21 @@ class TestEnsureCleanState(unittest.TestCase):
             (repo / "README.md").write_text("# Modified outside ratchet\n")
             ensure_clean_state(cwd=repo)
 
+    def test_non_git_directory_reports_distinct_error(self) -> None:
+        # Regression for a case where a run directory initialised outside any
+        # git repository (e.g. under /tmp) would surface as the generic
+        # "working tree is dirty" message, hiding the real cause.
+        with tempfile.TemporaryDirectory() as tmp:
+            non_repo = Path(tmp) / "plain_dir"
+            non_repo.mkdir()
+            with self.assertRaises(RuntimeError) as ctx:
+                ensure_clean_state(cwd=non_repo)
+            message = str(ctx.exception)
+            self.assertIn("not inside a git work tree", message)
+            # And must NOT claim the working tree is dirty, which is the
+            # old misleading wording this fix is replacing.
+            self.assertNotIn("dirty", message.lower())
+
 
 class TestCommitResetIntegration(unittest.TestCase):
     """Integration test: commit then reset simulating keep/discard loop."""
