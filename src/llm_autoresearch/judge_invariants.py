@@ -28,6 +28,52 @@ Invariant catalog:
 Violation codes in _DECISION_CORRUPTING_CODES are the subset that
 compromises pairwise_verdict enough that the verdict should be demoted
 to "tie" before being fed into the keep/discard decision.
+
+Scope (what this module catches):
+
+- Internal self-contradictions inside a single JudgeReport where two or
+  more fields are inconsistent with each other: priority_dimension that
+  does not match the actual dimension score minimum, pairwise_verdict
+  that disagrees with the score delta, candidate_better verdicts that
+  silently list regressions, and wholesale dismissals that salvage
+  nothing.
+
+Scope non-goals (what this module does NOT catch, by design):
+
+- Uniform inflation: a judge that scores every dimension at 0.95 for a
+  mediocre candidate is internally consistent (lowest dim matches the
+  priority, verdict agrees with the inflated overall_score, etc.) and
+  will pass every check here. Catching uniform inflation requires
+  grounding each claim back in the candidate knowledge base, which is a
+  Tier 2 meta-judge concern, not a Tier 1 invariant concern.
+- Groundedness: whether improvement_suggestion, mergeable_improvements,
+  or regressions actually correspond to real sections, gaps, or diffs
+  in the candidate KB. Verifying those claims requires reading the
+  candidate text and is outside the scope of this module.
+- Judgment quality: whether the dimension scores reflect the true
+  quality of the candidate. A uniformly wrong judge will pass every
+  invariant here.
+- Score forgery: overall_score is NOT a field the judge returns
+  directly; parse_judge_response in judge.py computes it as the mean of
+  the normalized dimension_scores. A judge cannot make overall_score
+  disagree with dimension_scores, so there is no invariant guarding
+  that relationship. This note exists specifically to preempt the
+  natural audit question "why is there no overall_score consistency
+  check".
+- Cross-iteration drift: if priority_dimension flips across many
+  consecutive iterations, that is a run-level pattern, not a single
+  JudgeReport contradiction. Detecting drift belongs at the run_loop
+  layer, not in this module.
+- Protocol schema drift: if the judge prompt contract silently adds a
+  new pairwise_verdict enum value (e.g. "needs_revision"), the existing
+  verdict-branching checks here will fall through to None and silently
+  pass. Guarding against schema drift requires a judge_schema_version
+  invariant at a higher layer.
+
+The short version: Tier 1 catches "the judge contradicts itself". Tier
+2 (cross-agent meta-judge against the candidate text) catches "the
+judge is lying consistently". Keep that boundary when extending this
+module.
 """
 
 from __future__ import annotations
