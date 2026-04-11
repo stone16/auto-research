@@ -1,7 +1,7 @@
 {
-  "iteration": 1,
-  "best_score": 0.8,
-  "best_iteration": 1,
-  "current_knowledge_chars": 22036,
-  "last_kept_experiment": "baseline control-plane synthesis with planning UX and correctness"
+  "iteration": 2,
+  "best_score": 0.82,
+  "best_iteration": 2,
+  "current_knowledge_chars": 32738,
+  "last_kept_experiment": "evidence-density pass with source-level protocol and governance details"
 }
