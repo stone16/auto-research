@@ -31,6 +31,10 @@ class JudgeReport:
         review_markdown: Free-form markdown review from the judge.
         priority_dimension: The dimension furthest from the goal.
         improvement_suggestion: One specific actionable suggestion.
+        pairwise_verdict: Comparison verdict against the current retained best.
+        pairwise_summary: Brief rationale for the pairwise verdict.
+        mergeable_improvements: Local wins worth folding into the next retained best.
+        regressions: Regressions or risks introduced relative to the current best.
     """
 
     dimension_scores: dict[str, float]
@@ -38,6 +42,10 @@ class JudgeReport:
     review_markdown: str
     priority_dimension: str
     improvement_suggestion: str
+    pairwise_verdict: str = "tie"
+    pairwise_summary: str = ""
+    mergeable_improvements: list[str] = field(default_factory=list)
+    regressions: list[str] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -64,6 +72,8 @@ def build_judge_prompt(
     goal_state: GoalState,
     candidate_kb: str,
     benchmark_answers: list[BenchmarkAnswer],
+    current_best_kb: str = "",
+    current_best_benchmark_answers: list[BenchmarkAnswer] | None = None,
 ) -> str:
     """Build the structured prompt sent to the judge CLI agent.
 
@@ -94,10 +104,24 @@ def build_judge_prompt(
         answers_block = "  (no benchmark answers provided)"
 
     expected_dims = ", ".join(f'"{dim.name}"' for dim in goal_state.dimensions)
+    current_best_benchmark_answers = current_best_benchmark_answers or []
+
+    if current_best_benchmark_answers:
+        best_answer_lines = []
+        for ans in current_best_benchmark_answers:
+            citations = ", ".join(ans.citations) if ans.citations else "none"
+            best_answer_lines.append(
+                f"  - [{ans.id}] Answer: {ans.answer}\n    Citations: {citations}"
+            )
+        current_best_answers_block = "\n".join(best_answer_lines)
+    else:
+        current_best_answers_block = "  (no retained benchmark answers available)"
+
+    current_best_kb_block = current_best_kb or "(no retained best yet; treat this as the initial baseline)"
 
     prompt = f"""\
 You are an expert research quality judge. Evaluate the candidate knowledge base
-against the goal state and quality dimensions below.
+against the goal state, the quality dimensions below, and the current retained best.
 
 ## Goal State
 
@@ -110,8 +134,11 @@ against the goal state and quality dimensions below.
 ## Instructions
 
 1. Score each quality dimension on a scale of 0-10 (integer).
-2. Identify the dimension that is furthest from the goal.
-3. Provide one specific improvement suggestion for the next iteration.
+2. Compare the candidate against the current retained best and decide whether the candidate is better, the current retained best is better, or they are tied.
+3. Identify the dimension that is furthest from the goal.
+4. Provide one specific improvement suggestion for the next iteration.
+5. If the candidate has any local wins that should be folded into the retained best even when the candidate should not replace it, list them under mergeable_improvements.
+6. If the candidate introduces regressions relative to the current retained best, list them under regressions.
 
 ## Expected Output (JSON only)
 
@@ -119,8 +146,15 @@ Return a single JSON object with exactly these keys:
 - "dimension_scores": object mapping dimension names to integer scores (0-10)
   Expected dimensions: {expected_dims}
 - "review_markdown": string with a brief markdown review
+- "pairwise_verdict": one of "candidate_better", "current_best_better", or "tie"
+- "pairwise_summary": string explaining the pairwise verdict in 1-3 sentences
+- "mergeable_improvements": array of concrete improvements worth absorbing into the retained best
+- "regressions": array of concrete regressions or risks introduced by the candidate
 - "priority_dimension": string naming the dimension furthest from goal
 - "improvement_suggestion": string with one specific actionable improvement
+
+When deciding the pairwise verdict, optimize for the retained artifact quality, not novelty.
+If the candidate is roughly tied overall but clearly better in a meaningful way, prefer "candidate_better".
 
 ## Candidate Knowledge Base
 
@@ -129,6 +163,14 @@ Return a single JSON object with exactly these keys:
 ## Benchmark Answers
 
 {answers_block}
+
+## Current Retained Best Knowledge Base
+
+{current_best_kb_block}
+
+## Current Retained Best Benchmark Answers
+
+{current_best_answers_block}
 """
     return prompt
 
@@ -138,6 +180,20 @@ Return a single JSON object with exactly these keys:
 # ---------------------------------------------------------------------------
 
 _REQUIRED_KEYS = ("dimension_scores", "review_markdown", "priority_dimension", "improvement_suggestion")
+_VALID_PAIRWISE_VERDICTS = {"candidate_better", "current_best_better", "tie"}
+
+
+def _coerce_string_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, tuple | set):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, str):
+        stripped = value.strip()
+        return [stripped] if stripped else []
+    return [str(value).strip()]
 
 
 def parse_judge_response(
@@ -200,6 +256,14 @@ def parse_judge_response(
         review_markdown=str(raw["review_markdown"]),
         priority_dimension=str(raw["priority_dimension"]),
         improvement_suggestion=str(raw["improvement_suggestion"]),
+        pairwise_verdict=(
+            str(raw.get("pairwise_verdict", "tie")).strip()
+            if str(raw.get("pairwise_verdict", "tie")).strip() in _VALID_PAIRWISE_VERDICTS
+            else "tie"
+        ),
+        pairwise_summary=str(raw.get("pairwise_summary", "")),
+        mergeable_improvements=_coerce_string_list(raw.get("mergeable_improvements", [])),
+        regressions=_coerce_string_list(raw.get("regressions", [])),
     )
 
 
@@ -212,6 +276,8 @@ def run_judge(
     candidate_kb: str,
     benchmark_answers: list[BenchmarkAnswer],
     judge_provider: BaseProvider,
+    current_best_kb: str = "",
+    current_best_benchmark_answers: list[BenchmarkAnswer] | None = None,
 ) -> JudgeReport:
     """Orchestrate a judge evaluation.
 
@@ -229,6 +295,8 @@ def run_judge(
         goal_state=goal_state,
         candidate_kb=candidate_kb,
         benchmark_answers=benchmark_answers,
+        current_best_kb=current_best_kb,
+        current_best_benchmark_answers=current_best_benchmark_answers,
     )
 
     task = ProviderTask(
@@ -244,6 +312,10 @@ def run_judge(
             },
             "candidate_kb": candidate_kb,
             "benchmark_answers": [ans.to_dict() for ans in benchmark_answers],
+            "current_best_kb": current_best_kb,
+            "current_best_benchmark_answers": [
+                ans.to_dict() for ans in (current_best_benchmark_answers or [])
+            ],
         },
     )
 
@@ -256,6 +328,8 @@ def safe_run_judge(
     candidate_kb: str,
     benchmark_answers: list[BenchmarkAnswer],
     judge_provider: BaseProvider,
+    current_best_kb: str = "",
+    current_best_benchmark_answers: list[BenchmarkAnswer] | None = None,
 ) -> JudgeReport | None:
     """Graceful wrapper around run_judge for use in the loop.
 
@@ -264,7 +338,14 @@ def safe_run_judge(
     scoring.
     """
     try:
-        return run_judge(goal_state, candidate_kb, benchmark_answers, judge_provider)
+        return run_judge(
+            goal_state,
+            candidate_kb,
+            benchmark_answers,
+            judge_provider,
+            current_best_kb=current_best_kb,
+            current_best_benchmark_answers=current_best_benchmark_answers,
+        )
     except (ProviderError, ValueError, TypeError, KeyError) as exc:
         logger.warning("Judge failed, falling back to deterministic scoring: %s", exc)
         return None

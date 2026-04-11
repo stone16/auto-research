@@ -133,6 +133,62 @@ class TestCommitIteration(unittest.TestCase):
             )
             self.assertIsNone(sha)
 
+    def test_commits_through_gitignore(self) -> None:
+        # Regression: the real repo has runs/ in .gitignore, so a plain
+        # `git add state.json` (run from inside runs/<tag>/) is silently
+        # refused and commit_iteration used to return None for every
+        # iteration. This test reproduces the condition with a synthetic
+        # gitignore and asserts the -f fix forces the ratchet files
+        # through.
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = _init_test_repo(Path(tmp))
+            (repo / ".gitignore").write_text(
+                "knowledge_base.md\nstate.json\nresults.tsv\n"
+            )
+            _run_git(["add", ".gitignore"], cwd=repo)
+            _run_git(["commit", "-m", "Add gitignore"], cwd=repo)
+
+            (repo / "knowledge_base.md").write_text("# KB\n")
+            (repo / "state.json").write_text('{"iteration": 1}\n')
+            (repo / "results.tsv").write_text("header\trow1\n")
+
+            sha = commit_iteration(
+                iteration=1, experiment_title="gitignored test", cwd=repo
+            )
+            self.assertIsNotNone(sha)
+
+            # Verify a real autoresearch-prefixed commit landed with the
+            # ratchet files staged.
+            log = _run_git(["log", "-1", "--pretty=%s"], cwd=repo)
+            self.assertTrue(log.startswith(COMMIT_PREFIX))
+            self.assertIn("gitignored test", log)
+            changed = _run_git(
+                ["show", "--name-only", "--pretty=format:", "HEAD"], cwd=repo
+            )
+            self.assertIn("knowledge_base.md", changed)
+            self.assertIn("state.json", changed)
+            self.assertIn("results.tsv", changed)
+
+    def test_raises_when_files_exist_but_staging_fails(self) -> None:
+        # If the ratchet files exist on disk but git add still cannot
+        # stage them (for example because cwd is not a git repo, or
+        # permissions are wrong), the loop must hard-fail instead of
+        # silently returning None. This is the defense-in-depth for the
+        # bug that motivated the gitignore fix above.
+        with tempfile.TemporaryDirectory() as tmp:
+            non_repo = Path(tmp) / "plain_dir"
+            non_repo.mkdir()
+            (non_repo / "state.json").write_text('{"iteration": 1}\n')
+            (non_repo / "results.tsv").write_text("header\n")
+
+            with self.assertRaises(RuntimeError) as ctx:
+                commit_iteration(
+                    iteration=1, experiment_title="should fail", cwd=non_repo
+                )
+            message = str(ctx.exception)
+            self.assertIn("could not be staged", message)
+            self.assertIn("state.json", message)
+
 
 class TestResetLastCommit(unittest.TestCase):
     def test_resets_autoresearch_commit(self) -> None:
@@ -244,6 +300,21 @@ class TestEnsureCleanState(unittest.TestCase):
             repo = _init_test_repo(Path(tmp))
             (repo / "README.md").write_text("# Modified outside ratchet\n")
             ensure_clean_state(cwd=repo)
+
+    def test_non_git_directory_reports_distinct_error(self) -> None:
+        # Regression for a case where a run directory initialised outside any
+        # git repository (e.g. under /tmp) would surface as the generic
+        # "working tree is dirty" message, hiding the real cause.
+        with tempfile.TemporaryDirectory() as tmp:
+            non_repo = Path(tmp) / "plain_dir"
+            non_repo.mkdir()
+            with self.assertRaises(RuntimeError) as ctx:
+                ensure_clean_state(cwd=non_repo)
+            message = str(ctx.exception)
+            self.assertIn("not inside a git work tree", message)
+            # And must NOT claim the working tree is dirty, which is the
+            # old misleading wording this fix is replacing.
+            self.assertNotIn("dirty", message.lower())
 
 
 class TestCommitResetIntegration(unittest.TestCase):

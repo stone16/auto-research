@@ -200,8 +200,9 @@ Use the `command` provider when you want to integrate your own retrieval stack, 
    │        │ │         │ │        │ │ Engine     │
    │mock    │ │determin-│ │LLM-    │ │judge_feed- │
    │command │ │istic    │ │anchored│ │back.md     │
-   │cli     │ │rubric   │ │scoring │ │human_feed- │
-   │(codex, │ │matching │ │        │ │back.md     │
+   │cli     │ │rubric   │ │scoring +│ │human_feed- │
+   │        │ │matching │ │pairwise│ │back.md     │
+   │(codex, │ │         │ │        │ │            │
    │ claude)│ │         │ │        │ │            │
    └────────┘ └─────────┘ └────────┘ └────────────┘
 ```
@@ -212,11 +213,17 @@ Every iteration follows a strict keep/discard protocol:
 
 1. Produce: the provider generates a revised `knowledge_base.md` and benchmark answers.
 2. Evaluate: the deterministic evaluator scores benchmark answers for coverage and citations.
-3. Judge: the judge scores quality dimensions such as causal completeness and evidence density.
+3. Judge: the judge scores quality dimensions such as causal completeness and evidence density, and compares the candidate against the current retained best.
 4. Decide: the loop keeps the candidate if it improved enough.
 5. Commit or discard: kept iterations become git commits; discarded iterations are reset.
 
 The git history becomes a clean ratchet. Only accepted improvements survive in branch history, while every attempt is still preserved in `artifacts/` for audit.
+
+The judge feedback ratchet is pairwise-aware. Each review can now record:
+
+- whether the candidate is better than the current retained best
+- mergeable local improvements worth folding into the next retained best
+- regressions that later iterations must avoid reintroducing
 
 ## Scoring Pipeline
 

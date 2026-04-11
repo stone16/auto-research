@@ -27,13 +27,29 @@ def append_judge_feedback(
     """Append a judge's feedback entry to judge_feedback.md.
 
     Each entry is formatted as a ## Iteration N section containing the
-    priority dimension, improvement suggestion, and full review markdown.
+    pairwise verdict, priority dimension, improvement suggestion, and full review markdown.
     """
+    mergeable_block = ""
+    if judge_report.mergeable_improvements:
+        mergeable_items = "\n".join(
+            f"- {item}" for item in judge_report.mergeable_improvements
+        )
+        mergeable_block = f"\n### Mergeable Improvements\n{mergeable_items}\n"
+
+    regressions_block = ""
+    if judge_report.regressions:
+        regression_items = "\n".join(f"- {item}" for item in judge_report.regressions)
+        regressions_block = f"\n### Regressions To Avoid\n{regression_items}\n"
+
     entry = (
         f"## Iteration {iteration}\n"
         f"\n"
+        f"**Pairwise verdict**: {judge_report.pairwise_verdict}\n"
+        f"**Pairwise summary**: {judge_report.pairwise_summary}\n"
         f"**Priority dimension**: {judge_report.priority_dimension}\n"
         f"**Improvement suggestion**: {judge_report.improvement_suggestion}\n"
+        f"{mergeable_block}"
+        f"{regressions_block}"
         f"\n"
         f"### Review\n"
         f"{judge_report.review_markdown}\n"

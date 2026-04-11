@@ -144,6 +144,12 @@ class MockProvider(BaseProvider):
         return {
             "dimension_scores": dimension_scores,
             "review_markdown": "Mock judge review: candidate shows adequate coverage with room for improvement.",
+            "pairwise_verdict": "candidate_better",
+            "pairwise_summary": "The candidate is a modest improvement over the retained baseline.",
+            "mergeable_improvements": [
+                "Preserve the candidate's clearer benchmark-oriented structure."
+            ],
+            "regressions": [],
             "priority_dimension": priority_dimension,
             "improvement_suggestion": "Add more specific evidence and citations to strengthen claims.",
         }
