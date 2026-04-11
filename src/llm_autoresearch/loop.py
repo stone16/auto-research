@@ -14,6 +14,8 @@ from .evaluator import evaluate_answers
 from .feedback import append_judge_feedback, load_feedback_context, save_judge_review
 from .git import commit_iteration, ensure_branch, ensure_clean_state, reset_last_commit
 from .judge import build_judge_prompt, safe_run_judge, should_invoke_judge
+from .judge_invariants import check_all as check_judge_invariants
+from .judge_invariants import verdict_is_compromised
 from .models import BenchmarkAnswer, BenchmarkItem, CliAgentConfig, IterationOutcome, ResearchResponse, StopConditions
 from .providers import BaseProvider, ProviderTask, create_provider
 from .run_files import (
@@ -621,11 +623,41 @@ def run_iteration(
                         "overall_score": judge_report.overall_score,
                         "pairwise_verdict": judge_report.pairwise_verdict,
                         "priority_dimension": judge_report.priority_dimension,
+                        "dimension_scores": judge_report.dimension_scores,
                     },
                 )
                 decision_score = judge_report.overall_score
                 priority_dimension = judge_report.priority_dimension
                 pairwise_verdict = judge_report.pairwise_verdict
+
+                invariant_violations = check_judge_invariants(
+                    judge_report, previous_best=context.state.best_score
+                )
+                if invariant_violations:
+                    write_json(
+                        artifact_dir / "judge_invariants.json",
+                        {
+                            "iteration": iteration,
+                            "violations": [
+                                {"code": v.code, "message": v.message}
+                                for v in invariant_violations
+                            ],
+                        },
+                    )
+                    logger.warning(
+                        "Iteration %d: %d judge invariant violation(s): %s",
+                        iteration,
+                        len(invariant_violations),
+                        [v.code for v in invariant_violations],
+                    )
+                    if verdict_is_compromised(invariant_violations):
+                        logger.warning(
+                            "Iteration %d: demoting compromised pairwise_verdict "
+                            "from %r to 'tie'",
+                            iteration,
+                            pairwise_verdict,
+                        )
+                        pairwise_verdict = "tie"
             else:
                 _record_provider_event(
                     run_dir,
