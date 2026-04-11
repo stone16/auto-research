@@ -9,6 +9,7 @@ Tests cover:
 
 from __future__ import annotations
 
+import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -22,6 +23,24 @@ import tempfile
 
 from llm_autoresearch.judge import JudgeReport
 from llm_autoresearch.run_files import RunPaths, build_paths
+
+
+def _git_init_repo(run_dir: Path) -> None:
+    """Initialise a git repo in run_dir so the loop's ratchet commits can land.
+    Without this, commit_iteration would silently drop every iteration because
+    git add refuses to stage files in a directory that is not a git work tree.
+    """
+    for args in (
+        ["init"],
+        ["config", "user.email", "test@example.com"],
+        ["config", "user.name", "Test User"],
+    ):
+        subprocess.run(["git"] + args, cwd=str(run_dir), check=True, capture_output=True)
+    (run_dir / ".tests_seed").write_text("seed\n")
+    subprocess.run(["git", "add", ".tests_seed"], cwd=str(run_dir), check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "seed"], cwd=str(run_dir), check=True, capture_output=True
+    )
 
 
 def _make_paths(tmp: Path) -> RunPaths:
@@ -266,6 +285,7 @@ class TestLoopFeedbackIntegration(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             run_dir = Path(tmp) / "test-run"
             init_run(run_dir, topic=None, provider_kind="mock", example=True)
+            _git_init_repo(run_dir)
 
             # Write human feedback so we can verify it's picked up
             paths = build_paths(run_dir)
@@ -311,6 +331,7 @@ class TestLoopFeedbackIntegration(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             run_dir = Path(tmp) / "test-run"
             init_run(run_dir, topic=None, provider_kind="mock", example=True)
+            _git_init_repo(run_dir)
             paths = build_paths(run_dir)
 
             # Human feedback nearly fills the cap, which causes payload judge_feedback to be empty.

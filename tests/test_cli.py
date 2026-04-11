@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -13,6 +14,24 @@ if str(SRC) not in sys.path:
 from llm_autoresearch.cli import build_parser, main  # noqa: E402
 
 
+def _git_init_repo(run_dir: Path) -> None:
+    """Initialise a git repo in run_dir so commit_iteration can snapshot each
+    iteration. Required because the loop's ratchet depends on a git work tree,
+    and tests that exercise iterate/loop need to simulate that environment.
+    """
+    for args in (
+        ["init"],
+        ["config", "user.email", "test@example.com"],
+        ["config", "user.name", "Test User"],
+    ):
+        subprocess.run(["git"] + args, cwd=str(run_dir), check=True, capture_output=True)
+    (run_dir / ".tests_seed").write_text("seed\n")
+    subprocess.run(["git", "add", ".tests_seed"], cwd=str(run_dir), check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "seed"], cwd=str(run_dir), check=True, capture_output=True
+    )
+
+
 class CLISmokeTest(unittest.TestCase):
     def test_init_and_iterate_with_mock_provider(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -22,6 +41,8 @@ class CLISmokeTest(unittest.TestCase):
             self.assertEqual(init_code, 0)
             self.assertTrue((run_dir / "run.json").exists())
             self.assertTrue((run_dir / "sources" / "source-1.md").exists())
+
+            _git_init_repo(run_dir)
 
             iterate_code = main(["iterate", str(run_dir), "--provider", "mock"])
             self.assertEqual(iterate_code, 0)

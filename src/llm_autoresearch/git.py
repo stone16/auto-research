@@ -82,20 +82,47 @@ def commit_iteration(
     Only stages ``knowledge_base.md``, ``state.json``, and ``results.tsv``.
     Artifact directories are intentionally NOT committed.
 
-    Returns the commit SHA on success, or ``None`` if there was nothing to
-    commit (all tracked files are unchanged or missing).
+    Uses ``git add -f`` because typical project layouts keep the run
+    directory (e.g. ``runs/``) inside the repository's .gitignore. The
+    ratchet files are a special case: they are the loop's durable control
+    state and must land in the autoresearch branch history even though
+    their containing directory is ignored for everything else.
+
+    Returns the commit SHA on success, or ``None`` when there is nothing
+    to commit (either no tracked files exist on disk yet, or all staged
+    ratchet files are unchanged since the last commit).
+
+    Raises:
+        RuntimeError: if at least one tracked file exists on disk but no
+            file could be staged. This is the silent-failure trap that
+            ``git add`` without ``-f`` used to fall into when the run
+            directory was gitignored -- the loop would report keep/discard
+            outcomes while producing zero actual commits. Failing loudly
+            here prevents that regression from coming back.
     """
-    # Stage only the files we care about (ignoring those that don't exist)
     staged_any = False
     for filename in TRACKED_FILES:
         filepath = cwd / filename
         if filepath.exists():
-            result = _git(["add", filename], cwd=cwd, check=False)
+            result = _git(["add", "-f", filename], cwd=cwd, check=False)
             if result.returncode == 0:
                 staged_any = True
 
     if not staged_any:
-        logger.warning("commit_iteration: no tracked files found to stage")
+        existing_files = [f for f in TRACKED_FILES if (cwd / f).exists()]
+        if existing_files:
+            raise RuntimeError(
+                "commit_iteration: ratchet files exist on disk but could "
+                "not be staged. This is almost always a gitignore or "
+                "permission problem -- check that "
+                f"{existing_files} can be added with 'git add -f' from "
+                f"{cwd}. The loop refuses to silently drop iteration "
+                "commits."
+            )
+        logger.warning(
+            "commit_iteration: no tracked ratchet files exist yet "
+            "(cold-start iteration before any files were written)"
+        )
         return None
 
     # Check if there are actually staged changes

@@ -192,6 +192,7 @@ class TestRunIterationWithJudge(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             run_dir = Path(tmp) / "test-run"
             init_run(run_dir, topic=None, provider_kind="mock", example=True)
+            _init_test_repo(run_dir)
             outcome = run_iteration(run_dir, provider_kind="mock")
             self.assertEqual(outcome.iteration, 1)
             self.assertIn(outcome.status, ("keep", "discard"))
@@ -205,6 +206,7 @@ class TestRunIterationWithJudge(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             run_dir = Path(tmp) / "test-run"
             init_run(run_dir, topic=None, provider_kind="mock", example=True)
+            _init_test_repo(run_dir)
             judge = MockProvider()
             outcome = run_iteration(run_dir, provider_kind="mock", judge_provider=judge)
             self.assertEqual(outcome.iteration, 1)
@@ -240,6 +242,7 @@ class TestRunIterationWithJudge(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             run_dir = Path(tmp) / "test-run"
             init_run(run_dir, topic=None, provider_kind="mock", example=True)
+            _init_test_repo(run_dir)
             paths = build_paths(run_dir)
 
             retained_kb = "# Retained Best\n\nConcrete retained baseline."
@@ -302,6 +305,7 @@ class TestRunIterationWithJudge(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             run_dir = Path(tmp) / "test-run"
             init_run(run_dir, topic=None, provider_kind="mock", example=True)
+            _init_test_repo(run_dir)
             run_iteration(run_dir, provider_kind="mock")
 
             status_path = run_dir / "provider_status.json"
@@ -378,6 +382,7 @@ class TestRunIterationWithJudge(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             run_dir = Path(tmp) / "repair-run"
             init_run(run_dir, topic=None, provider_kind="mock", example=True)
+            _init_test_repo(run_dir)
 
             outcome = run_iteration(
                 run_dir,
@@ -740,6 +745,7 @@ class TestLoopIntegration(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             run_dir = Path(tmp) / "single-step"
             init_run(run_dir, topic=None, provider_kind="mock", example=True)
+            _init_test_repo(run_dir)
 
             code = main(["iterate", str(run_dir), "--provider", "mock"])
             self.assertEqual(code, 0)
