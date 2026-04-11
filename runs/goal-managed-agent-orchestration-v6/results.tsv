@@ -1,0 +1,2 @@
+iteration	timestamp	score	prev_best	status	knowledge_chars	provider	experiment	change_summary
+1	2026-04-11T04:17:26+00:00	0.8000	0.0000	keep	22036	codex	baseline control-plane synthesis with planning UX and correctness	Built the first full knowledge base from the frozen source set, centering skeptical demand assessment, conversational SMART KR planning, explicit subagent protocol, permission governance, UI-first operator surfaces, and layered correctness and recovery.
