@@ -1,7 +1,7 @@
 {
-  "iteration": 7,
+  "iteration": 11,
   "best_score": 0.84,
-  "best_iteration": 7,
-  "current_knowledge_chars": 42666,
-  "last_kept_experiment": "targeted pluggability-contract pass with OAuth2 planning walkthrough and rollout gates"
+  "best_iteration": 11,
+  "current_knowledge_chars": 46260,
+  "last_kept_experiment": "pluggability-generalization-pass-with-evaluator-provider-contract"
 }

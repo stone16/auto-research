@@ -5,7 +5,7 @@ Topic: Goal-Managed Agent Orchestration with Conversational Planning, Governance
 ## Executive Decision Brief
 - Build this as a local-first governed control plane, not as a promise of full autonomy. The MVP should combine conversational planning into SMART KRs, explicit runtime and governance objects, an operator cockpit, and an eval-backed completion loop from day one [source-1-user-brief] [source-8-user-followup] [source-15-goal-managed-agent-framework] [source-17-goal-managed-agent-testing-strategy].
 - This is not only a solo-builder tool. Solo builders are the cleanest first wedge because approval loops are short, but the value may grow in larger organizations because coordination overhead, compliance, and permission governance get harder as more repos, workspaces, and reviewers are involved [source-5-multica-platform] [source-8-user-followup] [source-11-claudecode-permission-governance].
-- The concrete architectural bets are: a goal-first control plane; local runtime adapters for Codex and Claude; typed subagent protocols with explicit context and messaging; session-scoped plugins; and event-log-backed recovery rather than transcript-derived confidence [source-3-codex-capabilities] [source-4-claude-capabilities] [source-12-claudecode-subagent-hooks-pluggability] [source-16-goal-managed-agent-protocol-spec].
+- The concrete architectural bets are: a goal-first control plane; local runtime adapters for Codex and Claude; typed subagent protocols with explicit context and messaging; session-scoped runtime and evaluator plugins; and event-log-backed recovery rather than transcript-derived confidence [source-3-codex-capabilities] [source-4-claude-capabilities] [source-12-claudecode-subagent-hooks-pluggability] [source-16-goal-managed-agent-protocol-spec].
 - Authority should expand only behind metric gates. Prototype -> pilot -> beta -> higher-authority rollout should be gated by approval precision, false-approve rate, resume success, orphaned-completion rate, evaluator disagreement, and cost/latency baselines, not by demo quality alone [source-11-claudecode-permission-governance] [source-17-goal-managed-agent-testing-strategy] [source-18-user-priority-correctness].
 
 ## Working thesis
@@ -134,7 +134,7 @@ Governance:
 - explicit `allow`, `ask`, `deny` policy with scope by workspace, repo, path, branch, action, or tool [source-11-claudecode-permission-governance].
 
 Evaluation:
-- `EvaluatorRegistry`, `VerificationRun`, `CompletionDecision`, and evidence-backed closure [source-15-goal-managed-agent-framework] [source-17-goal-managed-agent-testing-strategy].
+- `EvaluatorRegistry`, `VerificationRun`, `CompletionDecision`, and evidence-backed closure, with evaluator-provider plugins bound to workflow or evaluator scope rather than global mutable callbacks [source-15-goal-managed-agent-framework] [source-17-goal-managed-agent-testing-strategy].
 
 Storage:
 - local structured store for owned objects,
@@ -244,7 +244,7 @@ The local protocol spec gives the right deterministic wrapper around those capab
 Critical caveat: hooks are not enough on their own. Source-3 states that current Codex `PreToolUse` and `PostToolUse` interception is still incomplete and Bash-focused, so the control plane still needs its own policy engine and approval state. Hooks should be treated as typed lifecycle boundaries, not the whole governance story [source-3-codex-capabilities].
 
 ## 12. Pluggability model
-The framework should expose scoped, typed extension surfaces rather than one global callback table [source-12-claudecode-subagent-hooks-pluggability] [source-15-goal-managed-agent-framework].
+The framework should expose scoped, typed extension surfaces rather than one global callback table, and the same manifest/lifecycle skeleton should govern both runtime launch plugins and evaluator plugins rather than inventing a different mechanism for each category [source-12-claudecode-subagent-hooks-pluggability] [source-15-goal-managed-agent-framework] [source-16-goal-managed-agent-protocol-spec].
 
 Recommended plugin types:
 - runtime adapters,
@@ -275,6 +275,8 @@ Each plugin should declare:
 - failure policy,
 - cleanup behavior.
 
+The control-plane rule is simple: plugin kinds may differ, but manifest, permission, activation, and cleanup semantics should stay shared. That is how the system remains composable without turning into special-case callback logic [source-15-goal-managed-agent-framework] [source-16-goal-managed-agent-protocol-spec].
+
 ### Concrete contract example: `RuntimeAdapterPlugin`
 The weak point in most plugin discussions is that they stop at taxonomy. Our framework should standardize a protocol-level plugin contract. The exact shape below is a recommended from-scratch contract inferred from the framework, protocol, and Claude Code session-scoped hook patterns; it is not claimed as a direct existing API [source-11-claudecode-permission-governance] [source-12-claudecode-subagent-hooks-pluggability] [source-15-goal-managed-agent-framework] [source-16-goal-managed-agent-protocol-spec].
 
@@ -283,12 +285,12 @@ type PermissionManifest = {
   filesystem?: Array<{
     workspace_ref: string;
     path_globs: string[];
-    actions: Array<"read" | "write" | "delete" | "exec">;
+    actions: Array<'read' | 'write' | 'delete' | 'exec'>;
   }>;
   github?: Array<{
     repo: string;
     branches?: string[];
-    actions: Array<"read" | "issue_write" | "pr_write" | "content_write">;
+    actions: Array<'read' | 'issue_write' | 'pr_write' | 'content_write'>;
   }>;
   tools?: Array<{
     tool_name: string;
@@ -300,8 +302,8 @@ type PermissionManifest = {
 type PluginManifest = {
   id: string;
   version: string;
-  kind: "runtime_adapter" | "evaluator_provider";
-  scopes: Array<"session" | "workflow" | "agent" | "runtime" | "evaluator">;
+  kind: 'runtime_adapter' | 'evaluator_provider';
+  scopes: Array<'session' | 'workflow' | 'agent' | 'runtime' | 'evaluator'>;
   activation_events: string[];
   dispose_events: string[];
   input_schema_ref: string;
@@ -310,13 +312,13 @@ type PluginManifest = {
   cleanup_contract: {
     idempotent: boolean;
     timeout_ms: number;
-    emits_event: "plugin.cleaned_up";
-    failure_policy: "fail_closed" | "fail_open";
+    emits_event: 'plugin.cleaned_up';
+    failure_policy: 'fail_closed' | 'fail_open';
   };
 };
 
 type RuntimeAdapterPlugin = {
-  manifest: PluginManifest & { kind: "runtime_adapter" };
+  manifest: PluginManifest & { kind: 'runtime_adapter' };
   register(ctx: RuntimePluginContext): Promise<{
     adapter_name: string;
     hook_registrations: HookRegistration[];
@@ -343,6 +345,52 @@ Why this matters:
 - `input_schema_ref` and `output_schema_ref` force typed contracts, so hook packages, runtime adapters, and evaluator providers compose through declared schemas instead of hidden payload assumptions [source-15-goal-managed-agent-framework] [source-16-goal-managed-agent-protocol-spec].
 - `activation_events` and `dispose_events` make lifecycle scope explicit; the plugin is alive only for its owning session, workflow, agent, runtime, or evaluator scope, which copies the good part of Claude Code's session-scoped extensibility without inheriting its exact implementation [source-12-claudecode-subagent-hooks-pluggability].
 - `cleanup()` is part of the contract, not an afterthought. A plugin must unregister hooks, release leases or watchers, emit a cleanup event, and do so idempotently. That is how the system avoids global callback residue after session stop, subagent stop, or workflow cancellation [source-12-claudecode-subagent-hooks-pluggability] [source-16-goal-managed-agent-protocol-spec].
+
+### Concrete contract example: `EvaluatorProviderPlugin`
+To prove the pluggability model generalizes beyond runtime adapters, evaluator providers should use the same `PermissionManifest`, `PluginManifest`, lifecycle, and cleanup skeleton. This is again a recommended from-scratch contract inferred from the framework, protocol, and testing-strategy drafts rather than a claimed existing API [source-15-goal-managed-agent-framework] [source-16-goal-managed-agent-protocol-spec] [source-17-goal-managed-agent-testing-strategy].
+
+```ts
+type EvaluatorProviderPlugin = {
+  manifest: PluginManifest & {
+    kind: 'evaluator_provider';
+    scopes: Array<'workflow' | 'evaluator'>;
+  };
+  register(ctx: EvaluatorPluginContext): Promise<{
+    evaluator_name: string;
+    supported_check_types: Array<
+      'test' | 'artifact' | 'benchmark' | 'human_review' | 'policy_review'
+    >;
+    hook_registrations: HookRegistration[];
+  }>;
+  createVerificationRun(req: VerificationRunRequest): Promise<{
+    verification_run_id: string;
+    planned_checks: EvidenceCheck[];
+  }>;
+  executeCheck(req: EvidenceCheckExecutionRequest): Promise<{
+    check_id: string;
+    status: 'passed' | 'failed' | 'waived' | 'needs_review';
+    artifact_refs: ArtifactRef[];
+    rationale?: string;
+    metrics?: Record<string, number>;
+  }>;
+  summarize(run_id: string): Promise<{
+    decision: 'accept' | 'reject' | 'needs_human_review';
+    evidence_refs: ArtifactRef[];
+    rationale: string;
+  }>;
+  cleanup(scope_id: string): Promise<{
+    released_hooks: string[];
+    released_temp_artifacts: string[];
+  }>;
+};
+```
+
+Why this matters:
+- It proves the same typed plugin, lifecycle, permission, and cleanup model can govern evaluation, not just runtime launch.
+- An evaluator plugin can request read-only filesystem, tool execution, or benchmark access through `permission_manifest` instead of receiving hidden carte blanche, which keeps verification under the same approval regime as execution [source-11-claudecode-permission-governance] [source-17-goal-managed-agent-testing-strategy].
+- `createVerificationRun()` and `executeCheck()` line up with the existing `EvidenceCheck` and `VerificationRun` concepts, so verification logic stays attached to explicit objects and evented state rather than ad hoc post-run callbacks [source-15-goal-managed-agent-framework] [source-16-goal-managed-agent-protocol-spec].
+- `summarize()` produces a completion recommendation and evidence bundle, but it still stops short of silently closing a KR. That preserves the testing strategy's core rule that machine success alone is not sufficient when evaluator disagreement or missing evidence remains [source-17-goal-managed-agent-testing-strategy] [source-18-user-priority-correctness].
+- `cleanup()` matters here too: temporary artifacts, watchers, and hook registrations must die with the evaluator scope so repeated verification runs do not leak state across workflows.
 
 At the protocol level, plugin activation should also be evented: `plugin.register_requested`, `plugin.registered`, `plugin.activation_denied`, and `plugin.cleaned_up`. That keeps plugin behavior legible in the same event log as runtime and approval behavior [source-16-goal-managed-agent-protocol-spec].
 
