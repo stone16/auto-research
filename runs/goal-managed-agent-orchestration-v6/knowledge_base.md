@@ -2,6 +2,12 @@
 
 Topic: Goal-Managed Agent Orchestration with Conversational Planning, Governance, Pluggable Subagent Protocols, and Correctness Strategy
 
+## Executive Decision Brief
+- Build this as a local-first governed control plane, not as a promise of full autonomy. The MVP should combine conversational planning into SMART KRs, explicit runtime and governance objects, an operator cockpit, and an eval-backed completion loop from day one [source-1-user-brief] [source-8-user-followup] [source-15-goal-managed-agent-framework] [source-17-goal-managed-agent-testing-strategy].
+- This is not only a solo-builder tool. Solo builders are the cleanest first wedge because approval loops are short, but the value may grow in larger organizations because coordination overhead, compliance, and permission governance get harder as more repos, workspaces, and reviewers are involved [source-5-multica-platform] [source-8-user-followup] [source-11-claudecode-permission-governance].
+- The concrete architectural bets are: a goal-first control plane; local runtime adapters for Codex and Claude; typed subagent protocols with explicit context and messaging; session-scoped plugins; and event-log-backed recovery rather than transcript-derived confidence [source-3-codex-capabilities] [source-4-claude-capabilities] [source-12-claudecode-subagent-hooks-pluggability] [source-16-goal-managed-agent-protocol-spec].
+- Authority should expand only behind metric gates. Prototype -> pilot -> beta -> higher-authority rollout should be gated by approval precision, false-approve rate, resume success, orphaned-completion rate, evaluator disagreement, and cost/latency baselines, not by demo quality alone [source-11-claudecode-permission-governance] [source-17-goal-managed-agent-testing-strategy] [source-18-user-priority-correctness].
+
 ## Working thesis
 - There is a real need here, but it is narrower than autonomy marketing. The user is asking to manage goals with less task babysitting while local agents handle bounded execution, and to escalate only when ambiguity, risk, or missing context appears [source-1-user-brief] [source-8-user-followup].
 - The product is technically feasible now as a local-first control plane around existing local coding agents because the current surfaces already expose the core primitives we need: Codex SDK thread control through `startThread()`, `run(...)`, and `resumeThread(...)`; repo-local hook config in `.codex/hooks.json`; Claude Code `permissionDecision: defer` plus `claude -p --resume <session-id>`; and daemon-mediated local execution with isolated workspaces, heartbeats, and task polling [source-3-codex-capabilities] [source-4-claude-capabilities] [source-6-multica-daemon].
@@ -15,10 +21,10 @@ Topic: Goal-Managed Agent Orchestration with Conversational Planning, Governance
 - Decision: the need is real for local-agent power users and likely becomes more valuable, not less, as work requires approvals, blockers, and state continuity. What is not yet proven is a universal fully autonomous manager product.
 
 ## 2. Organization fit: solo, small team, larger organization
-- Solo builders are the cleanest initial wedge because one person can act as the single accountable owner, answer clarifications quickly, and judge whether evidence is sufficient. The product saves them from turning each milestone into a pile of ad hoc prompts and manual follow-up [source-1-user-brief] [source-8-user-followup].
+- Solo builders are the cleanest initial wedge, not the only structurally important segment, because one single accountable owner can answer clarifications quickly, approve work with low coordination cost, and judge whether evidence is sufficient. The product saves them from turning each milestone into a pile of ad hoc prompts and manual follow-up [source-1-user-brief] [source-8-user-followup].
 - Small teams benefit when an objective owner can mix human and agent work on the same board, see blockers, and review shared evidence. Multica's emphasis on assignments, blockers, reusable skills, and multi-workspace isolation is a signal that this middle layer is real product terrain already [source-5-multica-platform] [source-6-multica-daemon].
 - Larger organizations matter because the same structure becomes more necessary under coordination overhead and compliance. Claude Code's permission model already implies the kind of maturity needed here: `PermissionRuleList` has distinct panels for recent denials, allow rules, ask rules, deny rules, and workspace directories; some rules are user-owned and deletable, others are managed and immutable. That is exactly the shape a larger-organization deployment would need [source-11-claudecode-permission-governance].
-- The user is likely right that the durable unit is still one single accountable owner per objective. The difference is not whether large organizations need objective-driven execution; it is that they need stronger scoping, auditability, and policy layering before they can trust it [source-8-user-followup] [source-11-claudecode-permission-governance].
+- The durable unit is still one single accountable owner per objective. The difference is not whether large organizations need objective-driven execution; it is that they need stronger scoping, auditability, and policy layering before they can trust it [source-8-user-followup] [source-11-claudecode-permission-governance].
 
 ## 3. Conversational planning and SMART KR design
 The system should turn ambiguity into executable work through a staged conversation, not a rigid form [source-8-user-followup] [source-9-claudecode-source-inspection] [source-10-claudecode-broader-product-inspection].
@@ -31,6 +37,29 @@ Suggested flow:
 5. Highlight gaps instead of pretending the first draft is ready. Ask follow-up questions until each KR is reasonably independent, permission-aware, and reviewable.
 6. Show an execution-readiness preview with expected tools, workspaces, approvals, and evidence checks.
 7. Require explicit approval before any runtime starts.
+
+### Worked OAuth2 planning example
+A concrete interaction is more useful than a seven-step slogan. Suppose the raw goal is: "Move the app from ad hoc session middleware to OAuth2 before launch" [source-8-user-followup] [source-9-claudecode-source-inspection].
+
+Clarifying questions the system should ask before execution:
+- Which surfaces are in scope: API only, admin UI, mobile clients, or all three?
+- What counts as done: staging only, production cutover, or production plus rollback readiness?
+- Which identity provider is fixed, and which repo or directories may the agent modify?
+- What deadline is actually binding?
+- What evidence is required: contract tests, manual login video, docs, security review, migration runbook?
+- What is the allowed blast radius if credentials or callback URLs are missing?
+
+First-pass KR drafting should surface gaps explicitly, not silently normalize them. A draft like "switch auth to OAuth2" is not Specific, not Measurable, and not Time-bound. The UI should mark those SMART gaps and ask targeted follow-ups rather than forcing the user to author the rewrite alone [source-8-user-followup] [source-9-claudecode-source-inspection].
+
+A revised objective and KRs could look like this:
+- Objective: "Ship OAuth2-based authentication for API and admin routes without breaking existing user access before launch review."
+- KR1: "By April 30, API and admin routes authenticate through provider X in staging; contract tests for login, token refresh, and logout pass; legacy middleware remains only in the documented compatibility shim."
+- KR2: "By April 30, secrets, callback URLs, and environment variables are present in staging; a rollback runbook and migration checklist are approved by the objective owner."
+- KR3: "Before production rollout, the operator reviews an evidence bundle containing test output, changed files, remaining risk, and the exact approvals required for production credentials."
+
+The execution-readiness preview should then show the operator what will happen next: likely `RuntimeAdapter` choice, expected workspace scope, likely GitHub or filesystem approvals, required `EvidenceCheck` types, and known blockers such as missing client credentials [source-9-claudecode-source-inspection] [source-16-goal-managed-agent-protocol-spec].
+
+The approval surface should be explicit: preview the plan, show the dependency graph, flag any KR that is not independent, list the exact approvals that may be requested, and name who must accept the evidence bundle. That is the difference between conversational planning and a prettier task form [source-8-user-followup] [source-9-claudecode-source-inspection] [source-10-claudecode-broader-product-inspection].
 
 Claude Code is strong evidence that this has to be a first-class interaction design. `AskUserQuestionTool` is not plain chat text: it supports structured multiple-choice questions, preview mode, side-by-side option rendering, pasted images, and `shouldDefer: true` behavior when live user input is required. `EnterPlanModeTool` is a dedicated read-only stage that explicitly says to use `AskUserQuestion`, present the plan for approval, and avoid file edits until the plan is approved [source-9-claudecode-source-inspection].
 
@@ -246,6 +275,83 @@ Each plugin should declare:
 - failure policy,
 - cleanup behavior.
 
+### Concrete contract example: `RuntimeAdapterPlugin`
+The weak point in most plugin discussions is that they stop at taxonomy. Our framework should standardize a protocol-level plugin contract. The exact shape below is a recommended from-scratch contract inferred from the framework, protocol, and Claude Code session-scoped hook patterns; it is not claimed as a direct existing API [source-11-claudecode-permission-governance] [source-12-claudecode-subagent-hooks-pluggability] [source-15-goal-managed-agent-framework] [source-16-goal-managed-agent-protocol-spec].
+
+```ts
+type PermissionManifest = {
+  filesystem?: Array<{
+    workspace_ref: string;
+    path_globs: string[];
+    actions: Array<"read" | "write" | "delete" | "exec">;
+  }>;
+  github?: Array<{
+    repo: string;
+    branches?: string[];
+    actions: Array<"read" | "issue_write" | "pr_write" | "content_write">;
+  }>;
+  tools?: Array<{
+    tool_name: string;
+    actions: string[];
+  }>;
+  escalation_required_for: string[];
+};
+
+type PluginManifest = {
+  id: string;
+  version: string;
+  kind: "runtime_adapter" | "evaluator_provider";
+  scopes: Array<"session" | "workflow" | "agent" | "runtime" | "evaluator">;
+  activation_events: string[];
+  dispose_events: string[];
+  input_schema_ref: string;
+  output_schema_ref: string;
+  permission_manifest: PermissionManifest;
+  cleanup_contract: {
+    idempotent: boolean;
+    timeout_ms: number;
+    emits_event: "plugin.cleaned_up";
+    failure_policy: "fail_closed" | "fail_open";
+  };
+};
+
+type RuntimeAdapterPlugin = {
+  manifest: PluginManifest & { kind: "runtime_adapter" };
+  register(ctx: RuntimePluginContext): Promise<{
+    adapter_name: string;
+    hook_registrations: HookRegistration[];
+  }>;
+  launch(req: LaunchRequest): Promise<{
+    session_id: string;
+    resume_handle?: ResumeHandle;
+  }>;
+  resume(handle: ResumeHandle): Promise<{
+    session_id: string;
+    resumed: boolean;
+  }>;
+  stop(session_id: string, reason_code: string): Promise<void>;
+  collectArtifacts(session_id: string): Promise<ArtifactRef[]>;
+  cleanup(scope_id: string): Promise<{
+    released_hooks: string[];
+    released_leases: string[];
+  }>;
+};
+```
+
+Why this matters:
+- The `permission_manifest` lets the policy engine and approval UI show requested authority before activation, which matches the rule-driven governance implied by allow/ask/deny panels and path-aware approvals [source-11-claudecode-permission-governance].
+- `input_schema_ref` and `output_schema_ref` force typed contracts, so hook packages, runtime adapters, and evaluator providers compose through declared schemas instead of hidden payload assumptions [source-15-goal-managed-agent-framework] [source-16-goal-managed-agent-protocol-spec].
+- `activation_events` and `dispose_events` make lifecycle scope explicit; the plugin is alive only for its owning session, workflow, agent, runtime, or evaluator scope, which copies the good part of Claude Code's session-scoped extensibility without inheriting its exact implementation [source-12-claudecode-subagent-hooks-pluggability].
+- `cleanup()` is part of the contract, not an afterthought. A plugin must unregister hooks, release leases or watchers, emit a cleanup event, and do so idempotently. That is how the system avoids global callback residue after session stop, subagent stop, or workflow cancellation [source-12-claudecode-subagent-hooks-pluggability] [source-16-goal-managed-agent-protocol-spec].
+
+At the protocol level, plugin activation should also be evented: `plugin.register_requested`, `plugin.registered`, `plugin.activation_denied`, and `plugin.cleaned_up`. That keeps plugin behavior legible in the same event log as runtime and approval behavior [source-16-goal-managed-agent-protocol-spec].
+
+Conflict rules should be explicit:
+- a plugin cannot register overlapping hook order inside the same scope without an explicit priority decision,
+- a broader-scope plugin may not override a narrower-scope `block`,
+- activation should fail closed if required schemas are missing,
+- and activation should be denied if the permission manifest exceeds the current capability profile [source-11-claudecode-permission-governance] [source-16-goal-managed-agent-protocol-spec].
+
 Session-scoped registration is the key pattern to copy. It keeps a skill or agent extension alive only for the owning session or workflow, which prevents silent global callback chaos [source-12-claudecode-subagent-hooks-pluggability].
 
 ## 13. Correctness strategy
@@ -355,7 +461,7 @@ Invariant across phases:
 - Eval risk: measuring true completion may be expensive or ambiguous outside code-heavy tasks.
 - Org risk: larger organizations may want the audit and permission model but move more slowly than the early wedge.
 
-## 17. Recommendation
+## 17. Recommendation and rollout gates
 Build the MVP, but keep the claim narrow:
 - local-first,
 - one accountable owner per objective,
@@ -369,5 +475,12 @@ Do not promise:
 - full autonomy,
 - org-wide deployment first,
 - or correctness through a second judge model alone.
+
+### Phase-promotion criteria
+The sources give the right metric families even if each team must choose its own numeric thresholds. The important design rule is that authority expansion should be metric-gated, not vibe-gated [source-17-goal-managed-agent-testing-strategy] [source-18-user-priority-correctness].
+
+- Prototype -> pilot: only after deterministic state-machine, replay, policy, and protocol suites are green; approval precision and false-approve rate are measured on a versioned dataset; resume success and orphaned-completion rate are instrumented; and cost/latency baselines exist for the top workflows.
+- Pilot -> beta: only after offline eval consistency is stable across reruns; permission-request precision and false-block rate are tolerable for the operator; evaluator disagreement is low enough to review manually; and blocked-on-user recovery plus stale-context handling behave correctly under restart and retry scenarios.
+- Beta -> higher-authority rollout: only after canary monitoring shows no regression in approval precision, false-approve rate, resume success, orphaned-completion rate, evaluator disagreement, or cost/latency; audit exports and recent-denial recovery are working; and managed rule layers are proven for GitHub and filesystem authority.
 
 The product is worth building if it is framed as a governed goal-to-execution control plane, not as a magic manager replacement.

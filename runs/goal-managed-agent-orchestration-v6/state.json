@@ -1,7 +1,7 @@
 {
-  "iteration": 2,
-  "best_score": 0.82,
-  "best_iteration": 2,
-  "current_knowledge_chars": 32738,
-  "last_kept_experiment": "evidence-density pass with source-level protocol and governance details"
+  "iteration": 7,
+  "best_score": 0.84,
+  "best_iteration": 7,
+  "current_knowledge_chars": 42666,
+  "last_kept_experiment": "targeted pluggability-contract pass with OAuth2 planning walkthrough and rollout gates"
 }
