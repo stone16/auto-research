@@ -1,7 +1,7 @@
 {
-  "iteration": 13,
-  "best_score": 0.89,
-  "best_iteration": 13,
-  "current_knowledge_chars": 42972,
-  "last_kept_experiment": "relevance-discipline pass with integrated end-to-end KR proof"
+  "iteration": 14,
+  "best_score": 0.9,
+  "best_iteration": 14,
+  "current_knowledge_chars": 33666,
+  "last_kept_experiment": "relevance-discipline dedupe pass with section-referenced benchmark answers"
 }
