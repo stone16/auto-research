@@ -43,6 +43,10 @@ def _sample_report(
         review_markdown=review,
         priority_dimension=priority,
         improvement_suggestion=suggestion,
+        pairwise_verdict="current_best_better",
+        pairwise_summary="The retained best is still better overall, but this draft adds one useful clarification.",
+        mergeable_improvements=["Keep the candidate's sharper benchmark wording."],
+        regressions=["The candidate drops two concrete citations."],
     )
 
 
@@ -66,8 +70,14 @@ class TestAppendJudgeFeedback(unittest.TestCase):
             self.assertTrue(fb_path.exists())
             content = fb_path.read_text(encoding="utf-8")
             self.assertIn("## Iteration 1", content)
+            self.assertIn("**Pairwise verdict**: current_best_better", content)
+            self.assertIn("**Pairwise summary**: The retained best is still better overall, but this draft adds one useful clarification.", content)
             self.assertIn("**Priority dimension**: evidence_density", content)
             self.assertIn("**Improvement suggestion**: Add more citations from source-3.", content)
+            self.assertIn("### Mergeable Improvements", content)
+            self.assertIn("Keep the candidate's sharper benchmark wording.", content)
+            self.assertIn("### Regressions To Avoid", content)
+            self.assertIn("The candidate drops two concrete citations.", content)
             self.assertIn("### Review", content)
             self.assertIn("Good coverage but weak evidence.", content)
 
@@ -290,6 +300,71 @@ class TestLoopFeedbackIntegration(unittest.TestCase):
             self.assertEqual(payload["human_feedback"], "Focus on citations.")
             # On first iteration with no judge feedback file, should be empty
             self.assertEqual(payload["judge_feedback"], "")
+
+    def test_instructions_use_full_judge_feedback_even_when_payload_is_trimmed(self) -> None:
+        """Producer instructions should still target the latest judge review even if payload judge_feedback is truncated away by the feedback cap."""
+        from unittest.mock import patch
+
+        from llm_autoresearch.loop import run_iteration
+        from llm_autoresearch.run_files import init_run
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "test-run"
+            init_run(run_dir, topic=None, provider_kind="mock", example=True)
+            paths = build_paths(run_dir)
+
+            # Human feedback nearly fills the cap, which causes payload judge_feedback to be empty.
+            paths.human_feedback_path.write_text("H" * 4500, encoding="utf-8")
+            paths.judge_feedback_path.write_text(
+                "## Iteration 7\n\n"
+                "**Pairwise verdict**: current_best_better\n"
+                "**Pairwise summary**: Keep the retained structure, but absorb the new inline evidence pattern.\n"
+                "**Priority dimension**: Evidence Density\n"
+                "**Improvement suggestion**: Add inline file-level evidence.\n"
+                "\n"
+                "### Mergeable Improvements\n"
+                "- Add a file-level evidence anchor example.\n"
+                "\n"
+                "### Regressions To Avoid\n"
+                "- Do not drop the retained recovery model.\n"
+                "\n"
+                "### Strengths\n"
+                "- **Demand framing** is excellent.\n"
+                "\n"
+                "### Weaknesses\n"
+                "- **Evidence density** is the weakest dimension.\n",
+                encoding="utf-8",
+            )
+
+            captured_tasks: list = []
+            from llm_autoresearch import providers as providers_mod
+
+            original_create = providers_mod.create_provider
+
+            class SpyProvider:
+                def __init__(self, real_provider):
+                    self._real = real_provider
+
+                def invoke(self, task):
+                    captured_tasks.append(task)
+                    return self._real.invoke(task)
+
+            def spy_create_provider(kind, **kwargs):
+                return SpyProvider(original_create(kind, **kwargs))
+
+            with patch("llm_autoresearch.loop.create_provider", side_effect=spy_create_provider):
+                run_iteration(run_dir, provider_kind="mock")
+
+            self.assertEqual(len(captured_tasks), 1)
+            task = captured_tasks[0]
+            self.assertEqual(task.payload["judge_feedback"], "")
+            self.assertIn("Evidence Density", task.instructions)
+            self.assertIn("Add inline file-level evidence.", task.instructions)
+            self.assertIn("current_best_better", task.instructions)
+            self.assertIn("Add a file-level evidence anchor example.", task.instructions)
+            self.assertIn("Do not drop the retained recovery model.", task.instructions)
+            self.assertIn("Non-regression strengths to preserve", task.instructions)
+            self.assertIn("Concrete weakness checklist", task.instructions)
 
 
 if __name__ == "__main__":

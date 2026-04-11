@@ -44,6 +44,10 @@ def _valid_judge_response() -> dict:
     return {
         "dimension_scores": {"causal_completeness": 7, "evidence_density": 4},
         "review_markdown": "Good coverage but weak evidence.",
+        "pairwise_verdict": "current_best_better",
+        "pairwise_summary": "The retained best is still stronger overall, but the candidate adds one useful benchmark clarification.",
+        "mergeable_improvements": ["Keep the candidate's benchmark clarification for q1."],
+        "regressions": ["The candidate removes two concrete citations."],
         "priority_dimension": "evidence_density",
         "improvement_suggestion": "Add more source citations.",
     }
@@ -65,12 +69,20 @@ class TestJudgeReportDataclass(unittest.TestCase):
             review_markdown="Good coverage but weak evidence.",
             priority_dimension="evidence_density",
             improvement_suggestion="Add more source citations.",
+            pairwise_verdict="current_best_better",
+            pairwise_summary="The retained best remains stronger overall.",
+            mergeable_improvements=["Keep one benchmark clarification."],
+            regressions=["Lost concrete citations."],
         )
         self.assertEqual(report.dimension_scores, {"causal_completeness": 0.7, "evidence_density": 0.4})
         self.assertAlmostEqual(report.overall_score, 0.55)
         self.assertEqual(report.review_markdown, "Good coverage but weak evidence.")
         self.assertEqual(report.priority_dimension, "evidence_density")
         self.assertEqual(report.improvement_suggestion, "Add more source citations.")
+        self.assertEqual(report.pairwise_verdict, "current_best_better")
+        self.assertEqual(report.pairwise_summary, "The retained best remains stronger overall.")
+        self.assertEqual(report.mergeable_improvements, ["Keep one benchmark clarification."])
+        self.assertEqual(report.regressions, ["Lost concrete citations."])
 
 
 # ---------------------------------------------------------------------------
@@ -95,6 +107,13 @@ class TestParseJudgeResponse(unittest.TestCase):
         self.assertEqual(report.review_markdown, "Good coverage but weak evidence.")
         self.assertEqual(report.priority_dimension, "evidence_density")
         self.assertEqual(report.improvement_suggestion, "Add more source citations.")
+        self.assertEqual(report.pairwise_verdict, "current_best_better")
+        self.assertEqual(
+            report.pairwise_summary,
+            "The retained best is still stronger overall, but the candidate adds one useful benchmark clarification.",
+        )
+        self.assertEqual(report.mergeable_improvements, ["Keep the candidate's benchmark clarification for q1."])
+        self.assertEqual(report.regressions, ["The candidate removes two concrete citations."])
 
     def test_score_clamping_above_10(self) -> None:
         """Scores above 10 should be clamped to 10 (normalized to 1.0)."""
@@ -109,6 +128,7 @@ class TestParseJudgeResponse(unittest.TestCase):
         report = parse_judge_response(raw, _sample_dimensions())
         self.assertAlmostEqual(report.dimension_scores["causal_completeness"], 1.0)
         self.assertAlmostEqual(report.dimension_scores["evidence_density"], 0.4)
+        self.assertEqual(report.pairwise_verdict, "tie")
 
     def test_score_clamping_below_0(self) -> None:
         """Scores below 0 should be clamped to 0 (normalized to 0.0)."""
@@ -244,6 +264,29 @@ class TestParseJudgeResponse(unittest.TestCase):
         # Only configured dimensions: (1.0 + 0.6) / 2 = 0.8
         self.assertAlmostEqual(report.overall_score, 0.8)
 
+    def test_pairwise_fields_default_when_missing(self) -> None:
+        from llm_autoresearch.judge import parse_judge_response
+
+        raw = {
+            "dimension_scores": {"causal_completeness": 6, "evidence_density": 6},
+            "review_markdown": "Review.",
+            "priority_dimension": "evidence_density",
+            "improvement_suggestion": "Improve.",
+        }
+        report = parse_judge_response(raw, _sample_dimensions())
+        self.assertEqual(report.pairwise_verdict, "tie")
+        self.assertEqual(report.pairwise_summary, "")
+        self.assertEqual(report.mergeable_improvements, [])
+        self.assertEqual(report.regressions, [])
+
+    def test_invalid_pairwise_verdict_defaults_to_tie(self) -> None:
+        from llm_autoresearch.judge import parse_judge_response
+
+        raw = _valid_judge_response()
+        raw["pairwise_verdict"] = "something_else"
+        report = parse_judge_response(raw, _sample_dimensions())
+        self.assertEqual(report.pairwise_verdict, "tie")
+
 
 # ---------------------------------------------------------------------------
 # Test: build_judge_prompt
@@ -314,6 +357,26 @@ class TestBuildJudgePrompt(unittest.TestCase):
         )
         self.assertIn("The answer is X", prompt)
 
+    def test_prompt_includes_current_best_context_for_pairwise_review(self) -> None:
+        from llm_autoresearch.judge import build_judge_prompt
+
+        goal_state = _sample_goal_state()
+        prompt = build_judge_prompt(
+            goal_state=goal_state,
+            candidate_kb="# KB",
+            benchmark_answers=[],
+            current_best_kb="# Retained Best\nConcrete retained baseline.",
+            current_best_benchmark_answers=[
+                BenchmarkAnswer(id="q1", answer="Retained answer", citations=["source-1"])
+            ],
+        )
+
+        self.assertIn("Current Retained Best Knowledge Base", prompt)
+        self.assertIn("Concrete retained baseline.", prompt)
+        self.assertIn("pairwise_verdict", prompt)
+        self.assertIn("mergeable_improvements", prompt)
+        self.assertIn("Retained answer", prompt)
+
 
 # ---------------------------------------------------------------------------
 # Test: run_judge (orchestration)
@@ -334,6 +397,10 @@ class TestRunJudge(unittest.TestCase):
             candidate_kb="# KB\nContent.",
             benchmark_answers=[],
             judge_provider=mock_provider,
+            current_best_kb="# Retained Best",
+            current_best_benchmark_answers=[
+                BenchmarkAnswer(id="q1", answer="Retained", citations=["source-1"])
+            ],
         )
 
         self.assertIsInstance(report, JudgeReport)
@@ -343,6 +410,8 @@ class TestRunJudge(unittest.TestCase):
         task = mock_provider.invoke.call_args[0][0]
         self.assertIsInstance(task, ProviderTask)
         self.assertEqual(task.task_type, "judge_evaluation")
+        self.assertIn("current_best_kb", task.payload)
+        self.assertEqual(task.payload["current_best_kb"], "# Retained Best")
 
     def test_run_judge_provider_crash_raises_provider_error(self) -> None:
         """When the provider crashes, run_judge should propagate ProviderError."""
@@ -467,6 +536,10 @@ class TestSafeRunJudge(unittest.TestCase):
         mock_provider.invoke.return_value = {
             "dimension_scores": {"causal_completeness": 8, "evidence_density": 6},
             "review_markdown": "Good work.",
+            "pairwise_verdict": "candidate_better",
+            "pairwise_summary": "The candidate is better overall.",
+            "mergeable_improvements": ["Keep the clearer benchmark structure."],
+            "regressions": [],
             "priority_dimension": "evidence_density",
             "improvement_suggestion": "Add more citations.",
         }
@@ -479,6 +552,7 @@ class TestSafeRunJudge(unittest.TestCase):
         )
         self.assertIsNotNone(result)
         self.assertAlmostEqual(result.overall_score, 0.7)
+        self.assertEqual(result.pairwise_verdict, "candidate_better")
 
 
 if __name__ == "__main__":

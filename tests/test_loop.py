@@ -210,6 +210,88 @@ class TestRunIterationWithJudge(unittest.TestCase):
             self.assertEqual(outcome.iteration, 1)
             self.assertIn(outcome.status, ("keep", "discard"))
 
+    def test_run_iteration_passes_current_best_to_judge_and_can_keep_on_pairwise_win(self) -> None:
+        import json
+
+        from llm_autoresearch.loop import run_iteration
+        from llm_autoresearch.run_files import build_paths, init_run
+
+        class PairwiseWinJudge:
+            def __init__(self) -> None:
+                self.tasks: list = []
+
+            def invoke(self, task):
+                self.tasks.append(task)
+                dimension_scores = {
+                    dim["name"]: 8
+                    for dim in task.payload["goal_state"]["dimensions"]
+                }
+                return {
+                    "dimension_scores": dimension_scores,
+                    "review_markdown": "The candidate is roughly tied overall but better structured.",
+                    "pairwise_verdict": "candidate_better",
+                    "pairwise_summary": "Keep the candidate because it preserves quality while improving structure.",
+                    "mergeable_improvements": ["Preserve the clearer benchmark structure."],
+                    "regressions": [],
+                    "priority_dimension": "evidence_density",
+                    "improvement_suggestion": "Add one more concrete citation example.",
+                }
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "test-run"
+            init_run(run_dir, topic=None, provider_kind="mock", example=True)
+            paths = build_paths(run_dir)
+
+            retained_kb = "# Retained Best\n\nConcrete retained baseline."
+            paths.knowledge_path.write_text(retained_kb, encoding="utf-8")
+            paths.state_path.write_text(
+                json.dumps(
+                    {
+                        "iteration": 1,
+                        "best_score": 0.8,
+                        "best_iteration": 1,
+                        "current_knowledge_chars": len(retained_kb),
+                        "last_kept_experiment": "retained-best",
+                    },
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            artifact_dir = paths.artifacts_dir / "iteration-0001"
+            artifact_dir.mkdir(parents=True, exist_ok=True)
+            (artifact_dir / "candidate.json").write_text(
+                json.dumps(
+                    {
+                        "experiment_title": "retained-best",
+                        "change_summary": "baseline",
+                        "knowledge_base_markdown": retained_kb,
+                        "benchmark_answers": [
+                            {
+                                "id": "q1",
+                                "answer": "Retained answer [source-1]",
+                                "citations": ["source-1"],
+                            }
+                        ],
+                    },
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            judge = PairwiseWinJudge()
+            outcome = run_iteration(run_dir, provider_kind="mock", judge_provider=judge)
+
+            self.assertEqual(outcome.status, "keep")
+            self.assertEqual(len(judge.tasks), 1)
+            task = judge.tasks[0]
+            self.assertEqual(task.payload["current_best_kb"], retained_kb)
+            self.assertEqual(
+                task.payload["current_best_benchmark_answers"][0]["answer"],
+                "Retained answer [source-1]",
+            )
+
     def test_run_iteration_writes_provider_status(self) -> None:
         """run_iteration should leave a provider_status.json snapshot for monitoring."""
         import json
@@ -327,6 +409,7 @@ class TestIterationInstructions(unittest.TestCase):
 
         instructions = build_iteration_instructions(
             previous_best=0.8667,
+            current_chars=24000,
             history=[
                 {"iteration": "18", "status": "discard", "score": "0.0000"},
                 {"iteration": "19", "status": "keep", "score": "0.8667"},
@@ -334,18 +417,61 @@ class TestIterationInstructions(unittest.TestCase):
             ],
             judge_feedback=(
                 "## Iteration 19\n\n"
+                "**Pairwise verdict**: current_best_better\n"
+                "**Pairwise summary**: Keep the retained draft, but absorb the clearer evidence anchors.\n"
                 "**Priority dimension**: Evidence Density\n"
                 "**Improvement suggestion**: Replace opaque source IDs with concrete URLs.\n"
+                "\n"
+                "### Mergeable Improvements\n"
+                "- Add a concrete evidence-anchor example.\n"
+                "\n"
+                "### Regressions To Avoid\n"
+                "- Do not remove the retained recovery model.\n"
+                "\n"
+                "### Strengths\n"
+                "- **Demand framing** is excellent.\n"
+                "- **Recovery model** is named and structured.\n"
+                "\n"
+                "### Weaknesses\n"
+                "- **Evidence density** is the weakest dimension.\n"
+                "- **Pluggability** lacks a concrete example.\n"
             ),
             human_feedback="Focus on the weakest dimension and avoid broad rewrites.",
         )
 
         self.assertIn("Current best score to beat: 0.8667.", instructions)
+        self.assertIn("Current retained knowledge size: 24000 chars.", instructions)
         self.assertIn("iter 19 keep score 0.8667", instructions)
         self.assertIn("Evidence Density", instructions)
         self.assertIn("Replace opaque source IDs with concrete URLs.", instructions)
+        self.assertIn("current_best_better", instructions)
+        self.assertIn("Keep the retained draft, but absorb the clearer evidence anchors.", instructions)
+        self.assertIn("Mergeable improvements from the latest pairwise review", instructions)
+        self.assertIn("Add a concrete evidence-anchor example.", instructions)
+        self.assertIn("Regressions from the latest pairwise review to avoid", instructions)
+        self.assertIn("Do not remove the retained recovery model.", instructions)
         self.assertIn("Exploit, do not explore.", instructions)
+        self.assertIn("Non-regression strengths to preserve", instructions)
+        self.assertIn("**Demand framing** is excellent.", instructions)
+        self.assertIn("Concrete weakness checklist", instructions)
+        self.assertIn("**Pluggability** lacks a concrete example.", instructions)
+        self.assertIn("A tie score is only useful if the result is shorter.", instructions)
         self.assertIn("Every benchmark answer must include a non-empty `citations` array.", instructions)
+
+    def test_pairwise_candidate_better_can_break_equal_score_tie(self) -> None:
+        from llm_autoresearch.loop import _decision
+
+        status = _decision(
+            candidate_score=0.83,
+            previous_best=0.83,
+            candidate_chars=25000,
+            current_chars=23000,
+            minimum_improvement=0.01,
+            allow_tie_if_shorter=True,
+            pairwise_verdict="candidate_better",
+        )
+
+        self.assertEqual(status, "keep")
 
 
 # ---------------------------------------------------------------------------

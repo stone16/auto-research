@@ -14,7 +14,7 @@ from .evaluator import evaluate_answers
 from .feedback import append_judge_feedback, load_feedback_context, save_judge_review
 from .git import commit_iteration, ensure_branch, ensure_clean_state, reset_last_commit
 from .judge import build_judge_prompt, safe_run_judge, should_invoke_judge
-from .models import BenchmarkItem, CliAgentConfig, IterationOutcome, ResearchResponse, StopConditions
+from .models import BenchmarkAnswer, BenchmarkItem, CliAgentConfig, IterationOutcome, ResearchResponse, StopConditions
 from .providers import BaseProvider, ProviderTask, create_provider
 from .run_files import (
     append_results_row,
@@ -30,8 +30,11 @@ logger = logging.getLogger(__name__)
 _LOOP_STATUS_FILE = "loop_status.json"
 _PROVIDER_STATUS_FILE = "provider_status.json"
 _PROVIDER_ACTIVITY_FILE = "provider_activity.jsonl"
+_PAIRWISE_VERDICT_PATTERN = re.compile(r"\*\*Pairwise verdict\*\*:\s*(.+)")
+_PAIRWISE_SUMMARY_PATTERN = re.compile(r"\*\*Pairwise summary\*\*:\s*(.+)")
 _PRIORITY_DIMENSION_PATTERN = re.compile(r"\*\*Priority dimension\*\*:\s*(.+)")
 _IMPROVEMENT_SUGGESTION_PATTERN = re.compile(r"\*\*Improvement suggestion\*\*:\s*(.+)")
+_ITERATION_SECTION_PATTERN = re.compile(r"^## Iteration \d+", re.MULTILINE)
 
 
 def _provider_status_path(run_dir: Path) -> Path:
@@ -163,6 +166,85 @@ def _latest_feedback_field(pattern: re.Pattern[str], markdown: str) -> str:
     return matches[-1].strip()
 
 
+def _latest_iteration_section(markdown: str) -> str:
+    matches = list(_ITERATION_SECTION_PATTERN.finditer(markdown))
+    if not matches:
+        return ""
+    start = matches[-1].start()
+    end = len(markdown)
+    return markdown[start:end]
+
+
+def _extract_review_bullets(markdown: str) -> tuple[list[str], list[str]]:
+    section = _latest_iteration_section(markdown)
+    if not section:
+        return [], []
+
+    strengths: list[str] = []
+    weaknesses: list[str] = []
+    bucket: str | None = None
+
+    for raw_line in section.splitlines():
+        line = raw_line.strip()
+        lowered = line.lower()
+
+        if line.startswith("### Strengths") or line.startswith("**Strongest dimensions"):
+            bucket = "strengths"
+            continue
+        if (
+            line.startswith("### Weaknesses")
+            or line.startswith("**Weakest dimension")
+            or line.startswith("**Solid but could sharpen")
+        ):
+            bucket = "weaknesses"
+            continue
+        if line.startswith("## ") or line.startswith("### "):
+            bucket = None
+            continue
+        if not line.startswith("- "):
+            continue
+
+        text = line[2:].strip()
+        if not text:
+            continue
+        if bucket == "strengths":
+            strengths.append(text)
+        elif bucket == "weaknesses":
+            weaknesses.append(text)
+
+    return strengths[:3], weaknesses[:3]
+
+
+def _extract_latest_section_bullets(
+    markdown: str,
+    *section_headers: str,
+) -> list[str]:
+    section = _latest_iteration_section(markdown)
+    if not section:
+        return []
+
+    headers = tuple(header.lower() for header in section_headers)
+    bullets: list[str] = []
+    in_target_section = False
+
+    for raw_line in section.splitlines():
+        line = raw_line.strip()
+        lowered = line.lower()
+
+        if any(lowered.startswith(header) for header in headers):
+            in_target_section = True
+            continue
+        if line.startswith("## ") or line.startswith("### "):
+            in_target_section = False
+            continue
+        if in_target_section and line.startswith("- "):
+            text = line[2:].strip()
+            if text:
+                bullets.append(text)
+
+    return bullets[:3]
+
+
 def _summarize_recent_history(history: list[dict[str, str]]) -> str:
     if not history:
         return "No prior iterations yet."
@@ -177,25 +259,75 @@ def _summarize_recent_history(history: list[dict[str, str]]) -> str:
     return "; ".join(parts)
 
 
+def _load_retained_best_baseline(context: Any) -> tuple[str, list[BenchmarkAnswer]]:
+    retained_kb = context.knowledge_base_markdown
+    best_answers: list[BenchmarkAnswer] = []
+
+    if context.state.best_iteration is None:
+        return retained_kb, best_answers
+
+    candidate_path = (
+        context.paths.artifacts_dir
+        / f"iteration-{context.state.best_iteration:04d}"
+        / "candidate.json"
+    )
+    if not candidate_path.exists():
+        logger.warning(
+            "Best iteration artifact missing candidate.json for iteration %s; continuing without retained benchmark answers.",
+            context.state.best_iteration,
+        )
+        return retained_kb, best_answers
+
+    try:
+        best_response = ResearchResponse.from_dict(
+            json.loads(candidate_path.read_text(encoding="utf-8"))
+        )
+    except (ValueError, TypeError, json.JSONDecodeError) as exc:
+        logger.warning(
+            "Failed to load retained benchmark answers from %s: %s",
+            candidate_path,
+            exc,
+        )
+        return retained_kb, best_answers
+
+    return retained_kb, best_response.benchmark_answers
+
+
 def build_iteration_instructions(
     *,
     previous_best: float = 0.0,
+    current_chars: int = 0,
     history: list[dict[str, str]] | None = None,
     judge_feedback: str = "",
     human_feedback: str = "",
 ) -> str:
     recent_history = _summarize_recent_history(history or [])
+    pairwise_verdict = _latest_feedback_field(_PAIRWISE_VERDICT_PATTERN, judge_feedback)
+    pairwise_summary = _latest_feedback_field(_PAIRWISE_SUMMARY_PATTERN, judge_feedback)
     priority_dimension = _latest_feedback_field(_PRIORITY_DIMENSION_PATTERN, judge_feedback)
     improvement_suggestion = _latest_feedback_field(_IMPROVEMENT_SUGGESTION_PATTERN, judge_feedback)
+    strengths, weaknesses = _extract_review_bullets(judge_feedback)
+    mergeable_improvements = _extract_latest_section_bullets(
+        judge_feedback,
+        "### mergeable improvements",
+    )
+    regressions = _extract_latest_section_bullets(
+        judge_feedback,
+        "### regressions to avoid",
+    )
 
     lines = [
         "You are producing one research iteration for a bounded autoresearch loop.",
         f"Current best score to beat: {previous_best:.4f}.",
+        f"Current retained knowledge size: {current_chars} chars.",
         f"Recent outcomes: {recent_history}",
         "",
         "Optimization mode:",
         "- Exploit, do not explore. Spend effort on the weakest judged dimension or the clearest benchmark regression.",
         "- Preserve existing strong sections and prefer targeted edits over broad rewrites unless the knowledge base is structurally broken.",
+        "- Edit additively from the current retained knowledge base. Patch or extend existing sections before creating new top-level structure.",
+        "- Do not collapse a mature draft into a shorter summary unless the latest judge feedback explicitly says relevance discipline is the priority problem.",
+        "- A tie score is only useful if the result is shorter. If you make the draft longer, make sure it materially fixes the weak dimension.",
     ]
 
     if priority_dimension:
@@ -209,6 +341,24 @@ def build_iteration_instructions(
 
     if improvement_suggestion:
         lines.append(f"- Latest judge suggestion to address directly: {improvement_suggestion}")
+    if pairwise_verdict:
+        lines.append(
+            f"- Latest pairwise verdict against the retained best: {pairwise_verdict}."
+        )
+    if pairwise_summary:
+        lines.append(f"- Pairwise rationale to account for: {pairwise_summary}")
+    if mergeable_improvements:
+        lines.append("- Mergeable improvements from the latest pairwise review:")
+        lines.extend(f"  - {item}" for item in mergeable_improvements)
+    if regressions:
+        lines.append("- Regressions from the latest pairwise review to avoid:")
+        lines.extend(f"  - {item}" for item in regressions)
+    if strengths:
+        lines.append("- Non-regression strengths to preserve from the latest judge review:")
+        lines.extend(f"  - {item}" for item in strengths)
+    if weaknesses:
+        lines.append("- Concrete weakness checklist from the latest judge review:")
+        lines.extend(f"  - {item}" for item in weaknesses)
 
     if human_feedback.strip():
         lines.append(
@@ -220,6 +370,7 @@ def build_iteration_instructions(
             "",
             "Required output discipline:",
             "- Improve the single mutable knowledge base.",
+            "- Treat the retained best as the baseline artifact. If a prior candidate exposed a local improvement, absorb that delta before attempting a broader rewrite.",
             "- Answer every benchmark item directly.",
             "- Every benchmark answer must include a non-empty `citations` array.",
             "- If an answer contains `[source-*]` tags, mirror those exact IDs in the `citations` array.",
@@ -269,10 +420,13 @@ def _decision(
     current_chars: int,
     minimum_improvement: float,
     allow_tie_if_shorter: bool,
+    pairwise_verdict: str = "",
 ) -> str:
     if candidate_score > previous_best + minimum_improvement:
         return "keep"
     if previous_best == 0.0 and candidate_score > 0.0:
+        return "keep"
+    if pairwise_verdict == "candidate_better" and candidate_score >= previous_best:
         return "keep"
     if (
         allow_tie_if_shorter
@@ -308,12 +462,17 @@ def run_iteration(
     iteration = context.state.iteration + 1
     history = load_recent_results(context.paths, limit=5)
     feedback = load_feedback_context(context.paths)
+    retained_best_kb, retained_best_answers = _load_retained_best_baseline(context)
+    full_judge_feedback = ""
+    if context.paths.judge_feedback_path.exists():
+        full_judge_feedback = context.paths.judge_feedback_path.read_text(encoding="utf-8")
     task = ProviderTask(
         task_type="research_iteration",
         instructions=build_iteration_instructions(
             previous_best=previous_best,
+            current_chars=context.state.current_knowledge_chars or len(context.knowledge_base_markdown),
             history=history,
-            judge_feedback=feedback["judge_feedback"],
+            judge_feedback=full_judge_feedback or feedback["judge_feedback"],
             human_feedback=feedback["human_feedback"],
         ),
         payload={
@@ -413,6 +572,7 @@ def run_iteration(
     decision_score = evaluation.total_score
     judge_report = None
     priority_dimension = ""
+    pairwise_verdict = ""
 
     if judge_provider is not None and context.goal_state.dimensions:
         gate_threshold = context.config.evaluation.gate_threshold
@@ -424,6 +584,8 @@ def run_iteration(
                     goal_state=context.goal_state,
                     candidate_kb=response.knowledge_base_markdown,
                     benchmark_answers=response.benchmark_answers,
+                    current_best_kb=retained_best_kb,
+                    current_best_benchmark_answers=retained_best_answers,
                 )
             )
             judge_kind = getattr(judge_provider, "cli_binary", judge_provider.__class__.__name__)
@@ -442,6 +604,8 @@ def run_iteration(
                 candidate_kb=response.knowledge_base_markdown,
                 benchmark_answers=response.benchmark_answers,
                 judge_provider=judge_provider,
+                current_best_kb=retained_best_kb,
+                current_best_benchmark_answers=retained_best_answers,
             )
             if judge_report is not None:
                 _record_provider_event(
@@ -455,11 +619,13 @@ def run_iteration(
                     prompt_chars=judge_prompt_chars,
                     extra={
                         "overall_score": judge_report.overall_score,
+                        "pairwise_verdict": judge_report.pairwise_verdict,
                         "priority_dimension": judge_report.priority_dimension,
                     },
                 )
                 decision_score = judge_report.overall_score
                 priority_dimension = judge_report.priority_dimension
+                pairwise_verdict = judge_report.pairwise_verdict
             else:
                 _record_provider_event(
                     run_dir,
@@ -480,6 +646,7 @@ def run_iteration(
         current_chars=current_chars,
         minimum_improvement=context.config.evaluation.minimum_improvement,
         allow_tie_if_shorter=context.config.evaluation.allow_tie_if_shorter,
+        pairwise_verdict=pairwise_verdict,
     )
 
     write_json(artifact_dir / "candidate.json", response.to_dict())
