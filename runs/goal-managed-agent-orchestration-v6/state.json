@@ -1,7 +1,7 @@
 {
-  "iteration": 11,
-  "best_score": 0.84,
-  "best_iteration": 11,
-  "current_knowledge_chars": 46260,
-  "last_kept_experiment": "pluggability-generalization-pass-with-evaluator-provider-contract"
+  "iteration": 13,
+  "best_score": 0.89,
+  "best_iteration": 13,
+  "current_knowledge_chars": 42972,
+  "last_kept_experiment": "relevance-discipline pass with integrated end-to-end KR proof"
 }
