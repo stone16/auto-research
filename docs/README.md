@@ -93,4 +93,9 @@ Do not start with a giant open-ended domain. Start with a topic that can converg
 
 - Start with the root [README.md](../README.md) for positioning and usage
 - Then read [../examples/README.md](../examples/README.md) for what a run produces
+- Then read [pattern_extraction_memo.md](pattern_extraction_memo.md) for the decision-oriented OSS pattern memo
+- Then read [goal-managed-agent-framework.md](goal-managed-agent-framework.md) for the framework sketch
+- Then read [goal-managed-agent-framework-v2-additions.md](goal-managed-agent-framework-v2-additions.md) for the critique-to-spec patch history around measurement, budget, and judge calibration
+- Then read [goal-managed-agent-protocol-spec.md](goal-managed-agent-protocol-spec.md) for the implementation-facing protocol draft
+- Then read [goal-managed-agent-testing-strategy.md](goal-managed-agent-testing-strategy.md) for the layered testing and eval strategy
 - Then adapt the example run into your own topic
