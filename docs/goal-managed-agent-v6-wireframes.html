@@ -1,0 +1,2523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Goal-Managed Agent v6 — Concept Wireframes</title>
+<style>
+  :root {
+    --bg:         #ffffff;
+    --bg-alt:     #fafafa;
+    --text:       #111111;
+    --text-dim:   #6b7280;
+    --text-faint: #9ca3af;
+    --border:     #d1d5db;
+    --border-hi:  #9ca3af;
+
+    --accent:     #2563eb;
+    --accent-bg:  #eff6ff;
+    --warn:       #d97706;
+    --warn-bg:    #fffbeb;
+    --error:      #dc2626;
+    --error-bg:   #fef2f2;
+    --success:    #059669;
+    --success-bg: #ecfdf5;
+    --muted-bg:   #f3f4f6;
+
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, system-ui, "PingFang SC",
+            "Hiragino Sans GB", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .app {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: 100vh;
+  }
+  /* Sidebar */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    background: var(--bg-alt);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  .sidebar h1 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin: 0 0 4px;
+  }
+  .sidebar h2 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 20px;
+  }
+  .nav-section {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    margin: 16px 0 6px;
+    padding: 0 8px;
+  }
+  .nav-link {
+    display: block;
+    padding: 8px 10px;
+    margin-bottom: 2px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: var(--text);
+    text-decoration: none;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .nav-link:hover { background: var(--muted-bg); }
+  .nav-link.active {
+    background: var(--accent-bg);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .sidebar-footer {
+    margin-top: 28px;
+    padding: 12px 8px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-faint);
+    line-height: 1.4;
+  }
+  /* Main content */
+  .content {
+    padding: 32px 40px 80px;
+    max-width: 1100px;
+  }
+  .view { display: none; }
+  .view.active { display: block; }
+  .view-header {
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .view-kicker {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+  .view-title {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0;
+  }
+  .view-subtitle {
+    color: var(--text-dim);
+    margin-top: 6px;
+    font-size: 14px;
+  }
+  /* Wireframe container */
+  .wire {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 4px;
+  }
+  .wire-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    margin-bottom: 12px;
+  }
+  /* Notes blocks */
+  .notes {
+    background: var(--accent-bg);
+    border-left: 3px solid var(--accent);
+    padding: 12px 16px;
+    margin: 20px 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .notes-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .notes ul { margin: 6px 0 0; padding-left: 18px; }
+  .notes li { margin-bottom: 4px; }
+  .refs {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 20px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border);
+  }
+  /* =========== Node card (Layer 0) =========== */
+  .node-card {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+    padding: 10px 12px;
+    margin: 6px 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--bg);
+    display: grid;
+    grid-template-columns: 80px 1fr 120px 70px;
+    gap: 10px;
+    align-items: center;
+  }
+  .node-card.indent-1 { margin-left: 24px; }
+  .node-card.indent-2 { margin-left: 48px; }
+  .node-card.indent-3 { margin-left: 72px; }
+
+  .node-card.phase-draft    { border-left-color: #9ca3af; }
+  .node-card.phase-active   { border-left-color: var(--accent); }
+  .node-card.phase-review   { border-left-color: var(--warn); }
+  .node-card.phase-complete { border-left-color: var(--success); }
+  .node-card.phase-archived { border-left-color: var(--text-faint); opacity: 0.6; }
+
+  .phase-badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 6px;
+    border: 1px solid;
+    border-radius: 2px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    font-family: var(--mono);
+  }
+  .phase-badge.draft     { color: #6b7280; border-color: #9ca3af; background: #f9fafb; }
+  .phase-badge.active    { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
+  .phase-badge.review    { color: var(--warn); border-color: var(--warn); background: var(--warn-bg); }
+  .phase-badge.complete  { color: var(--success); border-color: var(--success); background: var(--success-bg); }
+  .phase-badge.archived  { color: var(--text-faint); border-color: var(--text-faint); background: var(--muted-bg); }
+
+  .node-intent {
+    font-family: var(--mono);
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .progress-bar {
+    height: 6px;
+    background: var(--muted-bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+  }
+  .progress-fill.complete { background: var(--success); }
+  .progress-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .flags {
+    display: flex;
+    gap: 4px;
+    justify-content: flex-end;
+  }
+  .flag {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+    border: 1px solid;
+    border-radius: 50%;
+    font-family: var(--mono);
+  }
+  .flag.blocker { color: var(--error); border-color: var(--error); background: var(--error-bg); }
+  .flag.review  { color: var(--warn); border-color: var(--warn); background: var(--warn-bg); }
+  .flag.rollup  { color: var(--error); border-color: var(--error); background: transparent; }
+
+  .tree-line {
+    color: var(--text-faint);
+    font-family: var(--mono);
+  }
+
+  /* =========== Layer 1 panel =========== */
+  .panel {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
+  }
+  .panel-breadcrumb {
+    padding: 10px 16px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-alt);
+  }
+  .panel-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel-intent {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .panel-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--text-dim);
+  }
+  .panel-meta b { color: var(--text); font-weight: 600; }
+  .panel-section {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel-section:last-child { border-bottom: none; }
+  .panel-section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  .acceptance-group {
+    margin-bottom: 12px;
+  }
+  .acceptance-group-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    font-family: var(--mono);
+  }
+  .assertion-item, .metric-item, .rubric-item {
+    display: grid;
+    grid-template-columns: 50px 1fr 100px;
+    gap: 10px;
+    padding: 4px 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    align-items: center;
+  }
+  .check-badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 6px;
+    border: 1px solid;
+    border-radius: 2px;
+    font-weight: 600;
+    text-align: center;
+  }
+  .check-badge.pass { color: var(--success); border-color: var(--success); background: var(--success-bg); }
+  .check-badge.fail { color: var(--error); border-color: var(--error); background: var(--error-bg); }
+  .check-badge.pending { color: var(--text-faint); border-color: var(--text-faint); background: var(--muted-bg); }
+  .metric-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .metric-bar .progress-bar { flex: 1; }
+  .rubric-score {
+    font-weight: 600;
+    text-align: right;
+    font-family: var(--mono);
+  }
+  .rubric-score.priority { color: var(--warn); }
+  .run-item {
+    display: grid;
+    grid-template-columns: 80px 110px 90px 1fr;
+    gap: 10px;
+    padding: 5px 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .run-item b { color: var(--text); font-weight: 500; }
+  .run-state {
+    padding: 1px 6px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    font-size: 10px;
+    text-align: center;
+  }
+  .run-state.ok    { color: var(--success); border-color: var(--success); }
+  .run-state.warn  { color: var(--warn); border-color: var(--warn); }
+  .run-state.error { color: var(--error); border-color: var(--error); }
+  .log-item {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    padding: 3px 0;
+  }
+  .log-item b { color: var(--text); }
+  .policy-line {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 2px 0;
+    color: var(--text);
+  }
+  .policy-line .k { color: var(--text-dim); }
+  .btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .btn {
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 11px;
+    font-family: var(--mono);
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { border-color: var(--accent); color: var(--accent); }
+  .btn.danger  { border-color: var(--error); color: var(--error); }
+  .btn.success { border-color: var(--success); color: var(--success); }
+  .btn.disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* =========== Layer 2 overlay =========== */
+  .overlay {
+    border: 2px solid var(--border-hi);
+    background: var(--bg);
+    border-radius: 4px;
+    box-shadow: 0 0 0 8px var(--muted-bg);
+    margin: 12px 0;
+  }
+  .overlay-header {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-alt);
+  }
+  .overlay-title {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .overlay-section {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .overlay-section:last-child { border-bottom: none; }
+  .kv { display: grid; grid-template-columns: 140px 1fr; gap: 10px; padding: 2px 0; }
+  .kv .k { color: var(--text-dim); }
+  .timeline-item {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 2px 0;
+    color: var(--text);
+  }
+  .timeline-item .ts { color: var(--text-faint); margin-right: 8px; }
+  .timeline-item .act { color: var(--accent); }
+
+  .locked-banner {
+    padding: 8px 12px;
+    background: var(--muted-bg);
+    border: 1px dashed var(--border-hi);
+    font-size: 11px;
+    font-style: italic;
+    color: var(--text-dim);
+    text-align: center;
+    margin-top: 8px;
+  }
+
+  /* =========== Lifecycle phase diagram =========== */
+  .phases-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .phase-box {
+    border: 1px solid var(--border);
+    border-top: 4px solid var(--border-hi);
+    padding: 12px;
+    background: var(--bg);
+    border-radius: 0 0 4px 4px;
+  }
+  .phase-box.draft    { border-top-color: #9ca3af; }
+  .phase-box.active   { border-top-color: var(--accent); }
+  .phase-box.review   { border-top-color: var(--warn); }
+  .phase-box.complete { border-top-color: var(--success); }
+  .phase-box.archived { border-top-color: var(--text-faint); }
+  .phase-box h4 {
+    margin: 0 0 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .phase-box ul {
+    margin: 0;
+    padding-left: 16px;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .phase-box .label {
+    font-size: 10px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 8px;
+  }
+  .arrows-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    text-align: center;
+  }
+  .arrow {
+    position: relative;
+    height: 20px;
+  }
+  .arrow::after {
+    content: "→";
+    position: absolute;
+    right: -12px;
+    top: 0;
+    color: var(--text-faint);
+    font-size: 16px;
+  }
+
+  /* =========== Freeze session chat =========== */
+  .chat {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .chat-header {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-alt);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .chat-body {
+    padding: 16px;
+  }
+  .msg {
+    margin-bottom: 14px;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .msg-role {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .msg.agent .msg-role { color: var(--accent); }
+  .msg.user  .msg-role { color: var(--success); }
+  .msg.system .msg-role { color: var(--text-faint); }
+  .msg-body {
+    padding: 8px 12px;
+    border-left: 2px solid var(--border);
+    background: var(--bg-alt);
+    white-space: pre-wrap;
+    color: var(--text);
+  }
+  .msg.agent .msg-body { border-left-color: var(--accent); }
+  .msg.user .msg-body  { border-left-color: var(--success); }
+  .msg .reasoning {
+    color: var(--text-dim);
+    font-size: 11px;
+    font-style: italic;
+    margin-top: 4px;
+  }
+  .msg .proposal {
+    background: var(--accent-bg);
+    padding: 6px 10px;
+    border-radius: 3px;
+    margin: 6px 0;
+  }
+  .chat-footer {
+    padding: 10px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-alt);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* =========== Fork-Return-Synthesize tree =========== */
+  .runtree {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 18px;
+    border-radius: 4px;
+  }
+  .run-node {
+    border: 1px solid var(--border);
+    padding: 10px 14px;
+    margin: 6px 0;
+    background: var(--bg);
+    border-radius: 3px;
+  }
+  .run-node.primary  { border-left: 3px solid var(--accent); }
+  .run-node.subrun   { border-left: 3px solid var(--text-dim); margin-left: 32px; }
+  .run-node.synth    { border-left: 3px solid var(--success); background: var(--success-bg); }
+  .run-node .run-header {
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .run-node .run-meta {
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .run-return {
+    margin-top: 6px;
+    padding: 6px 10px;
+    background: var(--muted-bg);
+    border-radius: 2px;
+    font-size: 11px;
+  }
+  .run-return .k { color: var(--text-dim); }
+  .run-return.flagged {
+    background: var(--warn-bg);
+    border-left: 2px solid var(--warn);
+  }
+
+  /* =========== Progressive disclosure side-by-side =========== */
+  .layers {
+    display: grid;
+    grid-template-columns: 220px 1fr 1.2fr;
+    gap: 16px;
+    margin: 20px 0;
+  }
+  .layer-col {
+    border: 1px dashed var(--border);
+    padding: 12px;
+    border-radius: 4px;
+  }
+  .layer-col h4 {
+    margin: 0 0 6px;
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--accent);
+  }
+  .layer-col .caption {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+  .layer-col .layer-invariant {
+    font-size: 10px;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-alt);
+    margin-top: 10px;
+    font-family: var(--mono);
+  }
+
+  /* =========== Reconcile timeline =========== */
+  .timeline {
+    font-family: var(--mono);
+    font-size: 12px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
+  }
+  .tl-row {
+    display: grid;
+    grid-template-columns: 70px 30px 1fr;
+    border-bottom: 1px solid var(--border);
+    padding: 10px 14px;
+  }
+  .tl-row:last-child { border-bottom: none; }
+  .tl-time  { color: var(--text-dim); }
+  .tl-marker {
+    display: flex;
+    justify-content: center;
+    color: var(--text-faint);
+  }
+  .tl-event b { font-weight: 600; }
+  .tl-event .note {
+    display: block;
+    color: var(--text-dim);
+    font-style: italic;
+    margin-top: 3px;
+    white-space: pre-wrap;
+  }
+  .tl-row.user-action { background: var(--success-bg); }
+  .tl-row.trigger     { background: var(--warn-bg); }
+  .tl-row.reconcile   { background: var(--accent-bg); }
+
+  /* Small helpers */
+  .muted { color: var(--text-dim); }
+  .mono  { font-family: var(--mono); }
+  .tiny  { font-size: 11px; }
+  .hr    { border: none; border-top: 1px dashed var(--border); margin: 16px 0; }
+  .pill  {
+    display: inline-block;
+    padding: 1px 6px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--text-dim);
+  }
+
+  /* ================== Warning banner ================== */
+  .warn-banner {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn);
+    border-left: 4px solid var(--warn);
+    padding: 12px 16px;
+    border-radius: 3px;
+    margin: 16px 0;
+    font-size: 13px;
+    color: var(--text);
+  }
+  .warn-banner b { color: var(--warn); }
+  .warn-banner a {
+    color: var(--accent);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  /* ================== Column view (1b) ================== */
+  .cols {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow-x: auto;
+    background: var(--bg-alt);
+    min-height: 420px;
+  }
+  .col {
+    flex: 0 0 260px;
+    border-right: 1px solid var(--border);
+    padding: 14px 12px;
+    background: var(--bg);
+  }
+  .col:last-child { border-right: none; }
+  .col-header {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px dashed var(--border);
+  }
+  .col-header b { color: var(--text); font-weight: 600; }
+  .col-card {
+    border: 1px solid var(--border);
+    border-left-width: 3px;
+    padding: 10px 26px 10px 12px;
+    margin-bottom: 6px;
+    background: var(--bg);
+    border-radius: 3px;
+    font-family: var(--mono);
+    position: relative;
+    cursor: pointer;
+  }
+  .col-card.phase-draft    { border-left-color: #9ca3af; }
+  .col-card.phase-active   { border-left-color: var(--accent); }
+  .col-card.phase-review   { border-left-color: var(--warn); }
+  .col-card.phase-complete { border-left-color: var(--success); }
+  .col-card.phase-archived { border-left-color: var(--text-faint); opacity: 0.55; }
+  .col-card.selected {
+    background: var(--accent-bg);
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+  .col-card .col-intent {
+    font-weight: 500;
+    font-size: 12px;
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+  .col-card .col-meta {
+    font-size: 10px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+  }
+  .col-card .chevron {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-faint);
+    font-size: 14px;
+  }
+
+  /* ================== Rail tree (1c) ================== */
+  .rail-tree {
+    padding: 18px 20px;
+    font-family: var(--mono);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+  .rail-card {
+    border: 1px solid var(--border);
+    padding: 10px 14px;
+    margin: 8px 0;
+    background: var(--bg);
+    border-radius: 3px;
+    display: grid;
+    grid-template-columns: 82px 1fr 130px 30px;
+    gap: 12px;
+    align-items: center;
+    position: relative;
+  }
+  .rail-card.phase-draft    { border-left: 3px solid #9ca3af; }
+  .rail-card.phase-active   { border-left: 3px solid var(--accent); }
+  .rail-card.phase-review   { border-left: 3px solid var(--warn); }
+  .rail-card.phase-complete { border-left: 3px solid var(--success); }
+  .rail-card.phase-archived {
+    border-left: 3px solid var(--text-faint);
+    opacity: 0.55;
+  }
+  .rail-intent {
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.3;
+  }
+  .rail-meta {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .rail-children {
+    margin-left: 22px;
+    padding-left: 20px;
+    border-left: 2px solid var(--border);
+    position: relative;
+  }
+  .rail-children.depth-1 { border-left-color: var(--accent); }
+  .rail-children.depth-2 { border-left-color: var(--success); }
+  .rail-children.depth-3 { border-left-color: var(--warn); }
+  .rail-children.depth-4 { border-left-color: var(--text-dim); }
+  /* Horizontal tick from rail to card */
+  .rail-children > .rail-card::before {
+    content: '';
+    position: absolute;
+    left: -22px;
+    top: 50%;
+    width: 20px;
+    height: 2px;
+    background: var(--border);
+  }
+  .rail-children.depth-1 > .rail-card::before { background: var(--accent); }
+  .rail-children.depth-2 > .rail-card::before { background: var(--success); }
+  .rail-children.depth-3 > .rail-card::before { background: var(--warn); }
+  .rail-children.depth-4 > .rail-card::before { background: var(--text-dim); }
+
+  .depth-pill {
+    display: inline-block;
+    padding: 1px 5px;
+    font-size: 9px;
+    color: var(--text-dim);
+    background: var(--muted-bg);
+    border-radius: 8px;
+    margin-left: 6px;
+    font-family: var(--mono);
+  }
+
+  /* ================== Generation lanes (1d) ================== */
+  .lanes {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 20px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+  .lane {
+    padding: 10px 0;
+  }
+  .lane-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+  }
+  .lane-label b { color: var(--text-dim); }
+  .lane-cards {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .lane-card {
+    border: 1px solid var(--border);
+    border-left-width: 3px;
+    padding: 10px 12px;
+    background: var(--bg);
+    border-radius: 3px;
+    font-family: var(--mono);
+    cursor: pointer;
+  }
+  .lane[data-depth="0"] .lane-card { width: 240px; }
+  .lane[data-depth="1"] .lane-card { width: 200px; }
+  .lane[data-depth="2"] .lane-card { width: 170px; }
+  .lane[data-depth="3"] .lane-card { width: 150px; }
+  .lane-card .lane-intent {
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 1.3;
+    margin-bottom: 4px;
+  }
+  .lane[data-depth="1"] .lane-card .lane-intent { font-size: 11px; }
+  .lane[data-depth="2"] .lane-card .lane-intent { font-size: 11px; }
+  .lane[data-depth="3"] .lane-card .lane-intent { font-size: 10px; }
+  .lane-card .lane-meta {
+    color: var(--text-dim);
+    font-size: 10px;
+  }
+  .lane-card.phase-draft    { border-left-color: #9ca3af; }
+  .lane-card.phase-active   { border-left-color: var(--accent); }
+  .lane-card.phase-review   { border-left-color: var(--warn); }
+  .lane-card.phase-complete { border-left-color: var(--success); }
+  .lane-card.phase-archived { border-left-color: var(--text-faint); opacity: 0.55; }
+  .lane-card.selected {
+    background: var(--accent-bg);
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+  .lane-connector {
+    text-align: center;
+    font-size: 10px;
+    color: var(--text-faint);
+    padding: 2px 0;
+    font-family: var(--mono);
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============ SIDEBAR ============ -->
+  <nav class="sidebar">
+    <h1>Goal-Managed Agent v6</h1>
+    <h2>Concept Wireframes</h2>
+    <div class="nav-section">Intent Layer</div>
+    <a class="nav-link active" data-view="v1">1a. Node tree — indent (rejected)</a>
+    <a class="nav-link" data-view="v1b">1b. Column view (alt)</a>
+    <a class="nav-link" data-view="v1c">1c. Rail tree (alt)</a>
+    <a class="nav-link" data-view="v1d">1d. Generation lanes (alt)</a>
+    <a class="nav-link" data-view="v2">2. Layer 1 panel</a>
+    <a class="nav-link" data-view="v3">3. Layer 2 drill-down</a>
+    <a class="nav-link" data-view="v4">4. Three layers side-by-side</a>
+    <div class="nav-section">Node lifecycle</div>
+    <a class="nav-link" data-view="v5">5. 5 phases visualization</a>
+    <a class="nav-link" data-view="v6">6. Freeze co-authoring</a>
+    <div class="nav-section">Execution layer</div>
+    <a class="nav-link" data-view="v7">7. Fork-Return-Synthesize</a>
+    <a class="nav-link" data-view="v8">8. Contract reconcile flow</a>
+    <div class="sidebar-footer">
+      Wireframes are intentionally minimal. Focus on logic and expansion
+      behavior. Cross-reference with
+      <code>goal-managed-agent-v6-foundations.md</code> for the locked
+      decisions that each view illustrates.
+    </div>
+  </nav>
+
+  <!-- ============ MAIN ============ -->
+  <main class="content">
+
+    <!-- ========== V1: Node tree Layer 0 ========== -->
+    <section class="view active" id="v1">
+      <header class="view-header">
+        <div class="view-kicker">View 1a · Intent Layer · rejected baseline</div>
+        <h2 class="view-title">Node tree — indented cards (original, rejected)</h2>
+        <p class="view-subtitle">
+          First attempt. Kept here only as a baseline for comparison.
+          See 1b / 1c / 1d below for viable alternatives.
+        </p>
+      </header>
+
+      <div class="warn-banner">
+        <b>Known problem:</b> indent depth alone does not signal hierarchy
+        at a glance. At depth 3+ the tree characters (├─, └─) become noise
+        and the reader can no longer tell which card belongs to which
+        parent. At depth 5+ the layout simply breaks. This is the "indent
+        death" pathology — it works for 2 levels, fails beyond.<br>
+        See alternatives:
+        <a data-view="v1b">1b Column view</a> ·
+        <a data-view="v1c">1c Rail tree</a> ·
+        <a data-view="v1d">1d Generation lanes</a>.
+      </div>
+
+      <div class="wire">
+        <div class="wire-title">Dashboard home — 7 root-ish Nodes, 2 expanded</div>
+
+        <div class="node-card phase-active">
+          <span class="phase-badge active">ACTIVE</span>
+          <span class="node-intent">Build OKR Dashboard product</span>
+          <div>
+            <div class="progress-bar"><div class="progress-fill" style="width:42%"></div></div>
+            <div class="progress-label">42% · rollup 38%</div>
+          </div>
+          <div class="flags">
+            <span class="flag rollup" title="rollup blocker">!</span>
+          </div>
+        </div>
+
+        <div class="node-card phase-active indent-1">
+          <span class="phase-badge active">ACTIVE</span>
+          <span class="node-intent"><span class="tree-line">├─</span> Write tech spec foundations</span>
+          <div>
+            <div class="progress-bar"><div class="progress-fill" style="width:85%"></div></div>
+            <div class="progress-label">85%</div>
+          </div>
+          <div class="flags">
+            <span class="flag review" title="needs human review">?</span>
+          </div>
+        </div>
+
+        <div class="node-card phase-review indent-2">
+          <span class="phase-badge review">IN-REVIEW</span>
+          <span class="node-intent"><span class="tree-line">│&nbsp;└─</span> Validate Fork-Return-Synthesize</span>
+          <div>
+            <div class="progress-bar"><div class="progress-fill" style="width:95%"></div></div>
+            <div class="progress-label">95%</div>
+          </div>
+          <div class="flags">
+            <span class="flag review" title="human approve required">?</span>
+          </div>
+        </div>
+
+        <div class="node-card phase-draft indent-1">
+          <span class="phase-badge draft">DRAFT</span>
+          <span class="node-intent"><span class="tree-line">├─</span> Design Node CRUD API</span>
+          <div>
+            <div class="progress-label muted">— no progress (prose)</div>
+          </div>
+          <div class="flags"></div>
+        </div>
+
+        <div class="node-card phase-active indent-1">
+          <span class="phase-badge active">ACTIVE</span>
+          <span class="node-intent"><span class="tree-line">├─</span> State Layer recomputation</span>
+          <div>
+            <div class="progress-bar"><div class="progress-fill" style="width:30%"></div></div>
+            <div class="progress-label">30%</div>
+          </div>
+          <div class="flags">
+            <span class="flag blocker" title="own blocker">!</span>
+          </div>
+        </div>
+
+        <div class="node-card phase-complete indent-1">
+          <span class="phase-badge complete">COMPLETE</span>
+          <span class="node-intent"><span class="tree-line">└─</span> Architectural invariant locked</span>
+          <div>
+            <div class="progress-bar"><div class="progress-fill complete" style="width:100%"></div></div>
+            <div class="progress-label">100%</div>
+          </div>
+          <div class="flags"></div>
+        </div>
+
+        <div class="node-card phase-active">
+          <span class="phase-badge active">ACTIVE</span>
+          <span class="node-intent">Continuous research: auto-research v6</span>
+          <div>
+            <div class="progress-bar"><div class="progress-fill" style="width:60%"></div></div>
+            <div class="progress-label">60%</div>
+          </div>
+          <div class="flags"></div>
+        </div>
+
+        <div class="node-card phase-archived">
+          <span class="phase-badge archived">ARCHIVED</span>
+          <span class="node-intent">Original Notion-clone proposal (v0 direction)</span>
+          <div>
+            <div class="progress-label muted">— superseded by v6</div>
+          </div>
+          <div class="flags"></div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <div class="notes-title">Logic notes</div>
+        <ul>
+          <li><b>Each row carries zero contract state</b>. Cards are pure projection from State Layer's <code>state_at(node, ..., render_layer=0)</code>.</li>
+          <li><b>Rollup signals are load-bearing</b>. Root Node "Build OKR Dashboard" shows <code>rollup 38%</code> and a rollup blocker (<span class="flag rollup">!</span>) even though its own progress is 42%. The blocker lives on a grandchild; the rollup surfaces it without exposing the grandchild.</li>
+          <li><b>Draft Nodes never show progress numbers</b>. Prose acceptance can only be judge-subjective; the State Layer returns <code>null</code> for progress on Draft.</li>
+          <li><b>The phase badge determines legal Run types and legal actions</b>. This is the same data users will see everywhere; it's not decoration.</li>
+          <li><b>Archived rows are dimmed but not hidden</b>. They stay reachable for fork/audit.</li>
+        </ul>
+      </div>
+
+      <div class="refs">
+        References: Foundations §3 (three-layer model) · §6 (phases) · §14 (disclosure layers). Task #9 (rollup) · Task #14 (progressive disclosure).
+      </div>
+    </section>
+
+    <!-- ========== V1b: Column view ========== -->
+    <section class="view" id="v1b">
+      <header class="view-header">
+        <div class="view-kicker">View 1b · Intent Layer · Alternative A</div>
+        <h2 class="view-title">Column view (Finder-style)</h2>
+        <p class="view-subtitle">
+          Each column is exactly one depth level. Click a card in column N
+          to populate column N+1 with its children. Depth is unambiguous:
+          it is literally which column you are in.
+        </p>
+      </header>
+
+      <div class="wire">
+        <div class="wire-title">
+          Selected path: Build OKR Dashboard → Write tech spec foundations → Validate FRS
+        </div>
+        <div class="cols">
+
+          <div class="col">
+            <div class="col-header">Depth 0 · <b>root Objectives</b></div>
+            <div class="col-card phase-active selected">
+              <div class="col-intent">Build OKR Dashboard product</div>
+              <div class="col-meta"><span>ACTIVE · 42%</span><span>3 ch</span></div>
+              <span class="chevron">▸</span>
+            </div>
+            <div class="col-card phase-active">
+              <div class="col-intent">Continuous research: auto-research v6</div>
+              <div class="col-meta"><span>ACTIVE · 60%</span><span>0 ch</span></div>
+            </div>
+            <div class="col-card phase-archived">
+              <div class="col-intent">Notion clone proposal (v0)</div>
+              <div class="col-meta"><span>ARCHIVED</span><span>—</span></div>
+            </div>
+          </div>
+
+          <div class="col">
+            <div class="col-header">Depth 1 · children of <b>Build OKR Dashboard</b></div>
+            <div class="col-card phase-active selected">
+              <div class="col-intent">Write tech spec foundations</div>
+              <div class="col-meta"><span>ACTIVE · 85% (?)</span><span>2 ch</span></div>
+              <span class="chevron">▸</span>
+            </div>
+            <div class="col-card phase-draft">
+              <div class="col-intent">Design Node CRUD API</div>
+              <div class="col-meta"><span>DRAFT</span><span>0 ch</span></div>
+            </div>
+            <div class="col-card phase-active">
+              <div class="col-intent">State Layer recomputation</div>
+              <div class="col-meta"><span>ACTIVE · 30% (!)</span><span>0 ch</span></div>
+            </div>
+          </div>
+
+          <div class="col">
+            <div class="col-header">Depth 2 · children of <b>Write tech spec foundations</b></div>
+            <div class="col-card phase-review selected">
+              <div class="col-intent">Validate Fork-Return-Synthesize</div>
+              <div class="col-meta"><span>IN-REVIEW · 95% (?)</span><span>2 ch</span></div>
+              <span class="chevron">▸</span>
+            </div>
+            <div class="col-card phase-complete">
+              <div class="col-intent">Architectural invariant locked</div>
+              <div class="col-meta"><span>COMPLETE · 100%</span><span>0 ch</span></div>
+            </div>
+          </div>
+
+          <div class="col">
+            <div class="col-header">Depth 3 · children of <b>Validate Fork-Return-Synthesize</b></div>
+            <div class="col-card phase-draft">
+              <div class="col-intent">Document parent synthesis reasoning format</div>
+              <div class="col-meta"><span>DRAFT</span><span>0 ch</span></div>
+            </div>
+            <div class="col-card phase-complete">
+              <div class="col-intent">Confirm sub-Run scratchpad isolation</div>
+              <div class="col-meta"><span>COMPLETE · 100%</span><span>0 ch</span></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="notes">
+        <div class="notes-title">Pros</div>
+        <ul>
+          <li><b>Depth is visually unambiguous.</b> You always know which level you are at because you know which column. Zero cognitive load on hierarchy parsing.</li>
+          <li><b>Scales to arbitrary depth.</b> Column 10 looks exactly like column 1. There is no "indent death" where deep nodes get squished against the right edge.</li>
+          <li><b>Siblings at the same depth are stacked vertically in one column</b>, which is how humans compare similar things anyway.</li>
+          <li><b>Single gesture at every depth.</b> Click to drill, scroll back to navigate up. No learned chord per depth level.</li>
+        </ul>
+        <div class="notes-title" style="margin-top:12px">Cons</div>
+        <ul>
+          <li><b>You see only one path at a time.</b> To compare sibling branches' grandchildren, you have to click back and forth.</li>
+          <li><b>Needs horizontal scrolling at 5+ depths</b> on standard screens.</li>
+          <li><b>Less "at a glance" for scanning.</b> A user who wants to see "all 3 Objectives + their immediate KRs at once" has to hold the mental comparison across clicks.</li>
+        </ul>
+      </div>
+
+      <div class="refs">
+        References: Foundations §3 · §14 (progressive disclosure, render layer 0 invariant).
+      </div>
+    </section>
+
+    <!-- ========== V1c: Rail tree ========== -->
+    <section class="view" id="v1c">
+      <header class="view-header">
+        <div class="view-kicker">View 1c · Intent Layer · Alternative B</div>
+        <h2 class="view-title">Rail-connected tree</h2>
+        <p class="view-subtitle">
+          Indent-based but with strong colored vertical rails per depth
+          and explicit horizontal connector ticks from rail to card. The
+          rail colors cue depth without forcing the reader to count indent
+          steps. Multiple branches remain visible at once.
+        </p>
+      </header>
+
+      <div class="wire">
+        <div class="wire-title">Same 10-Node tree as View 1a, rendered with rails</div>
+        <div class="rail-tree">
+
+          <!-- Root: Build OKR Dashboard -->
+          <div class="rail-card phase-active">
+            <span class="phase-badge active">ACTIVE</span>
+            <div>
+              <div class="rail-intent">Build OKR Dashboard product</div>
+              <div class="rail-meta">own 42% · rollup 38% · 3 children</div>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:42%"></div></div>
+            <div class="flags"><span class="flag rollup">!</span></div>
+          </div>
+
+          <div class="rail-children depth-1">
+
+            <div class="rail-card phase-active">
+              <span class="phase-badge active">ACTIVE</span>
+              <div>
+                <div class="rail-intent">Write tech spec foundations <span class="depth-pill">d1</span></div>
+                <div class="rail-meta">own 85% · 2 children</div>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:85%"></div></div>
+              <div class="flags"><span class="flag review">?</span></div>
+            </div>
+
+            <div class="rail-children depth-2">
+
+              <div class="rail-card phase-review">
+                <span class="phase-badge review">IN-REVIEW</span>
+                <div>
+                  <div class="rail-intent">Validate Fork-Return-Synthesize <span class="depth-pill">d2</span></div>
+                  <div class="rail-meta">own 95% · 2 children</div>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width:95%"></div></div>
+                <div class="flags"><span class="flag review">?</span></div>
+              </div>
+
+              <div class="rail-children depth-3">
+                <div class="rail-card phase-draft">
+                  <span class="phase-badge draft">DRAFT</span>
+                  <div>
+                    <div class="rail-intent">Document parent synthesis reasoning format <span class="depth-pill">d3</span></div>
+                    <div class="rail-meta">— prose</div>
+                  </div>
+                  <div class="progress-bar"></div>
+                  <div class="flags"></div>
+                </div>
+                <div class="rail-card phase-complete">
+                  <span class="phase-badge complete">COMPLETE</span>
+                  <div>
+                    <div class="rail-intent">Confirm sub-Run scratchpad isolation <span class="depth-pill">d3</span></div>
+                    <div class="rail-meta">100%</div>
+                  </div>
+                  <div class="progress-bar"><div class="progress-fill complete" style="width:100%"></div></div>
+                  <div class="flags"></div>
+                </div>
+              </div>
+
+              <div class="rail-card phase-complete">
+                <span class="phase-badge complete">COMPLETE</span>
+                <div>
+                  <div class="rail-intent">Architectural invariant locked <span class="depth-pill">d2</span></div>
+                  <div class="rail-meta">100%</div>
+                </div>
+                <div class="progress-bar"><div class="progress-fill complete" style="width:100%"></div></div>
+                <div class="flags"></div>
+              </div>
+
+            </div>
+
+            <div class="rail-card phase-draft">
+              <span class="phase-badge draft">DRAFT</span>
+              <div>
+                <div class="rail-intent">Design Node CRUD API <span class="depth-pill">d1</span></div>
+                <div class="rail-meta">— prose</div>
+              </div>
+              <div class="progress-bar"></div>
+              <div class="flags"></div>
+            </div>
+
+            <div class="rail-card phase-active">
+              <span class="phase-badge active">ACTIVE</span>
+              <div>
+                <div class="rail-intent">State Layer recomputation <span class="depth-pill">d1</span></div>
+                <div class="rail-meta">own 30%</div>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:30%"></div></div>
+              <div class="flags"><span class="flag blocker">!</span></div>
+            </div>
+
+          </div>
+
+          <!-- Root 2 -->
+          <div class="rail-card phase-active" style="margin-top:16px">
+            <span class="phase-badge active">ACTIVE</span>
+            <div>
+              <div class="rail-intent">Continuous research: auto-research v6</div>
+              <div class="rail-meta">own 60% · 0 children</div>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:60%"></div></div>
+            <div class="flags"></div>
+          </div>
+
+          <!-- Root 3 -->
+          <div class="rail-card phase-archived">
+            <span class="phase-badge archived">ARCHIVED</span>
+            <div>
+              <div class="rail-intent">Notion clone proposal (v0 direction)</div>
+              <div class="rail-meta">— superseded by v6</div>
+            </div>
+            <div class="progress-bar"></div>
+            <div class="flags"></div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="notes">
+        <div class="notes-title">Pros</div>
+        <ul>
+          <li><b>Parent-child attachment is visually explicit.</b> The horizontal tick from rail to card literally draws "this card is a child of this rail's parent." No guessing.</li>
+          <li><b>Multiple branches visible at once.</b> Unlike column view, you see <em>all</em> roots and <em>all</em> their children together. A CEO-style scan is possible in one glance.</li>
+          <li><b>Per-depth rail color adds a second channel</b>. Even without counting indent steps, you can tell "this card is at depth 2" because its inbound rail is green. A <code>depth-pill</code> badge on each card reinforces this as text.</li>
+          <li><b>Matches vertical scroll</b>, which is the natural dashboard gesture.</li>
+        </ul>
+        <div class="notes-title" style="margin-top:12px">Cons</div>
+        <ul>
+          <li><b>Still cramped past depth 5.</b> Better than pure indent, but not infinite. Real fix: collapse-by-default at depth &gt; N.</li>
+          <li><b>Requires disciplined expand/collapse.</b> A fully-expanded 100-Node tree is overwhelming no matter how pretty the rails are.</li>
+          <li><b>Rail colors are a second semantic channel</b> that we must not also use for status. Depth uses blue/green/amber/gray; status lives on the left border and badges.</li>
+        </ul>
+      </div>
+
+      <div class="refs">
+        References: Foundations §3 · §6 · §14. Task #14. Visual inspiration: VS Code file explorer, Linear issue hierarchy.
+      </div>
+    </section>
+
+    <!-- ========== V1d: Generation lanes ========== -->
+    <section class="view" id="v1d">
+      <header class="view-header">
+        <div class="view-kicker">View 1d · Intent Layer · Alternative C</div>
+        <h2 class="view-title">Generation lanes (depth as row)</h2>
+        <p class="view-subtitle">
+          Each depth gets its own horizontal row. Selecting a card in row N
+          populates row N+1 with its children. Card size shrinks as depth
+          grows — semantic zoom, so top-level Objectives visually dominate.
+        </p>
+      </header>
+
+      <div class="wire">
+        <div class="wire-title">
+          Selection path: Build OKR Dashboard → Write tech spec → Validate FRS
+        </div>
+        <div class="lanes">
+
+          <div class="lane" data-depth="0">
+            <div class="lane-label"><span>Depth 0 · <b>root Objectives</b></span><span>3 items</span></div>
+            <div class="lane-cards">
+              <div class="lane-card phase-active selected">
+                <div class="lane-intent">Build OKR Dashboard product</div>
+                <div class="lane-meta">ACTIVE · 42% · rollup 38% (!) · 3 children</div>
+              </div>
+              <div class="lane-card phase-active">
+                <div class="lane-intent">Continuous research: auto-research v6</div>
+                <div class="lane-meta">ACTIVE · 60% · 0 children</div>
+              </div>
+              <div class="lane-card phase-archived">
+                <div class="lane-intent">Notion clone proposal (v0)</div>
+                <div class="lane-meta">ARCHIVED · superseded</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="lane-connector">↓ children of selected: Build OKR Dashboard</div>
+
+          <div class="lane" data-depth="1">
+            <div class="lane-label"><span>Depth 1 · <b>sub-objectives</b></span><span>3 items</span></div>
+            <div class="lane-cards">
+              <div class="lane-card phase-active selected">
+                <div class="lane-intent">Write tech spec foundations</div>
+                <div class="lane-meta">ACTIVE · 85% · review pending (?)</div>
+              </div>
+              <div class="lane-card phase-draft">
+                <div class="lane-intent">Design Node CRUD API</div>
+                <div class="lane-meta">DRAFT · prose</div>
+              </div>
+              <div class="lane-card phase-active">
+                <div class="lane-intent">State Layer recomputation</div>
+                <div class="lane-meta">ACTIVE · 30% · blocked (!)</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="lane-connector">↓ children of selected: Write tech spec foundations</div>
+
+          <div class="lane" data-depth="2">
+            <div class="lane-label"><span>Depth 2</span><span>2 items</span></div>
+            <div class="lane-cards">
+              <div class="lane-card phase-review selected">
+                <div class="lane-intent">Validate Fork-Return-Synthesize</div>
+                <div class="lane-meta">IN-REVIEW · 95% · (?)</div>
+              </div>
+              <div class="lane-card phase-complete">
+                <div class="lane-intent">Architectural invariant locked</div>
+                <div class="lane-meta">COMPLETE · 100%</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="lane-connector">↓ children of selected: Validate Fork-Return-Synthesize</div>
+
+          <div class="lane" data-depth="3">
+            <div class="lane-label"><span>Depth 3</span><span>2 items</span></div>
+            <div class="lane-cards">
+              <div class="lane-card phase-draft">
+                <div class="lane-intent">Doc synthesis reasoning format</div>
+                <div class="lane-meta">DRAFT</div>
+              </div>
+              <div class="lane-card phase-complete">
+                <div class="lane-intent">Sub-Run scratchpad isolation</div>
+                <div class="lane-meta">COMPLETE · 100%</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="notes">
+        <div class="notes-title">Pros</div>
+        <ul>
+          <li><b>Depth is row position.</b> Impossible to confuse depth-2 with depth-3 when they are literally in different horizontal lanes.</li>
+          <li><b>Siblings at same depth are same size and same row</b>, which makes them directly comparable.</li>
+          <li><b>Semantic zoom.</b> Top-level cards are visually dominant; depth-3 cards are small. Visual weight tracks hierarchy importance, which matches the OKR mental model where "the Objective matters more than any individual leaf task."</li>
+          <li><b>Top-down reading order matches top-down OKR reasoning</b>: you read row 0 → row 1 → row 2, and that is exactly how an OKR tree should be reasoned about.</li>
+        </ul>
+        <div class="notes-title" style="margin-top:12px">Cons</div>
+        <ul>
+          <li><b>You see only the selected branch's descendants.</b> A row shows all children of <em>the currently selected parent</em>, not all Nodes at that depth. Comparing two sibling branches at depth 3 requires switching selection at depth 0 or 1.</li>
+          <li><b>Horizontal scroll within a row</b> if a depth has many siblings. Not a blocker; lanes are designed for it.</li>
+          <li><b>At depth 4+ cards get quite small.</b> Beyond that, you probably want to open Layer 1 on that Node anyway, so this is not a real problem in practice.</li>
+        </ul>
+      </div>
+
+      <div class="refs">
+        References: Foundations §3 · §14. Task #14. Visual inspiration: org charts, Xcode jump-bar, Miro frames.
+      </div>
+    </section>
+
+    <!-- ========== V2: Layer 1 panel ========== -->
+    <section class="view" id="v2">
+      <header class="view-header">
+        <div class="view-kicker">View 2 · Intent Layer</div>
+        <h2 class="view-title">Layer 1 panel — one focused Node</h2>
+        <p class="view-subtitle">
+          The primary workspace for a single Node. The only layer where
+          contract edits happen. All human-default actions live here.
+        </p>
+      </header>
+
+      <div class="wire">
+        <div class="wire-title">Focused: "Validate Fork-Return-Synthesize" (child of "Write tech spec foundations")</div>
+        <div class="panel">
+
+          <div class="panel-breadcrumb">
+            Build OKR Dashboard &nbsp;/&nbsp; Write tech spec foundations &nbsp;/&nbsp;
+            <b style="color:var(--text)">Validate Fork-Return-Synthesize</b>
+          </div>
+
+          <div class="panel-header">
+            <div class="panel-intent">
+              Validate that Fork-Return-Synthesize converges across parallel sub-Runs
+              without canonical artifact conflicts.
+            </div>
+            <div class="panel-meta">
+              <span>phase <b>IN-REVIEW</b></span>
+              <span>state <b>awaiting_approval</b></span>
+              <span>progress <b>95%</b></span>
+              <span>confidence <b>0.82</b></span>
+              <span>runs <b>5</b> (<span class="muted">1 in-flight before review</span>)</span>
+            </div>
+            <div style="margin-top:8px;font-size:12px;color:var(--text-dim)">
+              <b style="color:var(--text)">next_step:</b> Review synthesis from Run-P-2 and either approve (→ Complete) or reject with tightened local_policy (→ back to Active).
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <div class="panel-section-title">Structured acceptance</div>
+
+            <div class="acceptance-group">
+              <div class="acceptance-group-label">assertions (layer 1: did you do it?)</div>
+              <div class="assertion-item">
+                <span class="check-badge pass">PASS</span>
+                <span>a1 · must_contain — compare ≥3 merge strategies</span>
+                <span class="muted">auto</span>
+              </div>
+              <div class="assertion-item">
+                <span class="check-badge pass">PASS</span>
+                <span>a2 · must_cite — source-14 AND source-15</span>
+                <span class="muted">auto</span>
+              </div>
+              <div class="assertion-item">
+                <span class="check-badge pass">PASS</span>
+                <span>a3 · schema — benchmark_answers.citations non-empty</span>
+                <span class="muted">auto</span>
+              </div>
+            </div>
+
+            <div class="acceptance-group">
+              <div class="acceptance-group-label">metrics (layer 2: how much?)</div>
+              <div class="metric-item">
+                <span class="muted">m1</span>
+                <div class="metric-bar">
+                  <div class="progress-bar"><div class="progress-fill" style="width:80%"></div></div>
+                  <span class="muted">4 / 5</span>
+                </div>
+                <span class="muted">OSS coverage</span>
+              </div>
+              <div class="metric-item">
+                <span class="muted">m2</span>
+                <div class="metric-bar">
+                  <div class="progress-bar"><div class="progress-fill complete" style="width:100%"></div></div>
+                  <span class="muted">0.92 / 0.9 ✓</span>
+                </div>
+                <span class="muted">benchmark pass rate</span>
+              </div>
+            </div>
+
+            <div class="acceptance-group">
+              <div class="acceptance-group-label">rubric (layer 3: how well?)</div>
+              <div class="rubric-item">
+                <span class="muted">r1</span>
+                <span>causal_completeness</span>
+                <span class="rubric-score">8.5 / 10</span>
+              </div>
+              <div class="rubric-item">
+                <span class="muted">r2</span>
+                <span>evidence_density <span class="pill">priority</span></span>
+                <span class="rubric-score priority">7.2 / 10</span>
+              </div>
+              <div class="rubric-item">
+                <span class="muted">r3</span>
+                <span>relevance_discipline</span>
+                <span class="rubric-score">8.0 / 10</span>
+              </div>
+            </div>
+
+            <div class="tiny muted" style="margin-top:6px">
+              done_when: all assertions PASS · all metrics ≥ target · rubric ≥ 8.0 · priority_dim ≥ 8.5 · require_human_approval
+            </div>
+            <div class="tiny" style="color:var(--warn);margin-top:4px">
+              <b>Blocker:</b> rubric.evidence_density (7.2) below priority_dim threshold (8.5)
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <div class="panel-section-title">Recent Runs (5)</div>
+            <div class="run-item">
+              <b>Run-P-2</b>
+              <span>synthesis</span>
+              <span class="run-state ok">completed</span>
+              <span>"merged A/B/C; evidence lifted 7.1→8.4 but still below target"</span>
+            </div>
+            <div class="run-item">
+              <b>Run-P-1</b>
+              <span>synthesis</span>
+              <span class="run-state warn">aborted</span>
+              <span>"reconcile: contract changed mid-run; handed off to P-2"</span>
+            </div>
+            <div class="run-item">
+              <b>Run-A-5</b>
+              <span>research_iteration</span>
+              <span class="run-state ok">completed</span>
+              <span>"added temporal decomposition subsection"</span>
+            </div>
+            <div class="run-item">
+              <b>Run-A-4</b>
+              <span>research_iteration</span>
+              <span class="run-state ok">completed</span>
+              <span>"normalized citation vocabulary"</span>
+            </div>
+            <div class="run-item">
+              <b>Run-A-3</b>
+              <span>exploration</span>
+              <span class="run-state ok">completed</span>
+              <span>"observation only — no canonical update"</span>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <div class="panel-section-title">Review log (tail)</div>
+            <div class="log-item"><b>2026-04-10 15:18</b> · agent · flagged synthesis ready, needs_human_review=true</div>
+            <div class="log-item"><b>2026-04-10 14:22</b> · human · tightened local_policy.budget (15k→20k)</div>
+            <div class="log-item"><b>2026-04-09 11:05</b> · human · added source-15 requirement to a2</div>
+            <div class="log-item"><b>2026-04-08 21:17</b> · agent · Run-A-3 exploration completed (label: observation)</div>
+          </div>
+
+          <div class="panel-section">
+            <div class="panel-section-title">Children (2)</div>
+            <div class="node-card phase-draft">
+              <span class="phase-badge draft">DRAFT</span>
+              <span class="node-intent">Document parent synthesis reasoning format</span>
+              <div><div class="progress-label muted">— prose</div></div>
+              <div class="flags"></div>
+            </div>
+            <div class="node-card phase-complete">
+              <span class="phase-badge complete">COMPLETE</span>
+              <span class="node-intent">Confirm sub-Run scratchpad isolation</span>
+              <div><div class="progress-bar"><div class="progress-fill complete" style="width:100%"></div></div><div class="progress-label">100%</div></div>
+              <div class="flags"></div>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <div class="panel-section-title">Local policy (this level only)</div>
+            <div class="policy-line"><span class="k">budget      </span>20k tokens · 1200s wallclock</div>
+            <div class="policy-line"><span class="k">tools       </span>read, code, no web</div>
+            <div class="policy-line"><span class="k">stakes      </span>normal</div>
+            <div class="policy-line"><span class="k">runtime     </span>codex (prefer) · claude (fallback)</div>
+            <div class="tiny muted" style="margin-top:6px">
+              Effective policy = intersect(ancestors + self) — click to expand.
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <div class="panel-section-title">Actions</div>
+            <div class="btn-row">
+              <button class="btn success">Approve synthesis</button>
+              <button class="btn danger">Reject (back to Active)</button>
+              <button class="btn">Clear review flag</button>
+            </div>
+            <div class="btn-row" style="margin-top:4px">
+              <button class="btn primary">Edit intent</button>
+              <button class="btn primary">Edit acceptance</button>
+              <button class="btn primary">Edit local_policy</button>
+              <button class="btn">Trigger Run</button>
+              <button class="btn">Add child</button>
+              <button class="btn">Add note</button>
+              <button class="btn">Archive</button>
+            </div>
+            <div class="tiny muted" style="margin-top:6px">
+              Editing any contract field while a Run is in-flight triggers the reconcile protocol.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <div class="notes-title">Logic notes</div>
+        <ul>
+          <li><b>This is the ONLY layer that edits contract</b>. Layer 0 navigates; Layer 2 observes. "Edit intent / acceptance / local_policy" are exclusive to Layer 1.</li>
+          <li><b>Breadcrumb is context derivation visualized</b>. The ancestor chain is the context an agent or human uses to understand this Node. It is not UI chrome.</li>
+          <li><b>Structured acceptance renders as three groups</b> because each answers a different question: "did you?" / "how much?" / "how well?". They reuse the assertions + metrics + rubric pattern you've already validated in auto-research.</li>
+          <li><b>Blocker flag explains itself</b>. Users should never wonder why a Node is blocked — the blocker's source (here: <code>rubric.evidence_density</code> below threshold) is inline.</li>
+          <li><b>Run list is a summary, not an execution view</b>. Each Run shows its type, state, and one-line finding. Click any Run to open Layer 2.</li>
+        </ul>
+      </div>
+
+      <div class="refs">
+        References: Foundations §4 (Node schema) · §7 (acceptance format) · §13 (agent/human split) · §14 (Layer 1 is single contract surface). Tasks #4, #5, #8, #13.
+      </div>
+    </section>
+
+    <!-- ========== V3: Layer 2 drill-down ========== -->
+    <section class="view" id="v3">
+      <header class="view-header">
+        <div class="view-kicker">View 3 · Execution Layer visibility</div>
+        <h2 class="view-title">Layer 2 — drill into a single Run</h2>
+        <p class="view-subtitle">
+          Opened from Layer 1 when the user wants to audit a specific
+          execution. Everything visible here is what's required to replay or
+          re-review that Run.
+        </p>
+      </header>
+
+      <div class="wire">
+        <div class="wire-title">Layer 1 still visible behind; Layer 2 is overlay</div>
+
+        <div class="overlay">
+          <div class="overlay-header">
+            <div class="overlay-title">Run-P-2 · synthesis · completed</div>
+            <button class="btn">close (back to Layer 1)</button>
+          </div>
+
+          <div class="overlay-section">
+            <div class="panel-section-title">Identity</div>
+            <div class="kv"><span class="k">run_id</span><span>run_7f3a21e9</span></div>
+            <div class="kv"><span class="k">node_id</span><span>node_validate_frs</span></div>
+            <div class="kv"><span class="k">parent_run_id</span><span>run_2c14bb10 (Run-P-1, aborted)</span></div>
+            <div class="kv"><span class="k">type</span><span>synthesis</span></div>
+            <div class="kv"><span class="k">runtime</span><span>codex</span></div>
+            <div class="kv"><span class="k">state</span><span>completed</span></div>
+            <div class="kv"><span class="k">dispatched_at</span><span>2026-04-10 14:32:01</span></div>
+            <div class="kv"><span class="k">terminated_at</span><span>2026-04-10 15:18:04</span></div>
+          </div>
+
+          <div class="overlay-section">
+            <div class="panel-section-title">Input snapshot (frozen at dispatch)</div>
+            <div class="kv"><span class="k">intent_snapshot</span><span>"Validate Fork-Return-Synthesize converges across parallel sub-Runs without canonical artifact conflicts."</span></div>
+            <div class="kv"><span class="k">acceptance_snapshot</span><span>structured v2 (3 assertions · 2 metrics · 3 rubric dims)</span></div>
+            <div class="kv"><span class="k">effective_policy</span><span>20k tokens · 1200s wallclock · read+code · stakes normal</span></div>
+            <div class="kv"><span class="k">parent_context</span><span>[ancestor-summary-1.md, ancestor-summary-2.md]</span></div>
+            <div class="kv"><span class="k">angle</span><span>null (primary Run)</span></div>
+            <div class="kv"><span class="k">budget</span><span>tokens 20000 · iters 10 · wallclock 1200</span></div>
+            <div class="kv"><span class="k">tool_permissions</span><span>[read, code, dispatch_sub_run]</span></div>
+          </div>
+
+          <div class="overlay-section">
+            <div class="panel-section-title">Output (terminal)</div>
+            <div class="kv"><span class="k">findings</span><span>"Synthesized 3 sub-Run artifacts. Evidence density lifted 7.1→8.4 but still 0.1 below priority threshold. Recommend human review before advance."</span></div>
+            <div class="kv"><span class="k">concerns</span><span>[1] "sub-Run-C diverged on 'canonical_updates' terminology; normalized."<br>[2] "evidence_density rubric still below 8.5 priority threshold."</span></div>
+            <div class="kv"><span class="k">confidence</span><span>0.82</span></div>
+            <div class="kv"><span class="k" style="color:var(--warn)">needs_human_review</span><span style="color:var(--warn)"><b>TRUE</b></span></div>
+            <div class="kv"><span class="k">canonical_updates</span><span>[patch-1.diff, patch-2.diff]</span></div>
+            <div class="kv"><span class="k">termination_reason</span><span>success</span></div>
+          </div>
+
+          <div class="overlay-section">
+            <div class="panel-section-title">Spawned sub-Runs (3)</div>
+            <div class="tl-row" style="grid-template-columns:100px 1fr 80px 120px">
+              <span class="tl-time">sub-Run-A</span>
+              <span>angle: "fundamentals of Claude Code sub-agent mechanics"</span>
+              <span class="run-state ok">completed</span>
+              <span class="muted">drill in →</span>
+            </div>
+            <div class="tl-row" style="grid-template-columns:100px 1fr 80px 120px">
+              <span class="tl-time">sub-Run-B</span>
+              <span>angle: "edge cases when sub-Runs diverge on terminology"</span>
+              <span class="run-state ok">completed</span>
+              <span class="muted">drill in →</span>
+            </div>
+            <div class="tl-row" style="grid-template-columns:100px 1fr 80px 120px">
+              <span class="tl-time">sub-Run-C</span>
+              <span>angle: "counter-evidence from Temporal / Airflow mechanics"</span>
+              <span class="run-state warn">completed · flagged</span>
+              <span class="muted">drill in →</span>
+            </div>
+          </div>
+
+          <div class="overlay-section">
+            <div class="panel-section-title">Audit trail</div>
+            <div class="timeline-item"><span class="ts">14:32:01</span><span class="act">dispatched</span> (input frozen)</div>
+            <div class="timeline-item"><span class="ts">14:32:15</span><span class="act">tool_call</span> read_docs(acceptance_snapshot)</div>
+            <div class="timeline-item"><span class="ts">14:33:02</span><span class="act">tool_call</span> dispatch_sub_run(angle=fundamentals) → sub-Run-A</div>
+            <div class="timeline-item"><span class="ts">14:33:02</span><span class="act">tool_call</span> dispatch_sub_run(angle=edge_cases) → sub-Run-B</div>
+            <div class="timeline-item"><span class="ts">14:33:02</span><span class="act">tool_call</span> dispatch_sub_run(angle=counter_evidence) → sub-Run-C</div>
+            <div class="timeline-item"><span class="ts">14:58:11</span><span class="act">sub_run_returned</span> sub-Run-A (findings 2.3KB)</div>
+            <div class="timeline-item"><span class="ts">15:02:33</span><span class="act">sub_run_returned</span> sub-Run-B (findings 1.8KB)</div>
+            <div class="timeline-item"><span class="ts">15:07:19</span><span class="act">sub_run_returned</span> sub-Run-C (findings 2.1KB, needs_human_review=true)</div>
+            <div class="timeline-item"><span class="ts">15:08:04</span><span class="act">reasoning</span> "A and B agree on core claim; C's flag promoted to Node level"</div>
+            <div class="timeline-item"><span class="ts">15:12:51</span><span class="act">tool_call</span> write_synthesis(patch-1.diff, patch-2.diff)</div>
+            <div class="timeline-item"><span class="ts">15:18:04</span><span class="act">terminated</span> success · frozen output</div>
+          </div>
+
+          <div class="overlay-section">
+            <div class="panel-section-title">Scratchpad (read-only)</div>
+            <div class="policy-line mono">/runs/.../node_validate_frs/Run-P-2/synthesis.md</div>
+            <div class="policy-line mono">/runs/.../node_validate_frs/Run-P-2/reasoning-log.md</div>
+            <div class="policy-line mono">/runs/.../node_validate_frs/Run-P-2/patch-1.diff</div>
+            <div class="policy-line mono">/runs/.../node_validate_frs/Run-P-2/patch-2.diff</div>
+            <div class="policy-line mono" style="color:var(--text-dim)">/runs/.../node_validate_frs/sub-A/ · /sub-B/ · /sub-C/</div>
+          </div>
+
+          <div class="overlay-section">
+            <div class="btn-row">
+              <button class="btn">Export Run</button>
+              <button class="btn">Tag as reference</button>
+              <button class="btn">Dispatch reconcile Run</button>
+              <button class="btn disabled">Edit intent (disabled)</button>
+              <button class="btn disabled">Edit acceptance (disabled)</button>
+            </div>
+            <div class="locked-banner">
+              Layer 2 cannot modify contract. To edit intent / acceptance / local_policy, close this overlay and use Layer 1.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <div class="notes-title">Logic notes</div>
+        <ul>
+          <li><b>Input is a deep snapshot, not a live pointer</b>. Opening this Run 3 months later shows exactly what contract it was working against. Reproducibility at the data level.</li>
+          <li><b>Sub-Runs are reachable here</b> — but this is the drill-down path, not the default. Layer 0 and Layer 1 hide them entirely.</li>
+          <li><b>Audit trail is append-only and frozen at termination</b>. Tampering with it would break the tracing contract.</li>
+          <li><b>Contract-edit buttons are disabled, not hidden</b>. Disabling (not hiding) teaches users the rule explicitly.</li>
+          <li><b>"Dispatch reconcile Run" is the escape hatch</b> when audit reveals the Run was based on a stale contract.</li>
+        </ul>
+      </div>
+
+      <div class="refs">
+        References: Foundations §10 (Run dispatch contract) · §11 (contract reconcile) · §14 (Layer 2 must enable replay). Task #15.
+      </div>
+    </section>
+
+    <!-- ========== V4: Three layers side-by-side ========== -->
+    <section class="view" id="v4">
+      <header class="view-header">
+        <div class="view-kicker">View 4 · Progressive disclosure</div>
+        <h2 class="view-title">Three render layers for the same Node</h2>
+        <p class="view-subtitle">
+          The same Node, rendered three different ways depending on user
+          interaction depth. Click-through is Layer 0 → Layer 1 → Layer 2.
+        </p>
+      </header>
+
+      <div class="layers">
+        <!-- Layer 0 -->
+        <div class="layer-col">
+          <h4>Layer 0 — Card</h4>
+          <div class="caption">Scanning view. What you see in lists and trees.</div>
+          <div class="node-card phase-review">
+            <span class="phase-badge review">IN-REVIEW</span>
+            <span class="node-intent">Validate FRS</span>
+            <div>
+              <div class="progress-bar"><div class="progress-fill" style="width:95%"></div></div>
+              <div class="progress-label">95%</div>
+            </div>
+            <div class="flags"><span class="flag review">?</span></div>
+          </div>
+          <div class="layer-invariant">
+            Reads ONLY State Layer rollup.<br>
+            No Run data, no acceptance detail.<br>
+            Click → Layer 1.
+          </div>
+        </div>
+
+        <!-- Layer 1 -->
+        <div class="layer-col">
+          <h4>Layer 1 — Panel</h4>
+          <div class="caption">Focused view. Primary workspace.</div>
+          <div style="font-family:var(--mono);font-size:11px">
+            <div style="padding:8px;border:1px solid var(--border);background:var(--bg)">
+              <div style="font-weight:600">Validate Fork-Return-Synthesize</div>
+              <div class="muted" style="margin:4px 0">IN-REVIEW · 95% · 0.82 conf</div>
+              <div class="hr"></div>
+              <div class="muted">acceptance:</div>
+              <div>  ✓ 3 assertions pass</div>
+              <div>  ≈ 2/2 metrics (evidence sub-par)</div>
+              <div>  ≈ 3 rubric dims (priority 7.2/8.5)</div>
+              <div class="hr"></div>
+              <div class="muted">recent runs:</div>
+              <div>  Run-P-2 synthesis completed</div>
+              <div>  Run-P-1 synthesis aborted</div>
+              <div>  Run-A-5 research completed</div>
+              <div class="hr"></div>
+              <div class="muted">local_policy:</div>
+              <div>  20k tok · read+code</div>
+              <div class="hr"></div>
+              <div class="muted">children: 2</div>
+              <div>  [DRAFT]    Doc synth format</div>
+              <div>  [COMPLETE] Sub-Run isolation</div>
+              <div class="hr"></div>
+              <div class="btn-row">
+                <button class="btn success">Approve</button>
+                <button class="btn primary">Edit acceptance</button>
+                <button class="btn">Trigger Run</button>
+              </div>
+            </div>
+          </div>
+          <div class="layer-invariant">
+            SINGLE contract-change surface.<br>
+            Human-default actions exclusive here.<br>
+            Click Run → Layer 2.
+          </div>
+        </div>
+
+        <!-- Layer 2 -->
+        <div class="layer-col">
+          <h4>Layer 2 — Detail overlay</h4>
+          <div class="caption">Drill into one Run. Read-only.</div>
+          <div style="font-family:var(--mono);font-size:11px">
+            <div style="padding:8px;border:2px solid var(--border-hi);background:var(--bg)">
+              <div style="font-weight:600">Run-P-2 · synthesis</div>
+              <div class="muted">completed · 46 min · codex</div>
+              <div class="hr"></div>
+              <div class="muted">input_snapshot:</div>
+              <div>  intent: "Validate FRS..."</div>
+              <div>  acceptance: struct v2</div>
+              <div>  effective_policy: 20k tok</div>
+              <div>  angle: null (primary)</div>
+              <div class="hr"></div>
+              <div class="muted">output:</div>
+              <div>  findings: "synthesized 3 sub-Runs..."</div>
+              <div>  confidence: 0.82</div>
+              <div style="color:var(--warn)">  needs_human_review: TRUE</div>
+              <div>  canonical_updates: 2 patches</div>
+              <div class="hr"></div>
+              <div class="muted">spawned_sub_runs: 3</div>
+              <div>  sub-Run-A  completed</div>
+              <div>  sub-Run-B  completed</div>
+              <div>  sub-Run-C  completed · flagged</div>
+              <div class="hr"></div>
+              <div class="muted">audit_trail: 11 events</div>
+              <div>  14:32 dispatched</div>
+              <div>  14:33 dispatch sub-A/B/C</div>
+              <div>  15:08 reasoning: ...</div>
+              <div>  15:18 terminated</div>
+              <div class="hr"></div>
+              <div class="btn-row">
+                <button class="btn">Export</button>
+                <button class="btn">Reconcile</button>
+                <button class="btn disabled">Edit (no)</button>
+              </div>
+            </div>
+          </div>
+          <div class="layer-invariant">
+            Read-only. Cannot edit contract.<br>
+            Must enable full replay of the Run.<br>
+            Close → back to Layer 1.
+          </div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <div class="notes-title">Logic notes</div>
+        <ul>
+          <li><b>Layer 0 is a projection, not a view</b>. It requires zero Run data to render. This is what makes a 1000-Node tree feel instant.</li>
+          <li><b>Layer 1 is where authority lives</b>. Every state-mutating action either is here or is disabled elsewhere. Auditing which surface mutated state becomes trivial.</li>
+          <li><b>Layer 2 is forensic, not transactional</b>. Its job is to reveal "what happened." It cannot make new things happen to the contract.</li>
+          <li><b>Three layers are orthogonal to <code>rollup_depth</code></b>. Rollup_depth is "how far down the tree the State Layer aggregates for Layer 0 cards." render_layer is "how much of the focused Node is shown." Same Node can have any combination.</li>
+          <li><b>A dashboard pane has AT MOST ONE Layer 1 open</b>. If you want two Nodes side-by-side, open a second pane. This prevents modal ambiguity about which Node's policy you just edited.</li>
+        </ul>
+      </div>
+
+      <div class="refs">
+        References: Foundations §14 (progressive disclosure, layer invariants). Task #14.
+      </div>
+    </section>
+
+    <!-- ========== V5: 5 phases ========== -->
+    <section class="view" id="v5">
+      <header class="view-header">
+        <div class="view-kicker">View 5 · Node lifecycle</div>
+        <h2 class="view-title">Five phases and their transitions</h2>
+        <p class="view-subtitle">
+          A Node walks through phases. Each phase determines what Run
+          types are legal, what actions are visible, and what the State
+          Layer returns for progress.
+        </p>
+      </header>
+
+      <div class="phases-row">
+        <div class="phase-box draft">
+          <h4>Draft</h4>
+          <div class="label">acceptance</div>
+          <ul><li>prose</li></ul>
+          <div class="label">Runs allowed</div>
+          <ul><li>exploration only</li></ul>
+          <div class="label">progress</div>
+          <ul><li>— none (prose)</li></ul>
+          <div class="label">actions</div>
+          <ul>
+            <li>edit intent</li>
+            <li>edit prose accept</li>
+            <li>trigger exploration</li>
+            <li>freeze → Active</li>
+            <li>archive</li>
+          </ul>
+        </div>
+
+        <div class="phase-box active">
+          <h4>Active</h4>
+          <div class="label">acceptance</div>
+          <ul><li>structured (3-layer)</li></ul>
+          <div class="label">Runs allowed</div>
+          <ul>
+            <li>research_iteration</li>
+            <li>synthesis</li>
+            <li>exploration</li>
+            <li>audit · reconcile</li>
+          </ul>
+          <div class="label">progress</div>
+          <ul><li>deterministic</li></ul>
+          <div class="label">actions</div>
+          <ul>
+            <li>edit intent</li>
+            <li>edit structured</li>
+            <li>edit local_policy</li>
+            <li>trigger any Run</li>
+            <li>synthesis → In-Review</li>
+            <li>archive</li>
+          </ul>
+        </div>
+
+        <div class="phase-box review">
+          <h4>In-Review</h4>
+          <div class="label">acceptance</div>
+          <ul><li>frozen snapshot</li></ul>
+          <div class="label">Runs allowed</div>
+          <ul><li><b>NONE</b></li></ul>
+          <div class="label">progress</div>
+          <ul><li>frozen</li></ul>
+          <div class="label">actions</div>
+          <ul>
+            <li>approve → Complete</li>
+            <li>reject → Active</li>
+            <li>add human note</li>
+            <li>archive</li>
+          </ul>
+          <div class="label">not allowed</div>
+          <ul><li>contract edits</li><li>new Runs</li></ul>
+        </div>
+
+        <div class="phase-box complete">
+          <h4>Complete</h4>
+          <div class="label">acceptance</div>
+          <ul><li>frozen (canonical)</li></ul>
+          <div class="label">Runs allowed</div>
+          <ul><li><b>NONE</b></li></ul>
+          <div class="label">progress</div>
+          <ul><li>100%</li></ul>
+          <div class="label">actions</div>
+          <ul>
+            <li>read</li>
+            <li>fork to new Node</li>
+            <li>export</li>
+          </ul>
+          <div class="label">not allowed</div>
+          <ul><li>any edits</li><li>return to Active</li></ul>
+        </div>
+
+        <div class="phase-box archived">
+          <h4>Archived</h4>
+          <div class="label">reason</div>
+          <ul><li>explicit abandonment</li></ul>
+          <div class="label">Runs allowed</div>
+          <ul><li><b>NONE</b></li></ul>
+          <div class="label">progress</div>
+          <ul><li>last known, frozen</li></ul>
+          <div class="label">actions</div>
+          <ul>
+            <li>read</li>
+            <li>fork to new Node</li>
+            <li>see archived_reason</li>
+          </ul>
+          <div class="label">note</div>
+          <ul><li>"failed" goes here</li></ul>
+        </div>
+      </div>
+
+      <div class="arrows-row">
+        <div class="arrow">freeze<br>(A/B/C)</div>
+        <div class="arrow">synthesis<br>ready</div>
+        <div class="arrow">approve</div>
+        <div class="arrow">&nbsp;</div>
+        <div>(any → archive)</div>
+      </div>
+
+      <div class="wire">
+        <div class="wire-title">Three phase invariants</div>
+        <ol style="margin:0;padding-left:20px">
+          <li><b>Freeze is one-way.</b> Draft → Active legal. Active → Draft illegal. Never.</li>
+          <li><b>Complete is terminal.</b> No transitions out except <code>fork-to-new-Node</code>. "Oops we weren't done" → create a new child to capture the gap, never revert.</li>
+          <li><b>In-Review is an execution barrier.</b> No new Run dispatches allowed while a Node is In-Review. This is what makes human review align with a frozen artifact snapshot rather than a moving target.</li>
+        </ol>
+      </div>
+
+      <div class="notes">
+        <div class="notes-title">Logic notes</div>
+        <ul>
+          <li><b>Phase is not decoration</b>. It's an execution gate. Dispatching a <code>research_iteration</code> Run to a Draft Node is a data-layer error, not a policy error.</li>
+          <li><b>Born-structured children skip Draft</b>. When a parent in Active spawns children via its acceptance, those children enter Active directly with acceptance inherited from the parent.</li>
+          <li><b>Complete and Archived are both terminal but distinct</b>. Complete = "did it." Archived = "stopped doing it." Failure is an <code>archived_reason</code>, not a separate phase.</li>
+          <li><b>In-Review blocks the execution layer, not the editor</b>. You can still add human notes, drill into past Runs, leave feedback. You just can't mutate contract or start new work until the review resolves.</li>
+        </ul>
+      </div>
+
+      <div class="refs">
+        References: Foundations §6 (lifecycle phases, 3 invariants). Task #12.
+      </div>
+    </section>
+
+    <!-- ========== V6: Freeze co-authoring ========== -->
+    <section class="view" id="v6">
+      <header class="view-header">
+        <div class="view-kicker">View 6 · Node lifecycle</div>
+        <h2 class="view-title">Freeze co-authoring session</h2>
+        <p class="view-subtitle">
+          A conversational schema builder, not a form. Agent proposes each
+          item with reasoning. User can edit, reject, append, skip, pause,
+          or reset at any point. Session state persists across pauses.
+        </p>
+      </header>
+
+      <div class="chat">
+        <div class="chat-header">
+          Node: "Design Node CRUD API" · Draft → freeze session (A triggered by agent readiness)
+        </div>
+
+        <div class="chat-body">
+
+          <div class="msg system">
+            <div class="msg-role">system</div>
+            <div class="msg-body">Session started. Agent read 3 docs, parent context (2 ancestors), and current prose acceptance. Parent is Active, so child may be born-structured from parent acceptance; agent will still ask.</div>
+          </div>
+
+          <div class="msg agent">
+            <div class="msg-role">agent</div>
+            <div class="msg-body">
+              Reading your prose acceptance: "A clean, minimal CRUD API over Node objects that enforces the schema invariants we locked in foundations §4."<br><br>
+              I'll propose structured acceptance one item at a time. You can Accept / Edit / Reject / Append your own at each step. If a layer feels wrong for this Node, say "skip this layer."<br><br>
+              <b>Starting with assertions (layer 1: did you do it?).</b>
+              <div class="proposal">
+                <b>Proposed assertion a1</b><br>
+                kind: <code>schema</code><br>
+                text: "API rejects any Node create request missing one of the 4 required fields (id, intent, parent_id, acceptance)."<br>
+                check_fn: <code>run_schema_tests('create_node_required_fields')</code>
+              </div>
+              <div class="reasoning">
+                Reasoning: foundations §4 locks exactly 4 required fields. The
+                prose says "enforces the schema invariants," so this assertion
+                binds the prose to the concrete invariant.
+              </div>
+              <div class="btn-row">
+                <button class="btn success">Accept</button>
+                <button class="btn">Edit</button>
+                <button class="btn danger">Reject (try again)</button>
+                <button class="btn">I'll add my own</button>
+                <button class="btn">Skip assertions layer</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="msg user">
+            <div class="msg-role">user</div>
+            <div class="msg-body">Accept.</div>
+          </div>
+
+          <div class="msg agent">
+            <div class="msg-role">agent</div>
+            <div class="msg-body">
+              ✓ a1 committed.
+              <div class="proposal">
+                <b>Proposed assertion a2</b><br>
+                kind: <code>schema</code><br>
+                text: "API rejects any edit that would transition a Node from Active back to Draft (freeze is one-way)."<br>
+                check_fn: <code>run_schema_tests('no_freeze_reversion')</code>
+              </div>
+              <div class="reasoning">
+                Reasoning: foundations §6 invariant 1 ("freeze is one-way").
+                This is a load-bearing invariant that has to be enforced at the
+                API layer, not just documented.
+              </div>
+              <div class="btn-row">
+                <button class="btn success">Accept</button>
+                <button class="btn">Edit</button>
+                <button class="btn danger">Reject</button>
+                <button class="btn">I'll add my own</button>
+                <button class="btn">Skip assertions layer</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="msg user">
+            <div class="msg-role">user</div>
+            <div class="msg-body">Edit → "API rejects freeze reversion AND rejects Complete → any other phase."</div>
+          </div>
+
+          <div class="msg agent">
+            <div class="msg-role">agent</div>
+            <div class="msg-body">
+              ✓ a2 committed with your edit. Good catch — I had only §6 invariant 1 in mind and missed invariant 2 (Complete is terminal).
+              <div class="proposal">
+                <b>Proposed assertion a3</b><br>
+                kind: <code>auth</code><br>
+                text: "API rejects any contract-field edit (intent / acceptance / local_policy) from a non-Layer-1 surface."<br>
+                check_fn: <code>run_auth_tests('contract_edit_origin')</code>
+              </div>
+              <div class="reasoning">
+                Reasoning: foundations §14 locks Layer 1 as the single contract
+                surface. Enforcing this server-side prevents a misconfigured
+                Layer 2 client from ever mutating contract.
+              </div>
+              <div class="btn-row">
+                <button class="btn success">Accept</button>
+                <button class="btn">Edit</button>
+                <button class="btn danger">Reject</button>
+                <button class="btn">I'll add my own</button>
+                <button class="btn">Skip assertions layer</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="msg user">
+            <div class="msg-role">user</div>
+            <div class="msg-body">[Pause session — back tomorrow]</div>
+          </div>
+
+          <div class="msg system">
+            <div class="msg-role">system</div>
+            <div class="msg-body">
+              Session paused. Partial schema saved:<br>
+              · assertions: 2 committed (a1, a2), 1 pending (a3)<br>
+              · metrics: not yet reached<br>
+              · rubric: not yet reached<br>
+              · done_when: not yet reached<br><br>
+              On resume, agent will re-read Node docs + partial schema fresh, continue from a3. Already-confirmed items will not reopen.
+            </div>
+          </div>
+
+        </div>
+
+        <div class="chat-footer">
+          <span>Session state: partial · 2 assertions committed · saved 2026-04-11 10:44</span>
+          <span>
+            <button class="btn">Resume</button>
+            <button class="btn">Reset to prose</button>
+          </span>
+        </div>
+      </div>
+
+      <div class="notes">
+        <div class="notes-title">Logic notes</div>
+        <ul>
+          <li><b>Every proposal carries reasoning that cites specific doc sections</b>. The agent cannot propose in the dark; it must tie each item to evidence (prose, parent context, foundations invariants). This is the same judge-with-evidence pattern used in production LLM eval.</li>
+          <li><b>Six user interruption actions are first-class</b>: Accept / Edit / Reject / Append own / Skip layer / Pause / Reset. None of these is an edge case.</li>
+          <li><b>Pause persists partial state</b>. On resume, the agent does a fresh read of Node docs plus the partial schema. Already-confirmed items are not reopened. This keeps the session idempotent across time.</li>
+          <li><b>Sessions progress layer by layer</b>: assertions → metrics → rubric → done_when. User can "skip this layer" if the Node doesn't need that dimension.</li>
+          <li><b>This is a UX commitment, not a polish detail</b>. Without co-authoring, the freeze becomes a giant form, users avoid it, and the whole structured-acceptance pillar collapses.</li>
+        </ul>
+      </div>
+
+      <div class="refs">
+        References: Foundations §7 (acceptance format) · §8 (freeze is co-authoring). Task #11 · Task #13.
+      </div>
+    </section>
+
+    <!-- ========== V7: Fork-Return-Synthesize ========== -->
+    <section class="view" id="v7">
+      <header class="view-header">
+        <div class="view-kicker">View 7 · Execution Layer</div>
+        <h2 class="view-title">Fork-Return-Synthesize — parallel sub-Runs</h2>
+        <p class="view-subtitle">
+          One primary Run dispatches N sub-Runs in parallel. Each sub-Run
+          has an isolated scratchpad and returns a structured summary. The
+          primary Run synthesizes. Sub-Runs are invisible by default.
+        </p>
+      </header>
+
+      <div class="wire">
+        <div class="wire-title">Default view on Layer 1 (user sees only Run-P-2)</div>
+        <div class="runtree">
+          <div class="run-node primary">
+            <div class="run-header">Run-P-2 · synthesis · completed</div>
+            <div class="run-meta">Dispatched 14:32 · terminated 15:18 · duration 46 min</div>
+            <div class="run-return">
+              <div><span class="k">findings:</span> "Synthesized 3 angles. Evidence density lifted 7.1→8.4."</div>
+              <div><span class="k">confidence:</span> 0.82</div>
+              <div><span class="k" style="color:var(--warn)">needs_human_review:</span> <b>true</b> (promoted from sub-Run-C)</div>
+              <div><span class="k">spawned_sub_runs:</span> 3 · <span class="muted">click to expand</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="wire">
+        <div class="wire-title">Drill-down (Layer 2): same Run with sub-Runs revealed</div>
+        <div class="runtree">
+          <div class="run-node primary">
+            <div class="run-header">Run-P-2 · synthesis · completed</div>
+            <div class="run-meta">angle: null (primary) · reads A+B+C returns</div>
+          </div>
+
+          <div class="run-node subrun">
+            <div class="run-header">sub-Run-A · research_iteration · completed</div>
+            <div class="run-meta">angle: "fundamentals of Claude Code sub-agent mechanics" · scratchpad: /sub-A/</div>
+            <div class="run-return">
+              <div><span class="k">findings:</span> "Claude Code enforces isolation via fresh context + no sibling visibility; parent reads returns single-shot."</div>
+              <div><span class="k">concerns:</span> []</div>
+              <div><span class="k">confidence:</span> 0.88</div>
+              <div><span class="k">needs_human_review:</span> false</div>
+            </div>
+          </div>
+
+          <div class="run-node subrun">
+            <div class="run-header">sub-Run-B · research_iteration · completed</div>
+            <div class="run-meta">angle: "edge cases when sub-Runs diverge on terminology" · scratchpad: /sub-B/</div>
+            <div class="run-return">
+              <div><span class="k">findings:</span> "Divergence on terminology is a real failure mode; solved by structured returns over prose blobs."</div>
+              <div><span class="k">concerns:</span> ["may require sub-Run type schemas later"]</div>
+              <div><span class="k">confidence:</span> 0.71</div>
+              <div><span class="k">needs_human_review:</span> false</div>
+            </div>
+          </div>
+
+          <div class="run-node subrun">
+            <div class="run-header">sub-Run-C · research_iteration · completed</div>
+            <div class="run-meta">angle: "counter-evidence from Temporal / Airflow mechanics" · scratchpad: /sub-C/</div>
+            <div class="run-return flagged">
+              <div><span class="k">findings:</span> "Temporal's workflow-is-code model does not match our doc-as-source-of-truth principle; not a clean reference."</div>
+              <div><span class="k">concerns:</span> ["my counter-evidence hits a foundational philosophy, not just implementation — worth human review"]</div>
+              <div><span class="k">confidence:</span> 0.65</div>
+              <div><span class="k" style="color:var(--warn)">needs_human_review:</span> <b>true</b></div>
+            </div>
+          </div>
+
+          <div class="run-node synth">
+            <div class="run-header">Run-P-2 synthesis reasoning log</div>
+            <div class="run-meta">(agent-authored during synthesis step)</div>
+            <div class="run-return">
+              <div>· "A and B align on core claim — kept A's framing, incorporated B's edge-case concern"</div>
+              <div>· "C's counter-evidence doesn't invalidate the design but flags a philosophical tension worth surfacing"</div>
+              <div>· "Decision: write synthesis.md with A's framing, cite B's concern inline, and bubble C's needs_human_review flag to Node level"</div>
+              <div>· "Final confidence: 0.82 (penalized by C's tension)"</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <div class="notes-title">Logic notes</div>
+        <ul>
+          <li><b>Scratchpads are physically disjoint directories</b>. No git conflicts are possible because sub-Runs never touch each other's files.</li>
+          <li><b>Returns are typed records, not prose blobs</b>. The primary agent reasons over <code>{findings, concerns, confidence, needs_human_review}</code>, a fixed 4-field schema. It never has to parse natural language.</li>
+          <li><b>Synthesis is the parent agent's reasoning, not an algorithm</b>. There is no merge function. The agent writes a synthesis reasoning log that describes what it kept, merged, discarded, and why.</li>
+          <li><b>Escalation is agent-driven</b>. sub-Run-C's <code>needs_human_review</code> bubbled up because Run-P-2's agent chose to promote it. Had Run-P-2's agent decided the concern was already handled, it could have suppressed the flag. No structural promotion rule.</li>
+          <li><b>Sub-Runs are invisible by default</b>. Users never see A/B/C unless they explicitly drill into Run-P-2. This protects the "user only faces Node tree" commitment.</li>
+        </ul>
+      </div>
+
+      <div class="refs">
+        References: Foundations §9 (Fork-Return-Synthesize) · §12 (escalation). Task #4 · Task #7.
+      </div>
+    </section>
+
+    <!-- ========== V8: Contract reconcile flow ========== -->
+    <section class="view" id="v8">
+      <header class="view-header">
+        <div class="view-kicker">View 8 · Execution Layer</div>
+        <h2 class="view-title">Contract change reconcile — timeline</h2>
+        <p class="view-subtitle">
+          What happens when a user edits acceptance (or local_policy, or
+          intent) while a Run is in-flight. Three possible outcomes:
+          continue, abort, or restart.
+        </p>
+      </header>
+
+      <div class="timeline">
+        <div class="tl-row">
+          <span class="tl-time">14:00</span>
+          <span class="tl-marker">●</span>
+          <div class="tl-event">
+            <b>Run-P-1 dispatched</b> · type: synthesis · acceptance snapshot v1 frozen
+          </div>
+        </div>
+        <div class="tl-row">
+          <span class="tl-time">14:15</span>
+          <span class="tl-marker">●</span>
+          <div class="tl-event">
+            <b>Run-P-1 running</b> · iteration 3/10 · read sub-A/B returns so far
+          </div>
+        </div>
+        <div class="tl-row user-action">
+          <span class="tl-time">14:22</span>
+          <span class="tl-marker">✎</span>
+          <div class="tl-event">
+            <b>USER edits acceptance</b> from Layer 1 · adds assertion a4 "must cite source-16"
+            <span class="note">(User discovered source-16 during a Layer 2 audit of a previous Run and decided the new rule is load-bearing for the Node.)</span>
+          </div>
+        </div>
+        <div class="tl-row trigger">
+          <span class="tl-time">14:22</span>
+          <span class="tl-marker">⚡</span>
+          <div class="tl-event">
+            <b>System triggers reconcile protocol</b> · notifies all in-flight Runs (here: Run-P-1) that their contract snapshot is stale
+          </div>
+        </div>
+        <div class="tl-row reconcile">
+          <span class="tl-time">14:22</span>
+          <span class="tl-marker">?</span>
+          <div class="tl-event">
+            <b>Run-P-1 agent receives new acceptance v2</b>
+            <span class="note">Agent re-reads new acceptance + its own current scratchpad state + parent_context + audit_trail so far.</span>
+          </div>
+        </div>
+        <div class="tl-row reconcile">
+          <span class="tl-time">14:23</span>
+          <span class="tl-marker">⊙</span>
+          <div class="tl-event">
+            <b>Run-P-1 agent reasoning</b>
+            <span class="note">"v2 adds requirement for source-16 citation. I have already cited source-14 and source-15. Source-16 is referenced in my remaining plan but not yet written into canonical. I can fold source-16 into the next synthesis step without restarting.
+Decision: CONTINUE · revised plan to include source-16 in the final synthesis."</span>
+          </div>
+        </div>
+        <div class="tl-row">
+          <span class="tl-time">14:23</span>
+          <span class="tl-marker">↻</span>
+          <div class="tl-event">
+            <b>Run-P-1 state: reconciled (continue)</b> · audit_trail appended with reconcile event
+          </div>
+        </div>
+        <div class="tl-row">
+          <span class="tl-time">14:24</span>
+          <span class="tl-marker">●</span>
+          <div class="tl-event">
+            <b>Run-P-1 resumes</b> · now operating under acceptance v2 snapshot
+          </div>
+        </div>
+        <div class="tl-row">
+          <span class="tl-time">14:40</span>
+          <span class="tl-marker">✓</span>
+          <div class="tl-event">
+            <b>Run-P-1 completes</b> · canonical synthesis cites source-14, 15, AND 16 ✓ · all v2 assertions pass
+          </div>
+        </div>
+      </div>
+
+      <hr class="hr">
+
+      <div class="wire">
+        <div class="wire-title">Two alternative outcomes the same trigger could produce</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div>
+            <div class="panel-section-title">Outcome B: ABORT</div>
+            <div class="timeline" style="font-size:11px">
+              <div class="tl-row reconcile">
+                <span class="tl-time">14:23</span>
+                <span class="tl-marker">?</span>
+                <div class="tl-event">
+                  Agent reasoning:
+                  <span class="note">"v2 changed the core question — source-16 contradicts my current synthesis direction. My partial work is no longer valid. Decision: ABORT. Let a new Run with v2 start clean."</span>
+                </div>
+              </div>
+              <div class="tl-row">
+                <span class="tl-time">14:23</span>
+                <span class="tl-marker">✕</span>
+                <div class="tl-event"><b>Run-P-1 state: aborted</b><br><span class="note">termination_reason: abort_by_reconcile</span></div>
+              </div>
+              <div class="tl-row">
+                <span class="tl-time">14:24</span>
+                <span class="tl-marker">●</span>
+                <div class="tl-event"><b>System dispatches Run-P-2</b> · same Node · acceptance v2 · fresh scratchpad</div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="panel-section-title">Outcome C: RESTART with context</div>
+            <div class="timeline" style="font-size:11px">
+              <div class="tl-row reconcile">
+                <span class="tl-time">14:23</span>
+                <span class="tl-marker">?</span>
+                <div class="tl-event">
+                  Agent reasoning:
+                  <span class="note">"v2 needs re-analysis, but my existing findings are still useful as input. Decision: RESTART with my scratchpad as context."</span>
+                </div>
+              </div>
+              <div class="tl-row">
+                <span class="tl-time">14:23</span>
+                <span class="tl-marker">↻</span>
+                <div class="tl-event"><b>Run-P-1 restarts as Run-P-1'</b> · acceptance v2 · <span class="note">original scratchpad preserved as input_context, not overwritten</span></div>
+              </div>
+              <div class="tl-row">
+                <span class="tl-time">14:23</span>
+                <span class="tl-marker">📎</span>
+                <div class="tl-event">original Run-P-1's audit_trail preserved in audit log</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <div class="notes-title">Logic notes</div>
+        <ul>
+          <li><b>Contract edits do NOT block</b>. User can edit freely even with in-flight Runs. This preserves "human always in control."</li>
+          <li><b>The Run's agent decides the outcome, not the system</b>. Continue / abort / restart is reasoning, not a rule table. Agent is closest to the actual state and most competent to judge.</li>
+          <li><b>Reconcile applies to all contract fields</b>, not just acceptance. Editing local_policy triggers the same protocol. This generalization is the direct consequence of Task #10's lock.</li>
+          <li><b>Every reconcile decision is an audit_trail event</b>. Three months later, opening this Run shows what contract it was dispatched against, what the new contract was, and why the agent continued / aborted / restarted.</li>
+          <li><b>No silent version forks</b>. The Node keeps its single identity; it does not split into "v1 branch" and "v2 branch." Soft-fork was considered and rejected because it turns the OKR tree into a version tree.</li>
+        </ul>
+      </div>
+
+      <div class="refs">
+        References: Foundations §11 (contract reconcile protocol) · §5 (boundary edits trigger reconcile). Task #10.
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  // Simple view switcher — any [data-view] element triggers a switch
+  const navLinks = document.querySelectorAll('.nav-link');
+  const allTriggers = document.querySelectorAll('[data-view]');
+  const views = document.querySelectorAll('.view');
+
+  function show(viewId) {
+    views.forEach(v => v.classList.toggle('active', v.id === viewId));
+    navLinks.forEach(l => l.classList.toggle('active', l.dataset.view === viewId));
+    // Scroll main back to top when switching
+    document.querySelector('.content').scrollTop = 0;
+    window.scrollTo(0, 0);
+  }
+
+  allTriggers.forEach(el => {
+    el.addEventListener('click', e => {
+      e.preventDefault();
+      show(el.dataset.view);
+      history.replaceState(null, '', '#' + el.dataset.view);
+    });
+  });
+
+  // Honor hash on load
+  if (location.hash) {
+    const id = location.hash.slice(1);
+    if (document.getElementById(id)) show(id);
+  }
+</script>
+</body>
+</html>

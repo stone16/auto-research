@@ -6,7 +6,8 @@ This document records the foundational architectural decisions locked during the
 
 **What this document is:**
 
-- A research artifact capturing assumptions that have been validated through Socratic pressure-testing and, where applicable, verified against 2026 industrial practice.
+- A research artifact capturing architectural decisions, hypotheses, and open questions that emerged from Socratic pressure-testing.
+- A filtered handoff document that distinguishes which claims are backed by the real `goal-managed-agent-orchestration-v6` Codex+Claude run, which are backed only by discussion and design reasoning, and which are backed by external 2026 references.
 - A handoff input for the actual tech spec, which will be written in a new, separate repository.
 - An answer to the question "what has already been decided and why?" for anyone walking into that new repository cold.
 
@@ -18,13 +19,22 @@ This document records the foundational architectural decisions locked during the
 
 ## Discussion posture
 
-All decisions here were validated against three pressures:
+This filtered document weighs four evidence sources:
 
 1. **Stometa's stated requirements** for a goal-native, human-in-the-loop OKR system where agents serve objectives rather than arbitrary tasks.
-2. **CEO-mode inversion reflex**: every locked decision was pressure-tested by asking "what would make this fail?"
+2. **CEO-mode inversion reflex**: every proposed decision was pressure-tested by asking "what would make this fail?"
 3. **Industrial precedent** where applicable, verified via 2026 web searches of production LLM eval frameworks and OKR best practices.
+4. **Real v6 run evidence** from `runs/goal-managed-agent-orchestration-v6/`, which confirms some product-direction claims and exposes some judge and runtime failure modes, but does not by itself validate the full future product ontology.
 
 The discussion mode was Socratic: concrete proposals by the assistant, one-question-at-a-time refinement by Stometa, with explicit acknowledgment and correction when the assistant misunderstood.
+
+### Evidence labels used in this revision
+
+- **Run-backed**: supported by the real v6 Codex+Claude run artifacts or score trajectory.
+- **Discussion-backed**: selected design choice that was pressure-tested in discussion, but not exercised end-to-end in the current prototype.
+- **External-backed**: supported mainly by cited external or product-source evidence.
+
+When a section mixes these, the stronger and weaker claims are called out explicitly instead of being flattened into one "validated" bucket.
 
 ---
 
@@ -32,13 +42,13 @@ The discussion mode was Socratic: concrete proposals by the assistant, one-quest
 
 > **Any unit of work, whether produced by a human or an agent, must be traceable to a goal (Objective) node. The context required for that work must be derivable from the tree path "work → parent KR → ancestor Objective chain," not assembled by hand each time. Boundaries defined at any level of the tree flow strictly downward and cannot be relaxed by descendants.**
 
-Three hard assertions:
+Three chosen design assertions:
 
 1. **Goals are the primary key.** Tasks are derived. There are no orphan tasks. Exploratory work that does not yet fit a goal must be parented to an explicit "Exploratory Objective" rather than floating free.
 2. **Context is derivable, not assembled.** When a user opens any work item, the context they see is the concatenation of the intents of its ancestors in the Node tree, not the contents of whatever chat window they used.
 3. **Boundaries flow down.** A constraint declared at any Node (budget, tool permission, prompt restriction, stop condition, review requirement) applies to every descendant. Descendants may only tighten; they may not loosen.
 
-This is a data-model commitment, not a style preference. Every downstream decision in this document follows from it.
+This is a data-model commitment, not a style preference. It is discussion-backed and partially external-backed; the v6 run supports the narrower product framing and the importance of explicit boundaries, but it does **not** validate this exact Node model.
 
 ### Chosen failure-mode stance
 
@@ -111,14 +121,14 @@ The system decomposes into exactly three layers:
 
 ### State Layer philosophy: "docs are source of truth"
 
-State does not live in agent processes; state lives in documents. The agent that computes state is a pure function `f(docs, records) → state`. It can be run at any time, on any historical commit, to answer "what was the state at moment T?"
+State does not live in agent processes; state lives in documents. The intended product behavior is that the agent computing state acts like a pure function `f(docs, records) → state`. It can be run at any time, on any historical commit, to answer "what was the state at moment T?"
 
-Benefits:
+Intended benefits:
 
 - Immunity to agent drift, deadlock, and crash-loss
 - Replayability of State Layer computation
 - Alignment with `auto-research`'s existing "git is the ratchet" philosophy
-- No stale-cache problems: the State Layer always returns fresh computation
+- Reduced stale-cache risk **if** every user-visible status is derived from the same durable record set. The current research loop does not fully satisfy this yet; for example, the real v6 run ended with a stale `loop_status.json` after manual interruption even though `state.json` and `results.tsv` had advanced further.
 
 ### State Layer function signature
 
@@ -295,27 +305,27 @@ Each layer is optional. A simple Node may have only two assertions and no metric
 
 Given-When-Then was considered and rejected. 2026 production LLM eval frameworks (Ragas, Langfuse, OpenAI Evals, DeepEval, Galileo) have all abandoned BDD because agent outputs cannot be exhaustively enumerated as predefined scenarios. BDD remains reasonable for traditional software testing and unreasonable for agent evaluation.
 
-### Why hybrid matches existing auto-research
+### Why hybrid partially matches existing auto-research
 
-This schema exactly matches the pattern already running in the `runs/<topic>/` pipeline:
+This schema is a useful structural analogue to the pattern already running in the `runs/<topic>/` pipeline, but the match is not exact:
 
 | auto-research today | Acceptance schema slot |
 |---|---|
-| `benchmark.json` items | `assertions` |
-| Deterministic evaluator pass rate | `metrics` |
-| LLM-judge quality dimensions with pairwise verdict | `rubric` |
-| `overall_score → keep or discard` | `done_when` combinator |
+| `benchmark.json` items | benchmarked acceptance questions plus must-include constraints; analogous to part of `assertions`, but not executable assertions themselves |
+| Persisted LLM-judge quality dimensions with pairwise verdict and `dimension_scores` | `rubric` |
+| `overall_score → keep or discard` | heuristic decision gate; analogous to part of `done_when`, but not the full product completion combinator |
+| Deterministic evaluator pass rate | future `metrics` slot; not independently exercised in the real v6 run artifacts |
 
-The OKR Dashboard takes this already-validated pattern and promotes it from research tool to product primitive.
+The OKR Dashboard takes the parts of this pattern that are already useful and promotes them into product primitives. The real v6 run clearly validates the rubric layer because non-empty `dimension_scores` were persisted on all 20 judged iterations; it does **not** yet validate an independent metrics layer inside the run artifacts.
 
 ### Judge calibration is a first-class concern
 
-Each rubric dimension must be bound to a `calibration_set` (a gold set of human-scored examples). On each judge run, the system auto-computes correlation against the calibration set. 2026 production targets:
+Each rubric dimension should be bound to a `calibration_set` (a gold set of human-scored examples). On each judge run, the system should auto-compute correlation against the calibration set. 2026 production targets:
 
 - **Cronbach's alpha > 0.7** (internal consistency across independent runs)
 - **Spearman ρ > 0.8** against human expert gold
 
-Dimensions that fall below threshold are automatically downgraded to "requires human review" until recalibrated. This formalizes the `CalibrationRun` and `GraderTrustScore` concepts drafted in the v5 research iteration.
+Dimensions that fall below threshold are automatically downgraded to "requires human review" until recalibrated. The need for this is run-backed: the real v6 run produced 10 persisted invariant artifacts catching judge contradictions, including `verdict_score_mismatch`, `unacknowledged_regressions`, and `dismissal_without_mergeables`. This formalizes the `CalibrationRun` and `GraderTrustScore` concepts drafted in the v5 research iteration.
 
 ### Industry sources
 
@@ -338,6 +348,8 @@ OKR numeric-KR orthodoxy:
 ## 8. Freeze triggers: A / B / C
 
 Prose acceptance is frozen into structured acceptance via one of three archetype triggers. The system supports all three.
+
+This trigger taxonomy is discussion-backed product design. The current v6 research prototype did not exercise these freeze transitions end-to-end.
 
 ### Archetype A: Readiness-based (agent-proposed)
 
@@ -529,6 +541,8 @@ Editing **any** contract field (intent, acceptance, local_policy) on a Node with
 
 This generalizes from the original "acceptance-change" use case to cover **all** contract fields. One protocol handles acceptance edits, policy edits, and any future contract-level field.
 
+This is a discussion-backed design choice, not something the v6 prototype validated directly.
+
 ### Why not the alternatives
 
 - **Hard block** (no editing during in-flight Runs): violates the "human always in control" philosophy.
@@ -551,6 +565,8 @@ This avoids hard-coded "materially affects parent" promotion rules and keeps sub
 2. **Parent agent promotion guidance**: prompt-level instructions for how an agent should decide whether to bubble, suppress, merge, or locally-resolve flags from its children.
 
 Escalation is a prompt-engineered behavior, not a data-model primitive.
+
+Treat this as a chosen simplification, not as a run-validated fact.
 
 ---
 
@@ -591,6 +607,8 @@ This two-way classification is the operational concretization of the "agent is c
 ## 14. Progressive disclosure: three render layers
 
 The system has **three render layers** for any focused Node, and they are independent of `rollup_depth`.
+
+This section is discussion-backed UI architecture. The v6 run supports the importance of preview, approval, blocked-state, and evidence-review surfaces, but it does not validate this exact three-layer rendering model.
 
 ```
 Layer 0: Card            — scanning view, tree/list
@@ -640,10 +658,12 @@ These were flagged during discussion but not fully resolved. They should be revi
 
 1. **Synthesis quality depends on parent agent reasoning.** If the parent Run's agent is weak, synthesis errors can silently discard load-bearing sub-Run findings. Mitigations: mandatory synthesis audit logs, and `high_stakes` local_policy forcing human review before advance.
 2. **Judge calibration drift.** Rubric LLM judges can drift over time as models change or context shifts. The tech spec should specify how often calibration correlation is recomputed and what action is taken on drift.
+   The real v6 run strengthens this concern rather than resolving it: 10 invariant artifacts were emitted under real Claude judging, including 6 `verdict_score_mismatch` hits.
 3. **Budget semantics during reconcile.** When a contract change triggers reconcile, what happens to already-consumed budget? Not yet decided.
 4. **Multi-user concurrency.** The current model assumes one user per Node at a time. Team use (multiple humans editing the same Node) requires CRDT-style coordination or pessimistic locking. Scoped out of the foundational decisions but load-bearing for team deployments.
 5. **Cross-goal knowledge reuse.** The v5 draft proposed `KnowledgeArtifact` and `CrossGoalLink` primitives. Not reopened in this discussion but remain in scope for the tech spec.
 6. **`measurement_fn` execution environment.** Structured acceptance's `measurement_fn` field needs an execution runtime (sandboxed Python? LLM call? SQL query?). At least two types should be supported in MVP.
+7. **Prototype-proof gap.** The real v6 run improved the research score from the v5 best of `0.89` to a v6 best of `0.90`, but that is still evidence about research synthesis quality, not proof that the proposed Node/Run product model works. The next decisive proof remains one instrumented KR prototype that survives clarification, approval, launch, denial, replan, resume, verification, and acceptance without state ambiguity.
 
 ---
 
@@ -653,53 +673,57 @@ The `auto-research` repo is the research prototype, not the product. But its cur
 
 | auto-research today | Product primitive |
 |---|---|
-| `runs/<topic>/topic.md` | Objective Node definition |
+| `runs/<topic>/topic.md` | research topic seed; analogous to an Objective statement |
 | `topic.md` quality dimensions | Rubric dimensions |
-| `benchmark.json` items | Assertions |
-| Deterministic evaluator pass rate | Metrics |
-| LLM judge with pairwise verdict | Rubric grading + calibration |
-| `runs/<topic>/judge_feedback.md` | Node `review_log` |
-| `runs/<topic>/human_feedback.md` | local_policy + human notes |
-| Iteration keep/discard + git ratchet | Run state persistence + provenance |
-| v5 draft `CalibrationRun`, `GraderTrustScore` | Judge calibration subsystem |
-| v5 draft `BudgetPolicy`, `CostLedgerEntry` | local_policy budget fields |
-| v5 draft `NotificationRoute` | Escalation flag routing |
+| `benchmark.json` items | benchmark questions and must-include constraints; partial analogue to structured acceptance, not executable assertions |
+| Persisted judge `dimension_scores` and pairwise verdict | Rubric grading |
+| Deterministic evaluator pass rate | Future metrics slot; not independently present in the real v6 run artifacts |
+| `runs/<topic>/judge_feedback.md` | review-log analogue |
+| `runs/<topic>/human_feedback.md` | human notes and steering context, not yet a proven `local_policy` equivalent |
+| Iteration keep/discard + git ratchet | partial Run provenance and retained-best ratchet |
+| v5 draft `CalibrationRun`, `GraderTrustScore` | conceptual precursor for judge calibration subsystem |
+| v5 draft `BudgetPolicy`, `CostLedgerEntry` | conceptual precursor for budget-related policy fields |
+| v5 draft `NotificationRoute` | conceptual precursor for escalation routing |
 | v5 draft `KnowledgeArtifact`, `CrossGoalLink` | Open question #5 |
-| v5 draft `ExternalActionContract` | Tool permissions in effective_policy |
+| v5 draft `ExternalActionContract` | conceptual precursor for tool permissions in `effective_policy` |
 
-The OKR Dashboard product does **not discard** this research. It **promotes the validated patterns into product primitives** in a new repo. The v5 plateau around 0.86 judge score is not a research failure, it is the signal that the ontology has matured enough to stop writing prose and start writing code.
+The OKR Dashboard product does **not discard** this research. It promotes the patterns that survived both discussion and real-run scrutiny into product primitives in a new repo. The real research scores are: v5 best `0.89`, v6 best `0.90`. That is evidence of content convergence and slightly better synthesis, not proof that the full product ontology is already validated.
 
 ---
 
 ## 17. Next steps
 
-1. **Red-team the architecture.** Run CEO-mode inversion reflex across every locked decision: "what breaks first under adversarial conditions?" Catch failure modes not surfaced during Socratic validation.
-2. **Draft tech spec skeleton.** Using this document as input, write the tech spec table of contents in the new (yet-to-be-created) product repo.
-3. **Seed the new repo.** Once the skeleton is approved, stand up the product repo with initial schemas and the first implementation milestone.
+1. **Keep the evidence classes explicit.** Before each tech-spec decision, mark it as run-backed, discussion-backed, external-backed, or still-open. Do not collapse these into one bucket called "validated."
+2. **Build one instrumented KR prototype.** The next decisive proof is not more prose. It is one KR that survives clarification, approval, governed launch, denial, replan, resume, verification, and acceptance with replayable state and auditability.
+3. **Red-team the architecture.** Run CEO-mode inversion reflex across every locked decision: "what breaks first under adversarial conditions?" Catch failure modes not surfaced during Socratic validation.
+4. **Draft tech spec skeleton.** Using this document as input, write the tech spec table of contents in the new (yet-to-be-created) product repo.
+5. **Seed the new repo.** Once the skeleton is approved, stand up the product repo with initial schemas and the first implementation milestone.
 
-This document is the handoff artifact for step 1 and step 2.
+This document is the filtered handoff artifact for the prototype-proof, red-team, and tech-spec drafting stages.
 
 ---
 
 ## Locked decisions: index
 
-| # | Decision | Section |
-|---|---|---|
-| 1 | Core architectural invariant: goal-binding | §1 |
-| 2 | Atomic units: Node (intent) and Run (execution), not 1:1 | §2 |
-| 3 | Three-layer model: Intent / Execution / State | §3 |
-| 4 | Node schema with 4 required fields | §4 |
-| 5 | Boundary: derived + local_policy, monotonic intersect | §5 |
-| 6 | Node lifecycle: 5 phases with 3 invariants | §6 |
-| 7 | Acceptance format: hybrid three-layer (assertions + metrics + rubric), BDD excluded | §7 |
-| 8 | Freeze triggers: A readiness, B action-gated (primary), C evidence-driven | §8 |
-| 9 | Archetype B refusal: proceed-with-prose + `exploration` label | §8 |
-| 10 | Freeze is a co-authoring session with persistent state | §8 |
-| 11 | Fork-Return-Synthesize with structured returns and scratchpad isolation | §9 |
-| 12 | Run dispatch contract: 5 types, immutable input snapshot, type-gated `canonical_updates` | §10 |
-| 13 | Contract-change reconcile protocol (generalized across all contract fields) | §11 |
-| 14 | Escalation is agent-driven, not structural | §12 |
-| 15 | Progressive disclosure: 3 render layers, Layer 1 is the single contract-change surface | §14 |
+The table below is intentionally filtered. "Locked" here means "current preferred foundation for tech-spec drafting," not "already validated in a working product."
+
+| # | Decision | Section | Current evidence status |
+|---|---|---|---|
+| 1 | Core architectural invariant: goal-binding | §1 | Discussion-backed, external-backed |
+| 2 | Atomic units: Node (intent) and Run (execution), not 1:1 | §2 | Discussion-backed |
+| 3 | Three-layer model: Intent / Execution / State | §3 | Discussion-backed, run-inspired |
+| 4 | Node schema with 4 required fields | §4 | Discussion-backed |
+| 5 | Boundary: derived + local_policy, monotonic intersect | §5 | Discussion-backed |
+| 6 | Node lifecycle: 5 phases with 3 invariants | §6 | Discussion-backed, external-backed |
+| 7 | Acceptance format: hybrid three-layer (assertions + metrics + rubric), BDD excluded | §7 | Partially run-backed (rubric layer), discussion-backed |
+| 8 | Freeze triggers: A readiness, B action-gated (primary), C evidence-driven | §8 | Discussion-backed |
+| 9 | Archetype B refusal: proceed-with-prose + `exploration` label | §8 | Discussion-backed |
+| 10 | Freeze is a co-authoring session with persistent state | §8 | Discussion-backed, external-backed |
+| 11 | Fork-Return-Synthesize with structured returns and scratchpad isolation | §9 | Discussion-backed, external-backed |
+| 12 | Run dispatch contract: 5 types, immutable input snapshot, type-gated `canonical_updates` | §10 | Discussion-backed |
+| 13 | Contract-change reconcile protocol (generalized across all contract fields) | §11 | Discussion-backed |
+| 14 | Escalation is agent-driven, not structural | §12 | Discussion-backed |
+| 15 | Progressive disclosure: 3 render layers, Layer 1 is the single contract-change surface | §14 | Discussion-backed, external-backed |
 
 ---
 
@@ -707,6 +731,6 @@ This document is the handoff artifact for step 1 and step 2.
 
 - **Discussion branch**: `autoresearch/goal-managed-agent-orchestration-v6`
 - **Discussion mode**: Socratic with CEO-mode pressure-testing (Brainstorming skill + plan-ceo-review skill)
-- **Industry-verified**: 2026 searches of Hebbia, Confident AI, Ragas, Langfuse, DeepEval, Galileo, Synergita OKR guide, Atlassian OKR guide
-- **Research inheritance**: this document captures decisions that were *already self-discovered* during the v1-v5 auto-research iterations on the goal-managed-agent framework; this is their formal lock, not a new proposal
-- **Status**: foundational decisions locked; ready for red-team and tech spec drafting
+- **External-research-backed where cited**: 2026 searches of Hebbia, Confident AI, Ragas, Langfuse, DeepEval, Galileo, Synergita OKR guide, Atlassian OKR guide
+- **Research inheritance**: this document captures decisions and hypotheses that emerged during the v1-v6 auto-research iterations on the goal-managed-agent framework, then filters them by evidence strength instead of treating them as equally validated
+- **Status**: filtered foundations; mix of run-backed conclusions, discussion-backed design choices, and explicit open questions; ready for prototype proof, red-team, and tech spec drafting
