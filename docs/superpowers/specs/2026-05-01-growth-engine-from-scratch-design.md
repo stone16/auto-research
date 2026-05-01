@@ -800,14 +800,42 @@ are hand-written BEFORE iter-1 starts and stored in
 `runs/growth-engine-from-scratch/judge_calibration.md`, marked PROVISIONAL.
 They are judge-side only — producer is NOT shown them.
 
-After iter-1 produces actual KB content, two real iter-1 answers per question
-(one closer to B, one closer to A) replace the provisional anchors. From iter-2
-onward, judges use real anchors only.
+**Anchor crystallization (progressive replacement)**. Auto Research produces
+ONE KB answer per question per iteration, so anchors crystallize gradually
+as iterations supply real material. The protocol:
+
+1. **After iter-1**: For each question, score iter-1's answer. Replace the
+   provisional anchor on whichever band the iter-1 answer scored closest to
+   (e.g., if iter-1 Q3 scored 0.78 ≈ B band, replace the provisional B
+   anchor for Q3 with iter-1's Q3 answer). The OTHER band's provisional
+   anchor remains in use.
+2. **After iter-2 onward**: Each new kept iteration produces an answer per
+   question. If that answer falls closer to the band whose anchor is still
+   provisional AND scores within ±0.07 of that target band centroid (B≈0.75,
+   A≈0.90), replace that provisional anchor with the new answer. Otherwise
+   leave the provisional anchor in place.
+3. **Mixed-anchor period**: From iter-2 until both bands have a real anchor
+   for a given question, the judge uses the question's mix of real and
+   provisional anchors. Judge feedback flags which anchors are still
+   provisional so subsequent iterations are aware of remaining calibration
+   gap.
+4. **Full crystallization**: A question's anchors are fully real once both
+   bands have been observed and replaced. Across the run, expect most
+   questions to fully crystallize by iter-5 to iter-10 (architecture-layer
+   questions earlier, integration-layer questions later).
+
+Optional acceleration: at iter-1, the harness MAY run a multi-sample
+calibration pass (the same prompt with two different temperature or
+sampling settings) to generate two candidate answers per question, scoring
+both. This produces real B and A anchors immediately for many questions,
+at the cost of doubled iter-1 producer compute. Whether to enable this is
+a run-config decision in §7; default is OFF (single-sample iter-1 with
+progressive replacement).
 
 Provisional anchors are coarse and serve only to prevent uncalibrated iter-1
-scoring; real anchors take over as soon as available. Anchor examples convert
-subjective judgment into ratio-comparison judgment, which is more reliable
-across models.
+scoring; real anchors take over as soon as the protocol above produces
+them. Anchor examples convert subjective judgment into ratio-comparison
+judgment, which is more reliable across models.
 
 ### 6.11 Artifact Criteria (Embedded-Table Scoring)
 
@@ -916,9 +944,13 @@ Provisional anchor examples (one B-band ≈ 0.75, one A-band ≈ 0.90, per quest
 MUST be hand-written before iter-1 starts and stored in
 `runs/growth-engine-from-scratch/judge_calibration.md`. They are explicitly marked
 PROVISIONAL and serve only to anchor the score bands during iter-1 when no real
-iteration output exists. After iter-1 produces actual KB content, two real iter-1
-answers per question (one closer to B, one closer to A) replace the provisional
-anchors. From iter-2 onward, judges use only real anchors.
+iteration output exists.
+
+After iter-1 produces actual KB content, anchors crystallize PROGRESSIVELY (per
+§6.10's protocol): each kept iteration replaces ONE provisional anchor at a time
+(the one whose band the iteration's answer falls closest to). Both bands per
+question typically become real by iter-5 to iter-10. Optional multi-sample iter-1
+acceleration is documented in §6.10 (default OFF).
 
 Producer is NOT shown the anchors. They are judge-side only. This prevents the
 producer-bias-toward-anchor-style risk from §6.10's earlier "deferred" stance.
@@ -1039,8 +1071,11 @@ requires.
 - Cross-model peer review by Codex via `/review-loop` Round 1: 8 findings (1 critical, 7 major), all accepted and applied (✓)
 - Cross-model peer review Round 2: 5 second-order findings (all major) — §6.10 contradiction with §8.4, §6.3 vs rubric criteria citation form, missing artifact scoring criteria, KB-vs-artifact deliverable conflict, supervisor-side enforcement — all accepted and applied (✓)
 - Cross-model peer review Round 3: 4 findings (all major) — §6.2.1 self-contradiction, missing path_reference column, tool-level interception inadequate, access-log audit too strict for digest-sourced citations — all accepted and applied (✓)
-- Open ambiguities §8 resolved: §8.1 single run, §8.2 keep CW, §8.3 three tables embedded in KB (now 8-column skill-catalog), §8.4 provisional anchors, §8.5 GE-legacy in failure-modes, §8.6 OS-level sandbox + allowlisted point-verify tool (✓)
-- Cross-model peer review Round 4+: convergence to CONSENSUS (pending)
+- Cross-model peer review Round 4: 4 findings (all major) — Q5/Q6 still 7-column, digest reads not logged, sandbox missed network/MCP, digest-tier audit dropped transitive evidence check — all accepted and applied (✓)
+- Cross-model peer review Round 5 (resumed session): CONSENSUS (✓)
+- Cross-model peer review fresh-final pass (independent session per Documentation/Protocol Scope rule): 1 finding (f22, anchor replacement protocol not operationally satisfiable — §6.10/§8.4 said "two real iter-1 answers per question" but Auto Research produces one answer per iteration). Fixed in §6.10 with progressive replacement protocol + optional multi-sample acceleration, mirrored in §8.4 (✓)
+- Open ambiguities §8 resolved: §8.1 single run, §8.2 keep CW, §8.3 three tables embedded in KB (8-column skill-catalog), §8.4 provisional anchors with progressive crystallization, §8.5 GE-legacy in failure-modes, §8.6 OS-level sandbox + network/MCP sandbox + allowlisted point-verify tool with split access logs (✓)
+- Cross-model peer review re-confirmation (post-f22 fix): pending
 - Stometa final approval (pending)
 
 After this design doc is locked, `writing-plans` produces the implementation plan that
