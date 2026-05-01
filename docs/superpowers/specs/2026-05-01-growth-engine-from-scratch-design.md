@@ -680,6 +680,34 @@ level. The composite alone is not enough.
 
 Holistic gestalt scoring is forbidden.
 
+### 6.2.1 Citation Form in Rubric Criteria
+
+Where a `rubric_criteria` entry uses phrasing like "cites file:line",
+"cites repo:file:line", or "every claim cites file:line", it means **"cites a
+§6.3-valid citation appropriate to the score band being claimed"**, not
+"requires direct file:line regardless of band". Concretely:
+
+- For S-band targets: direct `repo/path:LINE` is required per §6.3
+  (digest-only citations do not qualify for S band).
+- For B/A-band targets: transitively-backed digest citations
+  (`source-*.md§<section>` whose section contains underlying file:line) satisfy
+  the criterion. Direct file:line is preferred but not required for B/A.
+
+Two narrow exceptions where direct file:line is the criterion contract regardless of band:
+
+- **Q5/Q6/Q7/Q8 skill catalog rows**: every row's path reference must be a
+  direct `repo/path` (with optional :LINE) — a skill exists at a path; the path
+  is direct evidence, not a digest summary.
+- **Q9/Q10/Q11/Q12 worked-here / failed-here pairs**: must point to a specific
+  code or commit location (direct file:line OR digest with transitive file:line
+  is acceptable; pure prose claim of "this worked" without locatable evidence
+  is unsupported).
+
+Judges who interpret a rubric criterion as demanding stricter citation form
+than §6.3 + this §6.2.1 (e.g., demanding direct file:line for a B-band answer
+on Q1) are wrong; §6.3 governs the floor and this section governs the
+criterion-to-citation mapping.
+
 ### 6.3 Citation Discipline (Hard Cap)
 
 Every claim that is more specific than a generic noun phrase MUST be linked to a citation.
@@ -758,14 +786,52 @@ features). When this design doc is reviewed by Codex via `/review-loop`, one exp
 review focus is whether any rubric language tilts toward Claude-style or Codex-style
 reasoning patterns.
 
-### 6.10 Anchor Examples (Deferred)
+### 6.10 Anchor Examples (Required Before Iter-1)
 
-After iteration 1 produces actual KB answers, pick 2 answers per question — one that
-should score B (~0.75) and one that should score A (~0.90) — and freeze them as anchor
-examples in `runs/growth-engine-from-scratch/judge_calibration.md`. From iteration 2
-onward, every judge instance MUST be primed with these anchors before scoring. Anchor
-examples convert subjective judgment into ratio-comparison judgment, which is more
-reliable across models.
+Per §8.4, provisional anchors (one B-band ≈0.75, one A-band ≈0.90, per question)
+are hand-written BEFORE iter-1 starts and stored in
+`runs/growth-engine-from-scratch/judge_calibration.md`, marked PROVISIONAL.
+They are judge-side only — producer is NOT shown them.
+
+After iter-1 produces actual KB content, two real iter-1 answers per question
+(one closer to B, one closer to A) replace the provisional anchors. From iter-2
+onward, judges use real anchors only.
+
+Provisional anchors are coarse and serve only to prevent uncalibrated iter-1
+scoring; real anchors take over as soon as available. Anchor examples convert
+subjective judgment into ratio-comparison judgment, which is more reliable
+across models.
+
+### 6.11 Artifact Criteria (Embedded-Table Scoring)
+
+The three structured tables embedded in KB (per §8.3) are evaluated by these
+criteria, with deductions applied to the named questions' composite scores.
+Stable IDs `a<N>.c<M>` are used for cross-model diagnostic.
+
+| ID     | Artifact         | Affected Q's       | Criterion                                                                                  | Per-Q Deduction | Trigger                                                  |
+| ------ | ---------------- | ------------------ | ------------------------------------------------------------------------------------------ | --------------- | -------------------------------------------------------- |
+| a1.c1  | skill-catalog    | Q5, Q6, Q7, Q8     | Each domain's quadrant has ≥8 rows                                                         | 0.10            | Quadrant for this domain has <8 rows                     |
+| a1.c2  | skill-catalog    | Q5, Q6, Q7, Q8     | Every row has all 7 columns populated (no `—`, no empty cells)                             | 0.10            | Any row in this domain's quadrant has missing column     |
+| a1.c3  | skill-catalog    | Q5, Q6, Q7, Q8     | Every row's `originating_repo` and path reference resolves under `~/dev/getuai/`           | 0.10            | Any row cites a path outside the corpus or unresolvable  |
+| a2.c1  | build-sequence   | Q14                | Table has ≥6 milestone rows                                                                | 0.20            | <6 rows                                                  |
+| a2.c2  | build-sequence   | Q14                | Every row has all 6 columns populated                                                      | 0.10            | Any row missing a column                                 |
+| a2.c3  | build-sequence   | Q14                | `corpus_evidence` column cites at least one repo per milestone                             | 0.10            | Any milestone with empty or generic `corpus_evidence`    |
+| a3.c1  | failure-modes    | Q15                | Table has ≥8 mode rows                                                                     | 0.20            | <8 rows                                                  |
+| a3.c2  | failure-modes    | Q15                | Every row has all 7 columns populated                                                      | 0.10            | Any row missing a column                                 |
+| a3.c3  | failure-modes    | Q15                | `failure_evidence_per_domain` column populated per affected domain (per §15 r3 contract)   | 0.15            | Any cross-domain claim missing per-domain evidence       |
+
+Composite formula (extending §6.2):
+
+```
+composite_q = clamp_0_1( weighted_mean(rubric_criteria_q) − sum(triggered penalty_criteria_q) − sum(triggered artifact_criteria for q) )
+```
+
+Then apply caps from §6.1 / §6.3 / §6.5 / §6.7 in that order.
+
+Judge MUST emit triggered artifact criteria with their stable IDs (`a1.c1`,
+`a2.c1`, etc.) in `judge_feedback.md` for each affected question. An artifact
+deduction triggered for a question affects only that question's composite, not
+others.
 
 ## 7. Run Configuration (Draft)
 
@@ -802,25 +868,37 @@ warrant independent extraction. The lower repo-density (it shares files with
 SEO/GEO and Social) is a sourcing challenge, not a reason to fold the
 cognitive layer.
 
-### 8.3 Required empirical artifacts in KB — RESOLVED: yes, three artifacts
+### 8.3 Required empirical artifacts in KB — RESOLVED: three structured tables embedded in KB
 
-The KB MUST produce three structured artifacts in addition to prose answers:
+The KB MUST embed three structured tables INSIDE `knowledge_base.md` itself,
+as part of the answers to specific questions. **The KB remains the single
+ratcheted deliverable; artifact tables are KB content, not parallel files.**
 
-- `runs/growth-engine-from-scratch/artifacts/skill-catalog.md` — table covering all
-  4 domains with columns `skill_name | originating_repo | invocation_surface |
-  input_schema | output_schema | state_persistence | maintenance_signals`. Minimum 8
-  rows per domain (32 total). Regenerated every kept iteration.
-- `runs/growth-engine-from-scratch/artifacts/build-sequence.md` — Q14's milestone-
-  by-milestone sequence as a structured table with columns `milestone | scope |
-  dependencies | done_criteria | next_trigger | corpus_evidence`. Minimum 6 rows.
-- `runs/growth-engine-from-scratch/artifacts/failure-modes.md` — Q15's failure modes
-  as one row per mode with columns `failure_id | affected_domains | structural_cause |
-  early_symptom | prophylactic | failure_evidence_per_domain | prophylactic_evidence`.
-  Minimum 8 rows.
+Embedded table contracts (these are the source of truth — judge scores them):
 
-These artifacts serve the same purpose as Polymarket's toy calibration results: they
-force the producer to traverse the corpus rather than reason in the abstract. Judge
-penalizes any iteration that updates `knowledge_base.md` but not the artifacts.
+- **skill-catalog table**: split across answers to Q5/Q6/Q7/Q8 (one quadrant
+  per domain). Columns: `skill_name | originating_repo | invocation_surface |
+  input_schema | output_schema | state_persistence | maintenance_signals`.
+  Total ≥32 rows across the 4 domains (≥8 per domain).
+- **build-sequence table**: embedded in the Q14 answer. Columns: `milestone |
+  scope | dependencies | done_criteria | next_trigger | corpus_evidence`. ≥6 rows.
+- **failure-modes table**: embedded in the Q15 answer. Columns: `failure_id |
+  affected_domains | structural_cause | early_symptom | prophylactic |
+  failure_evidence_per_domain | prophylactic_evidence`. ≥8 rows.
+
+Optional convenience exports (NOT scored, NOT ratcheted):
+
+- `runs/growth-engine-from-scratch/artifacts/skill-catalog.md` — concatenation of
+  the 4 quadrants from KB.
+- `runs/growth-engine-from-scratch/artifacts/build-sequence.md` — copy of Q14 table.
+- `runs/growth-engine-from-scratch/artifacts/failure-modes.md` — copy of Q15 table.
+
+Producer MAY emit these for human consumption; the run loop does NOT track their
+state. The framework's iteration ratchet operates on `knowledge_base.md` alone.
+
+These embedded tables serve the same purpose as Polymarket's toy calibration
+results: they force the producer to traverse the corpus rather than reason in
+the abstract. Judge applies §6.11 artifact criteria to these embedded tables.
 
 ### 8.4 Anchor example sourcing — RESOLVED: provisional anchors before iter-1
 
@@ -845,27 +923,50 @@ reveals growth-engine-legacy material that is NOT failure-mode evidence (e.g., g
 successful patterns abandoned for non-quality reasons), that material moves to the
 appropriate domain source file with the same origin tag.
 
-### 8.6 Producer access pattern — RESOLVED: digest-only with point verification
+### 8.6 Producer access pattern — RESOLVED: digest-only with supervisor-side enforcement
 
-Producer reads from the 10 `source-*.md` digest files for bulk reasoning. Direct
-repo access is permitted ONLY for point verification — when an answer needs to verify
-a quoted line, function name, or schema field that the digest references but does not
-reproduce verbatim. Each point verification MUST appear in
-`runs/growth-engine-from-scratch/artifacts/iteration-N/verification-log.md` with the
-file path, lines read, and the digest reference being verified.
+Producer reads from the 10 `source-*.md` digest files for bulk reasoning.
+Direct repo access is permitted ONLY for point verification — verifying a
+quoted line, function name, or schema field that the digest references but
+does not reproduce verbatim.
 
-This bounds context budget while keeping citations honest. Producer attempts to read
-raw repos for bulk content (not point verification) are caught by the verification log
-and penalized: the iteration is rejected.
+Enforcement is supervisor-side, NOT producer-self-reported (the producer
+cannot be trusted to log its own raw reads):
+
+1. The harness MUST be configured with a sandboxed file-read wrapper that
+   intercepts ALL producer file reads and writes them to
+   `runs/growth-engine-from-scratch/artifacts/iteration-N/access-log.md`
+   independently of the producer's outputs. Producer cannot bypass the wrapper.
+   Implementation: tool-level interceptor on `Read` / `Bash(cat|head|tail|grep|...)`
+   / equivalent — every read is captured before reaching the producer's
+   conversation.
+2. Each access-log entry records: timestamp, file path, line range read, and a
+   `purpose` tag (`digest-bulk` for source-*.md reads, `point-verify:<digest-ref>`
+   for raw repo reads). For raw repo reads, producer MUST declare the digest
+   reference being verified BEFORE the read (the wrapper rejects raw reads
+   without an accompanying declaration).
+3. After each iteration, judge audits the access log: any raw read NOT
+   tagged `point-verify:<digest-ref>` (i.e., bulk raw access) rejects the
+   iteration regardless of KB quality. Iteration is also rejected if the access
+   log is missing or empty.
+4. Producer MAY also self-mark every citation in KB with its tier
+   (`tier: digest` or `tier: file:line`); judge spot-checks 5 random citations
+   per question against the access log. Mismatches (e.g., KB cites file:line
+   that never appears in the access log) reject the iteration.
+
+This makes §8.6 enforceable from the spec and the harness configuration, not
+contingent on producer honesty. The supervisor-side wrapper is a hard
+prerequisite for run start (acceptance criterion in §9).
 
 ## 9. Definition of Done (For This Design Doc)
 
 - All 15 questions have rubric, rubric_criteria (with stable IDs), penalty_criteria, must_include, required_sources written (✓)
 - Calibration rules cover: anchor table, structured per-criterion scoring, citation tier system, anti-keyword, required_sources gate (caps consistent with anchor bands), cross-question consistency, evidence-required for cognition (score 0 not exclude), inter-judge protocol, model-agnostic language, provisional anchors before iter-1 (✓)
 - Source set strategy maps every domain + layer to a `source-*.md` file; all 10 source files referenced by ≥1 question (✓)
-- Cross-model peer review by Codex via `/review-loop` Round 1: 8 findings (1 critical, 7 major), all accepted and applied (✓ this iteration)
-- Open ambiguities §8 resolved: §8.1 single run, §8.2 keep CW, §8.3 three required artifacts, §8.4 provisional anchors, §8.5 GE-legacy in failure-modes, §8.6 digest-only with point verification (✓)
-- Cross-model peer review Round 2+: convergence to CONSENSUS (pending)
+- Cross-model peer review by Codex via `/review-loop` Round 1: 8 findings (1 critical, 7 major), all accepted and applied (✓)
+- Cross-model peer review Round 2: 5 second-order findings (all major) — §6.10 contradiction with §8.4, §6.3 vs rubric criteria citation form, missing artifact scoring criteria, KB-vs-artifact deliverable conflict, supervisor-side enforcement — all accepted and applied (✓)
+- Open ambiguities §8 resolved: §8.1 single run, §8.2 keep CW, §8.3 three tables embedded in KB, §8.4 provisional anchors, §8.5 GE-legacy in failure-modes, §8.6 digest-only with supervisor-side wrapper (✓)
+- Cross-model peer review Round 3+: convergence to CONSENSUS (pending)
 - Stometa final approval (pending)
 
 After this design doc is locked, `writing-plans` produces the implementation plan that
