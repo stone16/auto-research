@@ -98,6 +98,16 @@ Format mirrors the framework's `benchmark.json` schema (`id`, `question`, `rubri
   "id": "q1",
   "question": "Reading across the SEO/GEO repos in getuai/, what from-scratch architecture for a SEO/GEO subsystem emerges as the converged pattern — components, data stores, external dependencies, and human-in-loop control points — and where do these repos disagree about that pattern?",
   "rubric": "Specify the components (crawler, ranking sensor, content store, generator, publisher, evaluator) and their data flow with explicit interfaces. Name external dependencies (search APIs, LLM providers, CMS) and their failure handling. Identify human-in-loop control points (approval, override, kill-switch). For every architectural claim, cite at least one repo:file:line. Where repos disagree (e.g., one uses pull-based ranking checks, another push-based webhooks), name both repos and state the trade-off. Penalize answers that describe an aspirational design not actually present in code.",
+  "rubric_criteria": [
+    {"id": "q1.r1", "weight": 1.0, "criterion": "Components (crawler, ranking sensor, content store, generator, publisher, evaluator) named AND data flow specified with explicit interfaces"},
+    {"id": "q1.r2", "weight": 1.0, "criterion": "External dependencies (search APIs, LLM providers, CMS) named with explicit failure handling per dependency"},
+    {"id": "q1.r3", "weight": 1.0, "criterion": "Human-in-loop control points (approval, override, kill-switch) identified with repo evidence"},
+    {"id": "q1.r4", "weight": 1.0, "criterion": "Every architectural claim cites at least one repo:file:line"},
+    {"id": "q1.r5", "weight": 1.0, "criterion": "Where repos disagree, both repos named AND the trade-off stated"}
+  ],
+  "penalty_criteria": [
+    {"id": "q1.p1", "deduction": 0.15, "trigger": "Any architectural claim is aspirational rather than present-in-code (uncitable to a real implementation)"}
+  ],
   "must_include": [
     "components",
     "data flow",
@@ -124,6 +134,16 @@ Format mirrors the framework's `benchmark.json` schema (`id`, `question`, `rubri
   "id": "q2",
   "question": "From the corpus, what is the from-scratch architecture of a Content Writing subsystem — the stages from ideation through publish, the role of LLMs at each stage, and the human-review insertion points — and which choices in this architecture are load-bearing versus stylistic?",
   "rubric": "Walk the pipeline: ideation, outline, draft, edit, publish, post-publish iteration. For each stage, name LLM role (none / generator / critic / orchestrator), input contract, output contract, and the human-review hook if any. Distinguish load-bearing choices (those whose change breaks correctness, e.g. mandatory style-guide injection) from stylistic ones (e.g. which template format). Cite repo:file:line for each pipeline component. Penalize generic 'agent writes blog post' answers without stage-by-stage decomposition.",
+  "rubric_criteria": [
+    {"id": "q2.r1", "weight": 1.0, "criterion": "Pipeline stages (ideation, outline, draft, edit, publish, post-publish) walked with input/output contracts per stage"},
+    {"id": "q2.r2", "weight": 1.0, "criterion": "LLM role per stage named (none / generator / critic / orchestrator) with repo evidence"},
+    {"id": "q2.r3", "weight": 1.0, "criterion": "Human-review hooks identified with specific repo evidence per hook"},
+    {"id": "q2.r4", "weight": 1.0, "criterion": "Load-bearing vs stylistic choices distinguished with reasoning, with at least 2 examples on each side"},
+    {"id": "q2.r5", "weight": 1.0, "criterion": "Every pipeline component cites repo:file:line"}
+  ],
+  "penalty_criteria": [
+    {"id": "q2.p1", "deduction": 0.15, "trigger": "Generic 'agent writes blog post' framing without stage-by-stage decomposition"}
+  ],
   "must_include": [
     "ideation",
     "outline",
@@ -150,6 +170,16 @@ Format mirrors the framework's `benchmark.json` schema (`id`, `question`, `rubri
   "id": "q3",
   "question": "What from-scratch architecture for an Ads management subsystem emerges from the getuai/getuai-ads* and attribution repos — the closed loop of campaign feed → bidding → reporting → attribution → optimization — and how are the boundaries between platform-API integration and platform-agnostic logic drawn?",
   "rubric": "Specify the closed loop end-to-end. Name the data model for campaigns, ad groups, creatives, conversions. Describe bidding strategy implementation, attribution model implementation, anomaly detection. State explicitly where platform-specific code lives (e.g. Google Ads vs Facebook Ads) versus where shared business logic sits. Cite repo:file:line for each boundary. Penalize answers that conflate the closed-loop with platform SDKs without naming the abstraction layer.",
+  "rubric_criteria": [
+    {"id": "q3.r1", "weight": 1.0, "criterion": "Closed loop (campaign feed → bidding → reporting → attribution → optimization) specified end-to-end with data flows"},
+    {"id": "q3.r2", "weight": 1.0, "criterion": "Data model for campaigns, ad groups, creatives, conversions explicitly named with field-level detail"},
+    {"id": "q3.r3", "weight": 1.0, "criterion": "Bidding strategy, attribution model, anomaly detection implementations cited"},
+    {"id": "q3.r4", "weight": 1.0, "criterion": "Platform-specific code vs platform-agnostic logic boundary explicitly drawn with file:line"},
+    {"id": "q3.r5", "weight": 1.0, "criterion": "Every architectural claim cites repo:file:line"}
+  ],
+  "penalty_criteria": [
+    {"id": "q3.p1", "deduction": 0.15, "trigger": "Conflating the closed loop with platform SDKs without naming the abstraction layer"}
+  ],
   "must_include": [
     "campaign feed",
     "bidding",
@@ -176,6 +206,16 @@ Format mirrors the framework's `benchmark.json` schema (`id`, `question`, `rubri
   "id": "q4",
   "question": "From reddit-scount, x-api-credit-monitor, youtube-api-demo and the social-touching parts of openclaw-marketing, what from-scratch architecture for a Social media subsystem emerges — covering listen, post, schedule, engage, monitor — and what unifying abstraction (if any) lets one engine speak to multiple platforms without an N×M explosion?",
   "rubric": "Decompose into the listen / post / schedule / engage / monitor surfaces. Name the multi-platform abstraction (or admit none exists in the corpus, with evidence). Specify rate-limit and credit accounting (x-api-credit-monitor is a strong signal here). Specify content-moderation insertion point. Cite repo:file:line. Penalize answers that assume a unified abstraction without finding it in code; an honest 'corpus uses N adapters with no shared abstraction' is worth more than a fictitious clean design.",
+  "rubric_criteria": [
+    {"id": "q4.r1", "weight": 1.0, "criterion": "All five surfaces (listen, post, schedule, engage, monitor) decomposed with per-surface contracts"},
+    {"id": "q4.r2", "weight": 1.0, "criterion": "Multi-platform abstraction named OR honest 'no shared abstraction' verdict given with corpus evidence"},
+    {"id": "q4.r3", "weight": 1.0, "criterion": "Rate-limit and credit accounting cited (x-api-credit-monitor or equivalent)"},
+    {"id": "q4.r4", "weight": 1.0, "criterion": "Content moderation insertion point identified with repo evidence"},
+    {"id": "q4.r5", "weight": 1.0, "criterion": "Every architectural claim cites repo:file:line"}
+  ],
+  "penalty_criteria": [
+    {"id": "q4.p1", "deduction": 0.15, "trigger": "Assumed unified abstraction without finding it in code"}
+  ],
   "must_include": [
     "listen",
     "post",
@@ -202,6 +242,15 @@ Format mirrors the framework's `benchmark.json` schema (`id`, `question`, `rubri
   "id": "q5",
   "question": "What are the reusable skills in the SEO/GEO domain across the corpus — for each: what it does, how it is invoked, what parameters and output contract it enforces, what state it persists, and how it is maintained (versioning, dependencies, retries) — and which skills are duplicated across repos versus genuinely unique?",
   "rubric": "Enumerate the skills as a table with columns: skill name, originating repo, invocation surface (CLI / function call / agent message / cron), input schema, output schema, state persistence, maintenance signals (last-modified, recent commits, deprecation markers). For duplicates, name all repos that carry a near-equivalent and pick the canonical one with rationale. Penalize answers that list skill names without invocation/contract detail. Require at least 8 skills enumerated; no skill counts unless it has a path reference.",
+  "rubric_criteria": [
+    {"id": "q5.r1", "weight": 1.0, "criterion": "≥8 skills enumerated as a table with all 7 columns (skill name, repo, invocation surface, input schema, output schema, state persistence, maintenance signals)"},
+    {"id": "q5.r2", "weight": 1.0, "criterion": "Duplicates identified across repos with canonical pick + rationale"},
+    {"id": "q5.r3", "weight": 1.0, "criterion": "Maintenance signals populated (last-modified, recent commits, deprecation markers), not stubbed"},
+    {"id": "q5.r4", "weight": 1.0, "criterion": "Each skill row has a path reference (file:line)"}
+  ],
+  "penalty_criteria": [
+    {"id": "q5.p1", "deduction": 0.20, "trigger": "<8 skills enumerated OR skills listed without invocation/contract detail OR rows missing path reference"}
+  ],
   "must_include": [
     "skill name",
     "invocation surface",
@@ -228,6 +277,15 @@ Format mirrors the framework's `benchmark.json` schema (`id`, `question`, `rubri
   "id": "q6",
   "question": "What are the reusable Content Writing skills in the corpus — prompt templates, voice/tone systems, multi-lingual handlers, image+text composers, evaluation rubrics — and how do these skills handle the brittleness problems unique to LLM-driven content (drift, hallucination, register collapse)?",
   "rubric": "Enumerate skills with the same table format as Q5. For each, name the brittleness problem it addresses (drift / hallucination / register collapse / factual contamination / language register / cultural fit) and the technique used (template variables / few-shot / critic loop / human review / retrieval grounding). Cite repo:file:line. Penalize answers that ignore brittleness or treat all LLM content generation as equivalent.",
+  "rubric_criteria": [
+    {"id": "q6.r1", "weight": 1.0, "criterion": "Skills enumerated as a table with the same 7-column format as Q5"},
+    {"id": "q6.r2", "weight": 1.0, "criterion": "Each skill names the brittleness problem it addresses (drift / hallucination / register collapse / contamination / language register / cultural fit)"},
+    {"id": "q6.r3", "weight": 1.0, "criterion": "Each skill names the mitigation technique (template variables / few-shot / critic loop / human review / retrieval grounding)"},
+    {"id": "q6.r4", "weight": 1.0, "criterion": "Each skill row cites repo:file:line"}
+  ],
+  "penalty_criteria": [
+    {"id": "q6.p1", "deduction": 0.15, "trigger": "Treats LLM content generation as monolithic / ignores the brittleness dimension"}
+  ],
   "must_include": [
     "prompt template",
     "voice and tone",
@@ -254,6 +312,15 @@ Format mirrors the framework's `benchmark.json` schema (`id`, `question`, `rubri
   "id": "q7",
   "question": "What are the reusable Ads skills in the corpus — keyword analysis, bid strategy, creative generation, budget allocation, anomaly detection, A/B test orchestration — and which are explicitly platform-bound versus platform-agnostic, with the contract for the platform abstraction?",
   "rubric": "Enumerate skills. For each: platform-bound (which platform) vs platform-agnostic, abstraction contract if agnostic, dependence on attribution data, kill criteria embedded. Show repo:file:line evidence per skill. Penalize 'this skill exists for Google Ads' without invocation and contract detail.",
+  "rubric_criteria": [
+    {"id": "q7.r1", "weight": 1.0, "criterion": "Skills enumerated with table format covering keyword analysis, bid strategy, creative generation, budget allocation, anomaly detection, A/B test"},
+    {"id": "q7.r2", "weight": 1.0, "criterion": "Platform-bound vs platform-agnostic explicitly tagged per skill"},
+    {"id": "q7.r3", "weight": 1.0, "criterion": "Abstraction contract specified for platform-agnostic skills (interface and parameters)"},
+    {"id": "q7.r4", "weight": 1.0, "criterion": "Kill criteria embedded per skill where applicable, with repo:file:line evidence"}
+  ],
+  "penalty_criteria": [
+    {"id": "q7.p1", "deduction": 0.15, "trigger": "Skill listed without invocation/contract detail or platform classification"}
+  ],
   "must_include": [
     "keyword analysis",
     "bid strategy",
@@ -280,6 +347,15 @@ Format mirrors the framework's `benchmark.json` schema (`id`, `question`, `rubri
   "id": "q8",
   "question": "What are the reusable Social skills — listening (topic / sentiment / mention), topic selection, multi-platform rewrite, scheduling, reply, sentiment classification — and how do they encode the platform-specific differences in tone, length, and engagement pattern without forking per platform?",
   "rubric": "Enumerate skills. For each: cross-platform versus per-platform, the parameterization that captures platform difference (max length, hashtag policy, mention semantics, image/video requirement), and the failure mode when the platform changes its API or rules. Cite repo:file:line. Penalize answers that pretend platforms are interchangeable.",
+  "rubric_criteria": [
+    {"id": "q8.r1", "weight": 1.0, "criterion": "Skills enumerated covering listening, topic selection, multi-platform rewrite, scheduling, reply, sentiment"},
+    {"id": "q8.r2", "weight": 1.0, "criterion": "Cross-platform vs per-platform tagged per skill"},
+    {"id": "q8.r3", "weight": 1.0, "criterion": "Parameterization captures platform difference (max length, hashtag policy, mention semantics, image/video requirement)"},
+    {"id": "q8.r4", "weight": 1.0, "criterion": "Failure mode for each skill when the platform changes API or rules cited from repo evidence"}
+  ],
+  "penalty_criteria": [
+    {"id": "q8.p1", "deduction": 0.15, "trigger": "Pretends platforms are interchangeable / lacks platform-difference parameterization"}
+  ],
   "must_include": [
     "listening",
     "topic selection",
@@ -306,6 +382,16 @@ Format mirrors the framework's `benchmark.json` schema (`id`, `question`, `rubri
   "id": "q9",
   "question": "What mental models do the SEO/GEO practitioners in the corpus apply when making decisions — topical authority, E-E-A-T, the GEO-vs-SEO pivot, intent mapping, content velocity vs depth — and where do these models prove right or wrong as evidenced by the repos?",
   "rubric": "Name each mental model explicitly. For each model: the canonical decision it shapes, the trigger conditions that invoke it, and at least one 'this model worked here' repo:file:line evidence AND one 'this model failed here' repo:file:line evidence (or commit message admitting failure). Identify at least 2 anti-patterns the corpus reveals. Penalize generic SEO advice not grounded in repo evidence; demand the model-evidence pairing.",
+  "rubric_criteria": [
+    {"id": "q9.r1", "weight": 1.0, "criterion": "≥3 mental models named explicitly (e.g., topical authority, E-E-A-T, GEO vs SEO pivot, intent mapping, content velocity vs depth)"},
+    {"id": "q9.r2", "weight": 1.0, "criterion": "Each model has trigger conditions stated"},
+    {"id": "q9.r3", "weight": 1.0, "criterion": "Each model has ≥1 'worked here' repo:file:line evidence (per §6.7, models without paired evidence score 0.0 in this clause)"},
+    {"id": "q9.r4", "weight": 1.0, "criterion": "Each model has ≥1 'failed here' repo:file:line evidence (or commit message admitting failure)"},
+    {"id": "q9.r5", "weight": 1.0, "criterion": "≥2 anti-patterns identified with corpus evidence"}
+  ],
+  "penalty_criteria": [
+    {"id": "q9.p1", "deduction": 0.20, "trigger": "Generic SEO advice not grounded in repo evidence; reciting industry slogans"}
+  ],
   "must_include": [
     "topical authority",
     "E-E-A-T",
@@ -333,6 +419,16 @@ Format mirrors the framework's `benchmark.json` schema (`id`, `question`, `rubri
   "id": "q10",
   "question": "What cognitive frames do the content practitioners apply — user journey mapping, content portfolio theory, distribution-over-production, ROI time windows, brand voice as forcing function — and how do those frames shape the architecture and skill choices already documented in Q2 and Q6?",
   "rubric": "Name each cognitive frame, its decision-shaping role, and at least one 'worked' / 'failed' repo evidence pairing. Explicitly link each frame to a Q2 architecture choice or a Q6 skill choice (cross-question hook). Identify at least 2 anti-patterns. Penalize answers that treat content as a craft question rather than a system question.",
+  "rubric_criteria": [
+    {"id": "q10.r1", "weight": 1.0, "criterion": "≥3 cognitive frames named (e.g., user journey, content portfolio, distribution-over-production, ROI window, brand voice as forcing function)"},
+    {"id": "q10.r2", "weight": 1.0, "criterion": "Each frame has its decision-shaping role explicitly stated"},
+    {"id": "q10.r3", "weight": 1.0, "criterion": "Each frame has worked + failed repo evidence pairing (per §6.7, frames without paired evidence score 0.0 in this clause)"},
+    {"id": "q10.r4", "weight": 1.0, "criterion": "Each frame is explicitly linked to a Q2 architecture choice OR a Q6 skill choice (cross-question hook)"},
+    {"id": "q10.r5", "weight": 1.0, "criterion": "≥2 anti-patterns identified with corpus evidence"}
+  ],
+  "penalty_criteria": [
+    {"id": "q10.p1", "deduction": 0.15, "trigger": "Treats content as craft rather than system; no Q2/Q6 cross-references"}
+  ],
   "must_include": [
     "user journey",
     "content portfolio",
@@ -360,6 +456,16 @@ Format mirrors the framework's `benchmark.json` schema (`id`, `question`, `rubri
   "id": "q11",
   "question": "What mental models do the ads practitioners apply — LTV/CAC discipline, pacing logic, creative fatigue curves, attribution paradox, kill-vs-double-down criteria — and how do they survive contact with the realities of platform algorithm changes and attribution windows?",
   "rubric": "Name each model, the decision it shapes, the conditions where it holds, and the conditions where it breaks (with repo evidence). Provide at least 2 'this model survived a platform change here' or 'broke here' pairings. Demand explicit kill-vs-scale criteria. Penalize answers that recite ads-buyer slogans without naming the breakage conditions in the corpus.",
+  "rubric_criteria": [
+    {"id": "q11.r1", "weight": 1.0, "criterion": "≥3 mental models named (e.g., LTV/CAC, pacing, creative fatigue, attribution paradox, kill-vs-double-down)"},
+    {"id": "q11.r2", "weight": 1.0, "criterion": "Each model has both holding-conditions AND breaking-conditions named, each with repo evidence (per §6.7, models without paired evidence score 0.0)"},
+    {"id": "q11.r3", "weight": 1.0, "criterion": "≥2 'survived a platform change' or 'broke under platform change' pairings provided"},
+    {"id": "q11.r4", "weight": 1.0, "criterion": "Explicit kill-vs-scale criteria stated, citable to a repo's actual decision logic"},
+    {"id": "q11.r5", "weight": 1.0, "criterion": "≥2 anti-patterns identified with corpus evidence"}
+  ],
+  "penalty_criteria": [
+    {"id": "q11.p1", "deduction": 0.15, "trigger": "Recites ads-buyer slogans without naming breakage conditions in the corpus"}
+  ],
   "must_include": [
     "LTV CAC",
     "pacing",
@@ -387,6 +493,16 @@ Format mirrors the framework's `benchmark.json` schema (`id`, `question`, `rubri
   "id": "q12",
   "question": "What cognitive models do the social practitioners apply — platform-as-game-theory, algorithm preference modeling, community-fit-before-brand-voice, viral mechanics, the costs of automation visibility — and which of these models are validated, contested, or debunked by the corpus's actual outcomes?",
   "rubric": "Name each model, its decision-shaping role, supporting and contradicting repo evidence. Specifically address the automation visibility cost (when audiences detect AI-generated posts and disengage) with at least one repo example. Identify 2+ anti-patterns. Penalize 'platform best practices' answers without per-platform repo evidence.",
+  "rubric_criteria": [
+    {"id": "q12.r1", "weight": 1.0, "criterion": "≥3 cognitive models named (e.g., platform game theory, algorithm preference modeling, community fit, viral mechanics, automation visibility cost)"},
+    {"id": "q12.r2", "weight": 1.0, "criterion": "Each model has supporting + contradicting repo evidence (per §6.7, models without paired evidence score 0.0)"},
+    {"id": "q12.r3", "weight": 1.0, "criterion": "Automation visibility cost addressed specifically with ≥1 repo example"},
+    {"id": "q12.r4", "weight": 1.0, "criterion": "Per-platform repo evidence provided (not generic platform-best-practices)"},
+    {"id": "q12.r5", "weight": 1.0, "criterion": "≥2 anti-patterns identified with corpus evidence"}
+  ],
+  "penalty_criteria": [
+    {"id": "q12.p1", "deduction": 0.15, "trigger": "Generic 'platform best practices' answer without per-platform repo evidence"}
+  ],
   "must_include": [
     "platform game theory",
     "algorithm preference",
@@ -414,6 +530,16 @@ Format mirrors the framework's `benchmark.json` schema (`id`, `question`, `rubri
   "id": "q13",
   "question": "Across the four domains, what infrastructure must be shared (identity, data lake, task queue, observability, LLM gateway, human-in-loop console, secrets and credentials, repo-template conventions) and what must be domain-isolated, and what is the criterion that decides which side of that line a new component belongs on?",
   "rubric": "List the shared foundations with the corpus evidence for each (at least 2 repos showing convergent pattern). For each foundation, name the contract (interface, schema, version policy). Provide an explicit decision rule: when does a new component belong in the shared layer vs in a domain-specific repo? Penalize answers that handwave 'platform stuff is shared' without naming the contract.",
+  "rubric_criteria": [
+    {"id": "q13.r1", "weight": 1.0, "criterion": "≥6 shared foundations listed (identity, data lake, task queue, observability, LLM gateway, human-in-loop console, secrets, repo-template)"},
+    {"id": "q13.r2", "weight": 1.0, "criterion": "Each foundation has corpus evidence from ≥2 repos showing convergent pattern"},
+    {"id": "q13.r3", "weight": 1.0, "criterion": "Each foundation has contract specified (interface, schema, version policy)"},
+    {"id": "q13.r4", "weight": 1.0, "criterion": "Domain-isolated components also enumerated with rationale"},
+    {"id": "q13.r5", "weight": 1.0, "criterion": "Explicit decision rule stated for 'new component → shared layer vs domain-specific'"}
+  ],
+  "penalty_criteria": [
+    {"id": "q13.p1", "deduction": 0.15, "trigger": "Handwaves 'platform stuff is shared' without naming the contract"}
+  ],
   "must_include": [
     "identity",
     "data lake",
@@ -440,7 +566,17 @@ Format mirrors the framework's `benchmark.json` schema (`id`, `question`, `rubri
 {
   "id": "q14",
   "question": "If a small team starts on Day 1 with the goal of running a growth engine across the four domains in three months, what is the minimum-viable build sequence — what is built first, what is deferred, what triggers introducing each next subsystem, and what is the explicit decision rule for declaring a milestone done — grounded in evidence from the corpus's own evolution (prototypes → MVP → product)?",
-  "rubric": "Produce a sequenced plan with at least 6 milestones (Day-1, Week-1, Week-2, Week-4, Week-8, Week-12). For each milestone: scope, dependencies on prior milestones, explicit done criteria, the next-trigger that pulls the following milestone in. Reference the corpus's own evolution (e.g., 0407-prototype → 0408-prototype → getuai-mvp → getuai-2.0) as evidence for the sequence shape. Cross-reference Q1-Q13 for what each milestone delivers. Penalize 'do everything at once' or vague timelines. Demand at least 3 explicit deferrals (X is intentionally not built before Y because Z).",
+  "rubric": "Produce a sequenced plan with at least 6 milestones (Day-1, Week-1, Week-2, Week-4, Week-8, Week-12). For each milestone: scope, dependencies on prior milestones, explicit done criteria, the next-trigger that pulls the following milestone in. Reference the corpus's own evolution (e.g., 0407-prototype → 0408-prototype → getuai-mvp → getuai-2.0) as evidence for the sequence shape. Cross-reference Q1-Q13 for what each milestone delivers AND fold in skill-delivery milestones (Q5-Q8 evidence) and failure-informed deferrals (Q15 evidence). Penalize 'do everything at once' or vague timelines. Demand at least 3 explicit deferrals (X is intentionally not built before Y because Z).",
+  "rubric_criteria": [
+    {"id": "q14.r1", "weight": 1.0, "criterion": "≥6 milestones (Day-1, Week-1, Week-2, Week-4, Week-8, Week-12) defined"},
+    {"id": "q14.r2", "weight": 1.0, "criterion": "Each milestone has scope + dependencies + done criteria + next-trigger"},
+    {"id": "q14.r3", "weight": 1.0, "criterion": "References the corpus's evolution (0407-prototype → 0408-prototype → getuai-mvp → getuai-2.0 or equivalent) as evidence for sequence shape"},
+    {"id": "q14.r4", "weight": 1.0, "criterion": "Cross-references Q1-Q13 for what each milestone delivers; specifically includes skill-delivery milestones (Q5-Q8 evidence) and failure-informed deferrals (Q15 evidence)"},
+    {"id": "q14.r5", "weight": 1.0, "criterion": "≥3 explicit deferrals stated (X is intentionally not built before Y because Z), each citable"}
+  ],
+  "penalty_criteria": [
+    {"id": "q14.p1", "deduction": 0.20, "trigger": "'Do everything at once' or vague timelines / no deferral discipline"}
+  ],
   "must_include": [
     "Day-1",
     "Week-1",
@@ -461,7 +597,9 @@ Format mirrors the framework's `benchmark.json` schema (`id`, `question`, `rubri
     "source-shared-infra",
     "source-platform-prototypes",
     "source-cognitive-models",
-    "source-vertical-cases"
+    "source-vertical-cases",
+    "source-skills-catalog",
+    "source-failure-modes"
   ]
 }
 ```
@@ -472,7 +610,17 @@ Format mirrors the framework's `benchmark.json` schema (`id`, `question`, `rubri
 {
   "id": "q15",
   "question": "What failure modes and anti-patterns recur across multiple domains in the corpus — including the lessons from growth-engine-legacy and the abandoned/deprecated paths in other repos — and for each failure, what is the structural cause, the symptom you would observe early, and the architectural or cognitive prophylactic that the corpus has already converged on?",
-  "rubric": "Enumerate at least 8 failure modes. For each: domains affected, structural cause, the early-symptom signal a builder would see in the first weeks, the prophylactic measure (architectural pattern OR cognitive guardrail) and at least 2 repo:file:line evidences (one for the failure occurring, one for the prophylactic being adopted). Special weight on growth-engine-legacy lessons since it is an explicit prior attempt. Penalize listed-but-uncited failure modes — every claim must have an evidence pair.",
+  "rubric": "Enumerate at least 8 failure modes. For each: affected domains (named explicitly), structural cause, early-symptom signal a builder would see in the first weeks, prophylactic measure (architectural pattern OR cognitive guardrail). Evidence requirements: (a) ≥1 failure-occurrence repo:file:line citation per affected domain (a failure mode claimed cross-domain across N domains needs ≥N failure-occurrence citations across those N domains — single-domain evidence does NOT qualify a cross-domain claim and is scored 0); (b) ≥1 prophylactic-adoption repo:file:line citation. Special weight on growth-engine-legacy lessons since it is an explicit prior attempt. Penalize listed-but-uncited failure modes — every claim must have evidence per the per-domain rule.",
+  "rubric_criteria": [
+    {"id": "q15.r1", "weight": 1.0, "criterion": "≥8 failure modes enumerated"},
+    {"id": "q15.r2", "weight": 1.0, "criterion": "Each mode has structural cause + early-symptom signal + prophylactic stated"},
+    {"id": "q15.r3", "weight": 1.5, "criterion": "For each cross-domain claim, ≥1 failure-occurrence citation PER affected domain (cross-domain claims with single-domain evidence are scored 0 in this clause); per-domain evidence count must equal or exceed the number of domains claimed"},
+    {"id": "q15.r4", "weight": 1.0, "criterion": "≥1 prophylactic-adoption citation per failure mode"},
+    {"id": "q15.r5", "weight": 1.0, "criterion": "≥3 modes derived from growth-engine-legacy lessons, tagged with origin"}
+  ],
+  "penalty_criteria": [
+    {"id": "q15.p1", "deduction": 0.25, "trigger": "Failure mode listed without evidence pair OR cross-domain claim with single-domain evidence (these are also scored 0 in q15.r3)"}
+  ],
   "must_include": [
     "structural cause",
     "early symptom",
@@ -515,19 +663,40 @@ applied:
 
 ### 6.2 Per-Criterion Sub-Scoring Before Composite
 
-Judge MUST score each rubric clause INDEPENDENTLY before producing the composite.
-Composite score = mean(rubric_clause_scores), NOT a holistic gestalt. Judge MUST emit
-the per-clause vector in `judge_feedback.md` so divergence between models can be diagnosed
-at the clause level, not only at the question level.
+Each question in §5 carries TWO scoring fields:
+
+- `rubric_criteria` — a list of objects `{id, weight, criterion}` with stable IDs
+  (`q<N>.r<M>`). The judge MUST score each criterion INDEPENDENTLY in `[0.0, 1.0]`.
+- `penalty_criteria` — a list of objects `{id, deduction, trigger}` with stable IDs
+  (`q<N>.p<M>`). Each triggered penalty deducts its `deduction` from the composite.
+
+Composite score = `weighted_mean(rubric_criteria scores, weights) − sum(triggered penalties)`,
+clamped to `[0.0, 1.0]` and then capped per §6.1, §6.3, §6.5, §6.7 as applicable.
+
+Judge MUST emit the per-criterion score vector keyed by criterion id in
+`judge_feedback.md` (e.g., `q1.r1: 0.85; q1.r2: 0.90; q1.p1: triggered`). This is what
+makes cross-model divergence diagnosable at the clause level rather than the question
+level. The composite alone is not enough.
+
+Holistic gestalt scoring is forbidden.
 
 ### 6.3 Citation Discipline (Hard Cap)
 
-Every claim that is more specific than a generic noun phrase MUST be linked to one of:
-- `source-*.md§<section>` (citing the digest)
-- `repo/path/to/file.ext:LINE` (citing the underlying repo directly, for verification)
+Every claim that is more specific than a generic noun phrase MUST be linked to a citation.
+Citations are tiered:
+
+- **Strong (`repo/path/to/file.ext:LINE`)** — direct repo evidence. Always sufficient.
+- **Acceptable for B/A bands (`source-*.md§<section>`)** — digest-section citation,
+  ONLY when that digest section itself contains underlying `repo/path/to/file.ext:LINE`
+  evidence transitively (verifiable by opening the digest section). A digest-only
+  citation pointing to a digest section that lacks transitive `file:line` evidence is
+  treated as UNCITED.
+- **Required for S band per `must_include` concept** — at least one direct
+  `repo/path/to/file.ext:LINE` citation. Digest-only citation does not qualify for S band.
 
 **Hard cap**: any question whose answer contains >20% uncited claim-volume is capped at
-band C (0.69) regardless of other quality. Judge MUST cite the uncited claim count in
+band C (0.69) regardless of other quality. Judge MUST cite the uncited claim count and
+the count of digest-only citations whose underlying section lacks `file:line` evidence in
 feedback.
 
 ### 6.4 Anti-Keyword-Gaming Clause
@@ -539,9 +708,14 @@ occurrences. Rubric semantic satisfaction dominates `must_include` count. The
 
 ### 6.5 Required_Sources Gate
 
-If any of a question's `required_sources` is not cited at all in the answer, the score
-is capped at band B (0.84). Missing two required_sources caps at band C (0.69).
-Judge MUST emit which required_sources were uncited.
+If a question's `required_sources` are missing from the answer:
+
+- **1 missing** → score capped at band C (0.69).
+- **2+ missing** → score capped at band D (0.49).
+
+This makes B band's "all required_sources cited" criterion a hard requirement,
+consistent with §6.1 anchor table. Judge MUST emit which required_sources were
+uncited and the resulting cap.
 
 ### 6.6 Cross-Question Consistency
 
@@ -554,8 +728,15 @@ and reduce BOTH question scores by 0.05. Maintain a `consistency_violations` lis
 
 For Q9-Q12 (cognitive-model questions), the rubric demands "worked here / failed here"
 pairs. If a stated mental model lacks BOTH a worked-evidence and a failed-evidence
-citation, judge MUST mark that model as unsupported and exclude it from the per-clause
-mean. A Q9-Q12 answer with zero evidence-paired models is capped at band D (0.49).
+citation, judge MUST score that model's slot as `0.0` in the per-clause mean (NOT exclude
+it from the denominator — exclusion would let a producer pad with unevidenced models
+without score consequence). Each unsupported model contributes `0.0`; supported models
+contribute their per-clause score.
+
+Additional caps:
+- ≥1 unsupported model present: per-question score capped at band B (0.84).
+- 0 evidence-paired models: capped at band D (0.49).
+- All named models supported: no cap from this rule.
 
 ### 6.8 Inter-Judge Disagreement Protocol
 
@@ -592,30 +773,99 @@ reliable across models.
 | ----------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | Producer (primary)            | `codex`                                                                                        | Stronger at code-grounded extraction; the source corpus IS code                |
 | Judge (primary)               | `claude`                                                                                       | Stronger at structural critique and rubric adherence                            |
-| Cross-model validation        | At iterations 5, 15, 30: re-judge with the OTHER model and apply §6.8 disagreement protocol     | Catches rubric drift early                                                      |
+| Cross-model validation        | Required at: (a) iter-1 anchor crystallization (before iter-2); (b) every first-time `dimension_threshold` crossing per question (the OTHER model must confirm; if delta >0.15, score regresses below threshold until disagreement resolves); (c) iters 5, 15, 30 full-cross-model with §6.8 protocol; (d) final iteration / termination — independent fresh-session judge from BOTH models, consensus required for run completion | Final ratchet must not be single-model; threshold crossings must not be silent |
 | Iteration cap                 | 40                                                                                              | 15-question structure needs ~2x polymarket's 22-iter; 40 leaves room for late refinement |
 | `dimension_threshold`         | 0.80                                                                                            | Acceptance band: B/A boundary; matches Polymarket convention                    |
 | Layer-iteration grouping      | Iters 1-10 prioritize Q1-Q4 (architecture); 11-20 prioritize Q5-Q8 (skill); 21-30 prioritize Q9-Q12 (cognition); 31-40 prioritize Q13-Q15 (integration) | Avoids 15-way thrash; matches the layer-grouped question order               |
 | Source-extraction prerequisite | The 10 `source-*.md` files in §3 must be written before iter-1                                | Auto Research framework requires explicit source set                            |
 
-## 8. Open Ambiguities (Resolve Before Iter-1)
+## 8. Resolved Decisions and Acknowledged Choices
 
-These are the questions Codex's `/review-loop` should weigh in on before run start:
+Codex's `/review-loop` flagged that 4 of these 6 items affect the scoring contract and
+must be resolved before iter-1, not deferred. Resolved here. The remaining 2 are
+acknowledged design choices recorded so judges and producers know the contract.
 
-1. **Single 15-Q run vs three sub-runs?** Splitting into Architecture / Skill / Cognition+Integration runs would reduce per-iter context pressure but lose the cross-question consistency signal (§6.6). The current design assumes single run; this is the highest-impact decision left.
-2. **"Content Writing" as separate domain?** It is the only domain without its own dedicated repo cluster (overlaps with SEO-poster and openclaw-marketing). Should it fold into SEO/GEO + Social, leaving 3 domains × 3 layers = 9 cells + 3 integration = 12 questions? Defended currently as separate because the cognitive frames (user journey, content portfolio) are distinct.
-3. **Required empirical artifacts?** Polymarket required toy calibration results in the KB. The growth analog might be: (a) a generated skill catalog file as KB artifact, (b) a worked Day-1 plan with cited dependencies, (c) a per-domain anti-pattern list. Decide before iter-1 whether KB must produce ≥1 such artifact.
-4. **Anchor example sourcing.** §6.10 defers anchor examples until iter-1 output. Alternative: hand-write one anchor per question now, even at low quality, so iter-1's judge has calibration from the first scoring. Trade-off: hand-written anchors might bias the producer toward our writing style.
-5. **`growth-engine-legacy` weighting.** Currently it appears in `source-failure-modes.md` only. Should it have its own dedicated source file given §2 says it is a peer source, not the canonical answer?
-6. **Producer access pattern.** Should producer be allowed to grep into raw repos during iteration (in addition to the 10 source files), or only into the source files? Allowing raw access enables better grounding but adds a 64-repo surface area to producer's context budget per iteration.
+### 8.1 Single 15-Q run vs three sub-runs — RESOLVED: single 15-Q run
+
+A single 15-question run is mandatory. Splitting into Architecture / Skill /
+Cognition+Integration sub-runs would prevent §6.6 (cross-question consistency)
+from being enforceable across domain layers, defeating the design's central
+goal of producing one coherent KB instead of three disconnected slices. The
+~40-iteration cost is the price of this coherence.
+
+### 8.2 "Content Writing" as separate domain — DECISION: keep as separate
+
+Content Writing remains a separate domain alongside SEO/GEO, Ads, Social.
+Rationale: its cognitive frames (user journey, content portfolio theory,
+distribution-over-production) are distinct enough from the other three to
+warrant independent extraction. The lower repo-density (it shares files with
+SEO/GEO and Social) is a sourcing challenge, not a reason to fold the
+cognitive layer.
+
+### 8.3 Required empirical artifacts in KB — RESOLVED: yes, three artifacts
+
+The KB MUST produce three structured artifacts in addition to prose answers:
+
+- `runs/growth-engine-from-scratch/artifacts/skill-catalog.md` — table covering all
+  4 domains with columns `skill_name | originating_repo | invocation_surface |
+  input_schema | output_schema | state_persistence | maintenance_signals`. Minimum 8
+  rows per domain (32 total). Regenerated every kept iteration.
+- `runs/growth-engine-from-scratch/artifacts/build-sequence.md` — Q14's milestone-
+  by-milestone sequence as a structured table with columns `milestone | scope |
+  dependencies | done_criteria | next_trigger | corpus_evidence`. Minimum 6 rows.
+- `runs/growth-engine-from-scratch/artifacts/failure-modes.md` — Q15's failure modes
+  as one row per mode with columns `failure_id | affected_domains | structural_cause |
+  early_symptom | prophylactic | failure_evidence_per_domain | prophylactic_evidence`.
+  Minimum 8 rows.
+
+These artifacts serve the same purpose as Polymarket's toy calibration results: they
+force the producer to traverse the corpus rather than reason in the abstract. Judge
+penalizes any iteration that updates `knowledge_base.md` but not the artifacts.
+
+### 8.4 Anchor example sourcing — RESOLVED: provisional anchors before iter-1
+
+Provisional anchor examples (one B-band ≈ 0.75, one A-band ≈ 0.90, per question)
+MUST be hand-written before iter-1 starts and stored in
+`runs/growth-engine-from-scratch/judge_calibration.md`. They are explicitly marked
+PROVISIONAL and serve only to anchor the score bands during iter-1 when no real
+iteration output exists. After iter-1 produces actual KB content, two real iter-1
+answers per question (one closer to B, one closer to A) replace the provisional
+anchors. From iter-2 onward, judges use only real anchors.
+
+Producer is NOT shown the anchors. They are judge-side only. This prevents the
+producer-bias-toward-anchor-style risk from §6.10's earlier "deferred" stance.
+
+### 8.5 `growth-engine-legacy` weighting — DECISION: stays in source-failure-modes
+
+`growth-engine-legacy` does not get its own source file. It is the strongest single
+contributor to `source-failure-modes.md` and is treated as such; the extraction process
+tags every entry derived from it with `origin: growth-engine-legacy` so judges can
+verify §2 (this run is not canonical to growth-engine-legacy) is honored. If extraction
+reveals growth-engine-legacy material that is NOT failure-mode evidence (e.g., genuine
+successful patterns abandoned for non-quality reasons), that material moves to the
+appropriate domain source file with the same origin tag.
+
+### 8.6 Producer access pattern — RESOLVED: digest-only with point verification
+
+Producer reads from the 10 `source-*.md` digest files for bulk reasoning. Direct
+repo access is permitted ONLY for point verification — when an answer needs to verify
+a quoted line, function name, or schema field that the digest references but does not
+reproduce verbatim. Each point verification MUST appear in
+`runs/growth-engine-from-scratch/artifacts/iteration-N/verification-log.md` with the
+file path, lines read, and the digest reference being verified.
+
+This bounds context budget while keeping citations honest. Producer attempts to read
+raw repos for bulk content (not point verification) are caught by the verification log
+and penalized: the iteration is rejected.
 
 ## 9. Definition of Done (For This Design Doc)
 
-- All 15 questions have rubric, must_include, required_sources written (✓)
-- Calibration rules cover: anchor table, per-clause scoring, citation discipline, anti-keyword, required_sources gate, cross-question consistency, evidence-required for cognition, inter-judge protocol, model-agnostic language, anchor examples (✓)
-- Source set strategy maps every domain + layer to a `source-*.md` file (✓)
-- Cross-model peer review by Codex via `/review-loop` complete and divergences resolved (pending)
-- Open ambiguities §8 resolved (pending)
+- All 15 questions have rubric, rubric_criteria (with stable IDs), penalty_criteria, must_include, required_sources written (✓)
+- Calibration rules cover: anchor table, structured per-criterion scoring, citation tier system, anti-keyword, required_sources gate (caps consistent with anchor bands), cross-question consistency, evidence-required for cognition (score 0 not exclude), inter-judge protocol, model-agnostic language, provisional anchors before iter-1 (✓)
+- Source set strategy maps every domain + layer to a `source-*.md` file; all 10 source files referenced by ≥1 question (✓)
+- Cross-model peer review by Codex via `/review-loop` Round 1: 8 findings (1 critical, 7 major), all accepted and applied (✓ this iteration)
+- Open ambiguities §8 resolved: §8.1 single run, §8.2 keep CW, §8.3 three required artifacts, §8.4 provisional anchors, §8.5 GE-legacy in failure-modes, §8.6 digest-only with point verification (✓)
+- Cross-model peer review Round 2+: convergence to CONSENSUS (pending)
 - Stometa final approval (pending)
 
 After this design doc is locked, `writing-plans` produces the implementation plan that
