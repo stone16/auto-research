@@ -684,8 +684,7 @@ Holistic gestalt scoring is forbidden.
 
 Where a `rubric_criteria` entry uses phrasing like "cites file:line",
 "cites repo:file:line", or "every claim cites file:line", it means **"cites a
-§6.3-valid citation appropriate to the score band being claimed"**, not
-"requires direct file:line regardless of band". Concretely:
+§6.3-valid citation appropriate to the score band being claimed"**:
 
 - For S-band targets: direct `repo/path:LINE` is required per §6.3
   (digest-only citations do not qualify for S band).
@@ -693,20 +692,28 @@ Where a `rubric_criteria` entry uses phrasing like "cites file:line",
   (`source-*.md§<section>` whose section contains underlying file:line) satisfy
   the criterion. Direct file:line is preferred but not required for B/A.
 
-Two narrow exceptions where direct file:line is the criterion contract regardless of band:
+All rubric criteria follow this rule. There are NO exceptions where the
+criterion demands stricter form than §6.3.
 
-- **Q5/Q6/Q7/Q8 skill catalog rows**: every row's path reference must be a
-  direct `repo/path` (with optional :LINE) — a skill exists at a path; the path
-  is direct evidence, not a digest summary.
-- **Q9/Q10/Q11/Q12 worked-here / failed-here pairs**: must point to a specific
-  code or commit location (direct file:line OR digest with transitive file:line
-  is acceptable; pure prose claim of "this worked" without locatable evidence
-  is unsupported).
+Two specific question-type notes (these are NOT exceptions to §6.3 — they are
+clarifications about WHAT is being verified, not about citation form):
 
-Judges who interpret a rubric criterion as demanding stricter citation form
-than §6.3 + this §6.2.1 (e.g., demanding direct file:line for a B-band answer
-on Q1) are wrong; §6.3 governs the floor and this section governs the
-criterion-to-citation mapping.
+(a) **Q5/Q6/Q7/Q8 skill-catalog rows**: each row carries a structural
+    `path_reference` column (per §8.3 column contract). The `path_reference`
+    is the row's identity (the directory or file path under
+    `~/dev/getuai/<repo>/...` where the skill lives), not a citation. Artifact
+    criterion `a1.c3` (§6.11) checks that the path resolves under the corpus.
+    The CITATIONS supporting other claims in the row body still follow §6.3.
+
+(b) **Q9/Q10/Q11/Q12 cognition worked-here / failed-here pairs**: the criterion
+    is verifiability — the evidence MUST point to a specific code or commit
+    location (so a generic "this worked" without locatable evidence is
+    unsupported per §6.7). The CITATION FORM follows §6.3: direct file:line
+    OR transitively-backed digest is acceptable.
+
+Judges who interpret any rubric criterion as demanding stricter citation form
+than §6.3 are wrong; §6.3 governs the floor, and this §6.2.1 maps criterion
+phrasing to that floor.
 
 ### 6.3 Citation Discipline (Hard Cap)
 
@@ -811,7 +818,7 @@ Stable IDs `a<N>.c<M>` are used for cross-model diagnostic.
 | ID     | Artifact         | Affected Q's       | Criterion                                                                                  | Per-Q Deduction | Trigger                                                  |
 | ------ | ---------------- | ------------------ | ------------------------------------------------------------------------------------------ | --------------- | -------------------------------------------------------- |
 | a1.c1  | skill-catalog    | Q5, Q6, Q7, Q8     | Each domain's quadrant has ≥8 rows                                                         | 0.10            | Quadrant for this domain has <8 rows                     |
-| a1.c2  | skill-catalog    | Q5, Q6, Q7, Q8     | Every row has all 7 columns populated (no `—`, no empty cells)                             | 0.10            | Any row in this domain's quadrant has missing column     |
+| a1.c2  | skill-catalog    | Q5, Q6, Q7, Q8     | Every row has all 8 columns populated (no `—`, no empty cells)                             | 0.10            | Any row in this domain's quadrant has missing column     |
 | a1.c3  | skill-catalog    | Q5, Q6, Q7, Q8     | Every row's `originating_repo` and path reference resolves under `~/dev/getuai/`           | 0.10            | Any row cites a path outside the corpus or unresolvable  |
 | a2.c1  | build-sequence   | Q14                | Table has ≥6 milestone rows                                                                | 0.20            | <6 rows                                                  |
 | a2.c2  | build-sequence   | Q14                | Every row has all 6 columns populated                                                      | 0.10            | Any row missing a column                                 |
@@ -877,9 +884,12 @@ ratcheted deliverable; artifact tables are KB content, not parallel files.**
 Embedded table contracts (these are the source of truth — judge scores them):
 
 - **skill-catalog table**: split across answers to Q5/Q6/Q7/Q8 (one quadrant
-  per domain). Columns: `skill_name | originating_repo | invocation_surface |
-  input_schema | output_schema | state_persistence | maintenance_signals`.
-  Total ≥32 rows across the 4 domains (≥8 per domain).
+  per domain). Columns: `skill_name | originating_repo | path_reference |
+  invocation_surface | input_schema | output_schema | state_persistence |
+  maintenance_signals`. Total ≥32 rows across the 4 domains (≥8 per domain).
+  The `path_reference` column is the skill's row identity (the directory or
+  file path under `~/dev/getuai/<repo>/...` where the skill lives), with
+  optional `:LINE`. It is verified by artifact criterion `a1.c3`.
 - **build-sequence table**: embedded in the Q14 answer. Columns: `milestone |
   scope | dependencies | done_criteria | next_trigger | corpus_evidence`. ≥6 rows.
 - **failure-modes table**: embedded in the Q15 answer. Columns: `failure_id |
@@ -930,33 +940,60 @@ Direct repo access is permitted ONLY for point verification — verifying a
 quoted line, function name, or schema field that the digest references but
 does not reproduce verbatim.
 
-Enforcement is supervisor-side, NOT producer-self-reported (the producer
-cannot be trusted to log its own raw reads):
+Enforcement is environment-side, NOT producer-self-reported and NOT just
+tool-level interception (a producer with shell access can read files via
+arbitrary commands — `python -c 'open(p).read()'`, `node`, `ruby`, custom
+scripts — that no application-layer interceptor can fully cover):
 
-1. The harness MUST be configured with a sandboxed file-read wrapper that
-   intercepts ALL producer file reads and writes them to
-   `runs/growth-engine-from-scratch/artifacts/iteration-N/access-log.md`
-   independently of the producer's outputs. Producer cannot bypass the wrapper.
-   Implementation: tool-level interceptor on `Read` / `Bash(cat|head|tail|grep|...)`
-   / equivalent — every read is captured before reaching the producer's
-   conversation.
-2. Each access-log entry records: timestamp, file path, line range read, and a
-   `purpose` tag (`digest-bulk` for source-*.md reads, `point-verify:<digest-ref>`
-   for raw repo reads). For raw repo reads, producer MUST declare the digest
-   reference being verified BEFORE the read (the wrapper rejects raw reads
-   without an accompanying declaration).
-3. After each iteration, judge audits the access log: any raw read NOT
-   tagged `point-verify:<digest-ref>` (i.e., bulk raw access) rejects the
-   iteration regardless of KB quality. Iteration is also rejected if the access
-   log is missing or empty.
-4. Producer MAY also self-mark every citation in KB with its tier
-   (`tier: digest` or `tier: file:line`); judge spot-checks 5 random citations
-   per question against the access log. Mismatches (e.g., KB cites file:line
-   that never appears in the access log) reject the iteration.
+1. **OS-level filesystem sandbox is mandatory.** The producer process MUST run
+   inside a container or sandbox where the only readable paths are:
+   - `runs/growth-engine-from-scratch/sources/*.md` (the 10 digests) — full read
+   - `runs/growth-engine-from-scratch/iter-*/` workspace — full read/write
+   - Raw `~/dev/getuai/` repos — accessible ONLY through a specific
+     allowlisted "point-verify" tool (see step 2). All other paths in the
+     filesystem are unreadable.
 
-This makes §8.6 enforceable from the spec and the harness configuration, not
-contingent on producer honesty. The supervisor-side wrapper is a hard
-prerequisite for run start (acceptance criterion in §9).
+   Free-form shell access that can call interpreters with arbitrary file
+   reads is disabled. If the harness cannot enforce this, the run does not
+   start (§9 acceptance criterion).
+
+2. **Allowlisted point-verify tool.** A single tool (e.g.,
+   `pv read --digest-ref <id> <path>:<line-range>`) is the producer's only
+   way to read raw repos. The tool:
+   - Requires an explicit `--digest-ref` argument naming the digest section
+     whose claim the read is verifying.
+   - Records every invocation to
+     `runs/growth-engine-from-scratch/artifacts/iteration-N/access-log.md`
+     (timestamp, file path, line range, digest-ref) BEFORE returning the
+     content.
+   - Rejects calls without `--digest-ref`.
+
+3. **Judge audit (post-iteration).** Judge inspects the access log:
+   - Any access-log entry without a digest-ref is impossible by step 2's
+     contract; if such an entry exists, the harness is broken — flag for human.
+   - The number of raw reads should be small relative to digest reads
+     (rule of thumb: <10% of total reads). Suspicious bulk patterns flagged.
+   - Iteration is rejected if the access log is missing or empty.
+
+4. **Citation provenance audit (cross-check).** Producer self-marks every
+   citation in KB with its tier (`tier: digest` or `tier: file:line`). Judge
+   spot-checks 5 random citations per question:
+   - For `tier: digest` → verify the digest section exists and contains the
+     cited claim.
+   - For `tier: file:line` → verify EITHER (a) the raw file:line appears in
+     the access log, OR (b) the file:line is quoted/referenced inside an
+     accessed digest section (i.e., the producer copied the file:line evidence
+     from the digest without needing the raw file). Both are valid citation
+     paths under §6.3 — only neither is invalid.
+
+   Mismatches (citation cannot be backed by either the access log or the
+   digest content the producer accessed) reject the iteration.
+
+This makes §8.6 enforceable from the environment, not contingent on producer
+honesty. The OS-level sandbox + allowlisted point-verify tool together are a
+hard prerequisite for run start (acceptance criterion in §9). Tool-level
+interception alone is insufficient and is explicitly NOT what this spec
+requires.
 
 ## 9. Definition of Done (For This Design Doc)
 
@@ -965,8 +1002,9 @@ prerequisite for run start (acceptance criterion in §9).
 - Source set strategy maps every domain + layer to a `source-*.md` file; all 10 source files referenced by ≥1 question (✓)
 - Cross-model peer review by Codex via `/review-loop` Round 1: 8 findings (1 critical, 7 major), all accepted and applied (✓)
 - Cross-model peer review Round 2: 5 second-order findings (all major) — §6.10 contradiction with §8.4, §6.3 vs rubric criteria citation form, missing artifact scoring criteria, KB-vs-artifact deliverable conflict, supervisor-side enforcement — all accepted and applied (✓)
-- Open ambiguities §8 resolved: §8.1 single run, §8.2 keep CW, §8.3 three tables embedded in KB, §8.4 provisional anchors, §8.5 GE-legacy in failure-modes, §8.6 digest-only with supervisor-side wrapper (✓)
-- Cross-model peer review Round 3+: convergence to CONSENSUS (pending)
+- Cross-model peer review Round 3: 4 findings (all major) — §6.2.1 self-contradiction, missing path_reference column, tool-level interception inadequate, access-log audit too strict for digest-sourced citations — all accepted and applied (✓)
+- Open ambiguities §8 resolved: §8.1 single run, §8.2 keep CW, §8.3 three tables embedded in KB (now 8-column skill-catalog), §8.4 provisional anchors, §8.5 GE-legacy in failure-modes, §8.6 OS-level sandbox + allowlisted point-verify tool (✓)
+- Cross-model peer review Round 4+: convergence to CONSENSUS (pending)
 - Stometa final approval (pending)
 
 After this design doc is locked, `writing-plans` produces the implementation plan that
