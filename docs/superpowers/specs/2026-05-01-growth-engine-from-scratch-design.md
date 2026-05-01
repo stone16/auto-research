@@ -879,6 +879,7 @@ others.
 | `dimension_threshold`         | 0.80                                                                                            | Acceptance band: B/A boundary; matches Polymarket convention                    |
 | Layer-iteration grouping      | Iters 1-10 prioritize Q1-Q4 (architecture); 11-20 prioritize Q5-Q8 (skill); 21-30 prioritize Q9-Q12 (cognition); 31-40 prioritize Q13-Q15 (integration) | Avoids 15-way thrash; matches the layer-grouped question order               |
 | Source-extraction prerequisite | The 10 `source-*.md` files in §3 must be written before iter-1                                | Auto Research framework requires explicit source set                            |
+| Iter-1 multi-sample calibration | OFF by default. If enabled (per §6.10): record `iter1_sample_count` (≥2) and the sampling/temperature settings used per sample | Anchor crystallization is faster but doubles iter-1 producer compute; if changed mid-run, the anchor protocol becomes non-replicable so the setting is locked at run start |
 
 ## 8. Resolved Decisions and Acknowledged Choices
 
