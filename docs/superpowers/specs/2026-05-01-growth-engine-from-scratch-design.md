@@ -241,12 +241,12 @@ Format mirrors the framework's `benchmark.json` schema (`id`, `question`, `rubri
 {
   "id": "q5",
   "question": "What are the reusable skills in the SEO/GEO domain across the corpus — for each: what it does, how it is invoked, what parameters and output contract it enforces, what state it persists, and how it is maintained (versioning, dependencies, retries) — and which skills are duplicated across repos versus genuinely unique?",
-  "rubric": "Enumerate the skills as a table with columns: skill name, originating repo, invocation surface (CLI / function call / agent message / cron), input schema, output schema, state persistence, maintenance signals (last-modified, recent commits, deprecation markers). For duplicates, name all repos that carry a near-equivalent and pick the canonical one with rationale. Penalize answers that list skill names without invocation/contract detail. Require at least 8 skills enumerated; no skill counts unless it has a path reference.",
+  "rubric": "Enumerate the skills as a table with the 8-column contract from §8.3: skill_name, originating_repo, path_reference (the directory or file path under ~/dev/getuai/<repo>/... where the skill lives, with optional :LINE), invocation_surface (CLI / function call / agent message / cron), input_schema, output_schema, state_persistence, maintenance_signals (last-modified, recent commits, deprecation markers). For duplicates, name all repos that carry a near-equivalent and pick the canonical one with rationale. Penalize answers that list skill names without invocation/contract detail. Require at least 8 skills enumerated; no skill counts unless it has a path_reference that resolves under the corpus.",
   "rubric_criteria": [
-    {"id": "q5.r1", "weight": 1.0, "criterion": "≥8 skills enumerated as a table with all 7 columns (skill name, repo, invocation surface, input schema, output schema, state persistence, maintenance signals)"},
+    {"id": "q5.r1", "weight": 1.0, "criterion": "≥8 skills enumerated as a table with all 8 columns (skill_name, originating_repo, path_reference, invocation_surface, input_schema, output_schema, state_persistence, maintenance_signals) per the §8.3 contract"},
     {"id": "q5.r2", "weight": 1.0, "criterion": "Duplicates identified across repos with canonical pick + rationale"},
     {"id": "q5.r3", "weight": 1.0, "criterion": "Maintenance signals populated (last-modified, recent commits, deprecation markers), not stubbed"},
-    {"id": "q5.r4", "weight": 1.0, "criterion": "Each skill row has a path reference (file:line)"}
+    {"id": "q5.r4", "weight": 1.0, "criterion": "Each skill row's path_reference resolves under ~/dev/getuai/<repo>/... (this is row identity, not a §6.3 citation; supporting claims in the row follow §6.3 per §6.2.1)"}
   ],
   "penalty_criteria": [
     {"id": "q5.p1", "deduction": 0.20, "trigger": "<8 skills enumerated OR skills listed without invocation/contract detail OR rows missing path reference"}
@@ -276,12 +276,12 @@ Format mirrors the framework's `benchmark.json` schema (`id`, `question`, `rubri
 {
   "id": "q6",
   "question": "What are the reusable Content Writing skills in the corpus — prompt templates, voice/tone systems, multi-lingual handlers, image+text composers, evaluation rubrics — and how do these skills handle the brittleness problems unique to LLM-driven content (drift, hallucination, register collapse)?",
-  "rubric": "Enumerate skills with the same table format as Q5. For each, name the brittleness problem it addresses (drift / hallucination / register collapse / factual contamination / language register / cultural fit) and the technique used (template variables / few-shot / critic loop / human review / retrieval grounding). Cite repo:file:line. Penalize answers that ignore brittleness or treat all LLM content generation as equivalent.",
+  "rubric": "Enumerate skills with the same 8-column table format as Q5 (§8.3 contract: skill_name, originating_repo, path_reference, invocation_surface, input_schema, output_schema, state_persistence, maintenance_signals). For each skill, name the brittleness problem it addresses (drift / hallucination / register collapse / factual contamination / language register / cultural fit) and the technique used (template variables / few-shot / critic loop / human review / retrieval grounding). Supporting claims (brittleness, technique) are cited per §6.3 / §6.2.1. Penalize answers that ignore brittleness or treat all LLM content generation as equivalent.",
   "rubric_criteria": [
-    {"id": "q6.r1", "weight": 1.0, "criterion": "Skills enumerated as a table with the same 7-column format as Q5"},
+    {"id": "q6.r1", "weight": 1.0, "criterion": "Skills enumerated as a table with all 8 columns per §8.3 contract (same as Q5)"},
     {"id": "q6.r2", "weight": 1.0, "criterion": "Each skill names the brittleness problem it addresses (drift / hallucination / register collapse / contamination / language register / cultural fit)"},
     {"id": "q6.r3", "weight": 1.0, "criterion": "Each skill names the mitigation technique (template variables / few-shot / critic loop / human review / retrieval grounding)"},
-    {"id": "q6.r4", "weight": 1.0, "criterion": "Each skill row cites repo:file:line"}
+    {"id": "q6.r4", "weight": 1.0, "criterion": "Each skill row's path_reference resolves under ~/dev/getuai/; supporting brittleness/technique claims cite per §6.3 / §6.2.1"}
   ],
   "penalty_criteria": [
     {"id": "q6.p1", "deduction": 0.15, "trigger": "Treats LLM content generation as monolithic / ignores the brittleness dimension"}
@@ -957,37 +957,73 @@ scripts — that no application-layer interceptor can fully cover):
    reads is disabled. If the harness cannot enforce this, the run does not
    start (§9 acceptance criterion).
 
+   **Network and tool-channel sandboxing (equally mandatory).** The OS sandbox
+   alone is not enough — a producer with network access can fetch repo content
+   from GitHub, mirrors, or any URL; an MCP/connector tool with repo capability
+   can read content via a side channel. So:
+   - **Network egress** from the producer process MUST be disabled, OR routed
+     through a logged proxy that applies the same digest-ref discipline as
+     point-verify (raw fetch without `--digest-ref` rejected).
+   - **MCP tools / connectors** are allowlisted explicitly. Repo-capable
+     connectors (GitHub MCP, Linear MCP with attachment access, generic
+     web-fetch tools) are DISABLED for the producer process unless they go
+     through the point-verify policy.
+   - LLM gateway calls (the producer's own model invocations) are exempt from
+     this rule but their tool-call arguments are inspected by the harness for
+     network or repo-fetching attempts.
+
 2. **Allowlisted point-verify tool.** A single tool (e.g.,
    `pv read --digest-ref <id> <path>:<line-range>`) is the producer's only
    way to read raw repos. The tool:
    - Requires an explicit `--digest-ref` argument naming the digest section
      whose claim the read is verifying.
    - Records every invocation to
-     `runs/growth-engine-from-scratch/artifacts/iteration-N/access-log.md`
+     `runs/growth-engine-from-scratch/artifacts/iteration-N/raw-access-log.md`
      (timestamp, file path, line range, digest-ref) BEFORE returning the
      content.
    - Rejects calls without `--digest-ref`.
 
-3. **Judge audit (post-iteration).** Judge inspects the access log:
-   - Any access-log entry without a digest-ref is impossible by step 2's
-     contract; if such an entry exists, the harness is broken — flag for human.
+   **Digest reads are also logged** to a separate
+   `runs/growth-engine-from-scratch/artifacts/iteration-N/digest-access-log.md`
+   (timestamp, source-*.md path, line range read). The producer's digest reads
+   go through the same tool wrapper as raw reads but with a `--digest <name>`
+   flag instead of `--digest-ref`. Logging digest reads is what makes the §8.6
+   step 4 (b) audit ("file:line referenced inside an accessed digest section")
+   verifiable — the auditor can check whether the cited digest section was
+   actually read this iteration.
+
+3. **Judge audit (post-iteration).** Judge inspects both access logs:
+   - Any `raw-access-log.md` entry without a `--digest-ref` is impossible by
+     step 2's contract; if such an entry exists, the harness is broken — flag
+     for human.
    - The number of raw reads should be small relative to digest reads
-     (rule of thumb: <10% of total reads). Suspicious bulk patterns flagged.
-   - Iteration is rejected if the access log is missing or empty.
+     (rule of thumb: raw reads <10% of total reads). Suspicious bulk patterns
+     flagged.
+   - An empty `raw-access-log.md` is acceptable IF the KB contains zero
+     `tier: file:line` citations whose evidence is not transitively in
+     accessed digests (i.e., the producer's work was fully digest-driven and
+     did not need raw verification).
+   - An empty `digest-access-log.md` is always a hard reject — a producer
+     that read no digest cannot have grounded any claim.
 
 4. **Citation provenance audit (cross-check).** Producer self-marks every
    citation in KB with its tier (`tier: digest` or `tier: file:line`). Judge
    spot-checks 5 random citations per question:
-   - For `tier: digest` → verify the digest section exists and contains the
-     cited claim.
+   - For `tier: digest` → verify (i) the digest section exists, (ii) the
+     section contains the cited claim, AND (iii) the section transitively
+     contains underlying `repo/path:LINE` evidence supporting the claim
+     (per §6.3 — a digest citation is valid ONLY when transitively backed
+     by file:line). If (iii) fails, count the citation as UNCITED and apply
+     the §6.3 hard cap.
    - For `tier: file:line` → verify EITHER (a) the raw file:line appears in
-     the access log, OR (b) the file:line is quoted/referenced inside an
-     accessed digest section (i.e., the producer copied the file:line evidence
-     from the digest without needing the raw file). Both are valid citation
-     paths under §6.3 — only neither is invalid.
+     `raw-access-log.md`, OR (b) the file:line is quoted/referenced inside a
+     digest section that appears in `digest-access-log.md` (i.e., the
+     producer copied the file:line evidence from a digest they actually
+     accessed). Both are valid citation paths under §6.3 — only neither is
+     invalid.
 
-   Mismatches (citation cannot be backed by either the access log or the
-   digest content the producer accessed) reject the iteration.
+   Mismatches (citation cannot be backed by the digest content's transitive
+   file:line, or by either access log) reject the iteration.
 
 This makes §8.6 enforceable from the environment, not contingent on producer
 honesty. The OS-level sandbox + allowlisted point-verify tool together are a
