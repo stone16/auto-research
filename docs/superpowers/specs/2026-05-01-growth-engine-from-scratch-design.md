@@ -1076,7 +1076,7 @@ requires.
 - Cross-model peer review Round 5 (resumed session): CONSENSUS (✓)
 - Cross-model peer review fresh-final pass (independent session per Documentation/Protocol Scope rule): 1 finding (f22, anchor replacement protocol not operationally satisfiable — §6.10/§8.4 said "two real iter-1 answers per question" but Auto Research produces one answer per iteration). Fixed in §6.10 with progressive replacement protocol + optional multi-sample acceleration, mirrored in §8.4 (✓)
 - Open ambiguities §8 resolved: §8.1 single run, §8.2 keep CW, §8.3 three tables embedded in KB (8-column skill-catalog), §8.4 provisional anchors with progressive crystallization, §8.5 GE-legacy in failure-modes, §8.6 OS-level sandbox + network/MCP sandbox + allowlisted point-verify tool with split access logs (✓)
-- Cross-model peer review re-confirmation (post-f22 fix): pending
+- Cross-model peer review re-confirmation: f23 (§7 missing multi-sample row) accepted and applied; codex fresh-final-3 returned CONSENSUS Approved (✓)
 - Stometa final approval (pending)
 
 After this design doc is locked, `writing-plans` produces the implementation plan that
