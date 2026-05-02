@@ -1,0 +1,144 @@
+{
+  "experiment_title": "iteration-1-mock-synthesis",
+  "change_summary": "Generate a benchmark-oriented synthesis from the fixed sources.",
+  "knowledge_base_markdown": "# Knowledge Base\n\nTopic: Growth Engine From Scratch \u2014 synthesizing architecture, skills, and practitioner cognition from ~64 getuai/ repos\n\nIteration: 1\n\n## Current Synthesis\nThis knowledge base summarizes the current best understanding from the frozen source set.\n\n## Source Notes\n- source-ads: # source-ads Source digest auto-composed from 10 per-repo raw extracts under `runs/growth-engine-from-scratch/sources/_raw/`. Producer cites sections using `source-*.md\u00a7Repo: <name>` per \u00a76.3. ## Table of Contents - getu\n- source-cognitive-models: # source-cognitive-models Source digest auto-composed from 64 per-repo raw extracts under `runs/growth-engine-from-scratch/sources/_raw/`. Producer cites sections using `source-*.md\u00a7Repo: <name>` per \u00a76.3. ## Table of Co\n- source-content-writing: # source-content-writing Source digest auto-composed from 7 per-repo raw extracts under `runs/growth-engine-from-scratch/sources/_raw/`. Producer cites sections using `source-*.md\u00a7Repo: <name>` per \u00a76.3. ## Table of Cont\n- source-failure-modes: # source-failure-modes Source digest auto-composed from 2 per-repo raw extracts under `runs/growth-engine-from-scratch/sources/_raw/`. Producer cites sections using `source-*.md\u00a7Repo: <name>` per \u00a76.3. ## Table of Conten\n- source-platform-prototypes: # source-platform-prototypes Source digest auto-composed from 7 per-repo raw extracts under `runs/growth-engine-from-scratch/sources/_raw/`. Producer cites sections using `source-*.md\u00a7Repo: <name>` per \u00a76.3. ## Table of \n- source-seo-geo: # source-seo-geo Source digest auto-composed from 8 per-repo raw extracts under `runs/growth-engine-from-scratch/sources/_raw/`. Producer cites sections using `source-*.md\u00a7Repo: <name>` per \u00a76.3. ## Table of Contents - g\n- source-shared-infra: # source-shared-infra Source digest auto-composed from 14 per-repo raw extracts under `runs/growth-engine-from-scratch/sources/_raw/`. Producer cites sections using `source-*.md\u00a7Repo: <name>` per \u00a76.3. ## Table of Conten\n- source-skills-catalog: # source-skills-catalog Source digest auto-composed from 64 per-repo raw extracts under `runs/growth-engine-from-scratch/sources/_raw/`. Producer cites sections using `source-*.md\u00a7Repo: <name>` per \u00a76.3. ## Table of Cont\n- source-social: # source-social Source digest auto-composed from 4 per-repo raw extracts under `runs/growth-engine-from-scratch/sources/_raw/`. Producer cites sections using `source-*.md\u00a7Repo: <name>` per \u00a76.3. ## Table of Contents - re\n- source-vertical-cases: # source-vertical-cases Source digest auto-composed from 4 per-repo raw extracts under `runs/growth-engine-from-scratch/sources/_raw/`. Producer cites sections using `source-*.md\u00a7Repo: <name>` per \u00a76.3. ## Table of Conte\n\n## Benchmark-Oriented Takeaways\n\n### q1\nFor benchmark q1, the key explanation is grounded in the run sources. Required details: components, data flow, external dependencies, ranking signal source, content store, human-in-loop, kill-switch, convergence, disagreement, file:line. Cited evidence: source-seo-geo, source-shared-infra.\nCitations: source-seo-geo, source-shared-infra\n\n### q2\nFor benchmark q2, the key explanation is grounded in the run sources. Required details: ideation, outline, draft, edit, publish, LLM role, human review point, style guide injection, load-bearing, file:line. Cited evidence: source-content-writing, source-shared-infra.\nCitations: source-content-writing, source-shared-infra\n\n### q3\nFor benchmark q3, the key explanation is grounded in the run sources. Required details: campaign feed, bidding, reporting, attribution model, conversion event, budget pacing, anomaly detection, platform-agnostic boundary, data model, file:line. Cited evidence: source-ads, source-shared-infra.\nCitations: source-ads, source-shared-infra\n\n### q4\nFor benchmark q4, the key explanation is grounded in the run sources. Required details: listen, post, schedule, engage, monitor, multi-platform abstraction, rate limit, credit accounting, content moderation, file:line. Cited evidence: source-social, source-shared-infra.\nCitations: source-social, source-shared-infra\n\n### q5\nFor benchmark q5, the key explanation is grounded in the run sources. Required details: skill name, invocation surface, input schema, output schema, state persistence, version, deprecation, duplicate, canonical, file:line. Cited evidence: source-seo-geo, source-skills-catalog.\nCitations: source-seo-geo, source-skills-catalog\n\n### q6\nFor benchmark q6, the key explanation is grounded in the run sources. Required details: prompt template, voice and tone, multi-lingual, image and text, evaluation rubric, drift, hallucination, register, retrieval grounding, file:line. Cited evidence: source-content-writing, source-skills-catalog.\nCitations: source-content-writing, source-skills-catalog\n\n### q7\nFor benchmark q7, the key explanation is grounded in the run sources. Required details: keyword analysis, bid strategy, creative generation, budget allocation, anomaly detection, A/B test, platform-bound, platform-agnostic abstraction, kill criteria, file:line. Cited evidence: source-ads, source-skills-catalog.\nCitations: source-ads, source-skills-catalog\n\n### q8\nFor benchmark q8, the key explanation is grounded in the run sources. Required details: listening, topic selection, multi-platform rewrite, scheduling, reply, sentiment, platform difference, parameterization, API change failure, file:line. Cited evidence: source-social, source-skills-catalog.\nCitations: source-social, source-skills-catalog\n\n### q9\nFor benchmark q9, the key explanation is grounded in the run sources. Required details: topical authority, E-E-A-T, GEO vs SEO, intent mapping, content velocity, anti-pattern, worked here, failed here, trigger condition, file:line. Cited evidence: source-seo-geo, source-cognitive-models, source-failure-modes.\nCitations: source-seo-geo, source-cognitive-models, source-failure-modes\n\n### q10\nFor benchmark q10, the key explanation is grounded in the run sources. Required details: user journey, content portfolio, distribution over production, ROI window, brand voice, anti-pattern, worked here, failed here, links to Q2, links to Q6. Cited evidence: source-content-writing, source-cognitive-models, source-failure-modes.\nCitations: source-content-writing, source-cognitive-models, source-failure-modes\n\n### q11\nFor benchmark q11, the key explanation is grounded in the run sources. Required details: LTV CAC, pacing, creative fatigue, attribution paradox, kill criteria, scale criteria, platform change, anti-pattern, worked here, failed here. Cited evidence: source-ads, source-cognitive-models, source-failure-modes.\nCitations: source-ads, source-cognitive-models, source-failure-modes\n\n### q12\nFor benchmark q12, the key explanation is grounded in the run sources. Required details: platform game theory, algorithm preference, community fit, brand voice, viral mechanics, automation visibility, anti-pattern, worked here, failed here, platform difference. Cited evidence: source-social, source-cognitive-models, source-failure-modes.\nCitations: source-social, source-cognitive-models, source-failure-modes\n\n### q13\nFor benchmark q13, the key explanation is grounded in the run sources. Required details: identity, data lake, task queue, observability, LLM gateway, human-in-loop console, secrets, repo template, domain-isolated, decision rule. Cited evidence: source-shared-infra, source-skills-catalog, source-platform-prototypes.\nCitations: source-shared-infra, source-skills-catalog, source-platform-prototypes\n\n### q14\nFor benchmark q14, the key explanation is grounded in the run sources. Required details: Day-1, Week-1, Week-4, Month-3, milestone done criteria, next-trigger, deferral, minimum viable, evidence from corpus evolution, cross-reference. Cited evidence: source-seo-geo, source-content-writing, source-ads, source-social, source-shared-infra, source-platform-prototypes, source-cognitive-models, source-vertical-cases, source-skills-catalog, source-failure-modes.\nCitations: source-seo-geo, source-content-writing, source-ads, source-social, source-shared-infra, source-platform-prototypes, source-cognitive-models, source-vertical-cases, source-skills-catalog, source-failure-modes\n\n### q15\nFor benchmark q15, the key explanation is grounded in the run sources. Required details: structural cause, early symptom, prophylactic, growth-engine-legacy, abandoned, deprecated, recurrence count, evidence pair, cross-domain, file:line. Cited evidence: source-failure-modes, source-cognitive-models, source-platform-prototypes.\nCitations: source-failure-modes, source-cognitive-models, source-platform-prototypes\n\n## Prior Context\n# Growth Engine From Scratch \u2014 Knowledge Base\n\nStatus: seed (iter-0). Producer fills in subsequent iterations.\n\n## Q1 \u2014 A1: SEO/GEO Architecture\n*To be drafted.*\n\n## Q2 \u2014 A2: Content Writing Architecture\n*To be drafted.*\n\n## Q3 \u2014 A3: Ads Architecture\n*To be drafted.*\n\n## Q4 \u2014 A4: Social Architecture\n*To be drafted.*\n\n## Q5 \u2014 S1: SEO/GEO Skills\n*To be drafted.*\n\n## Q6 \u2014 S2: Content Writing Skills\n*To be drafted.*\n\n## Q7 \u2014 S3: Ads Skills\n*To be drafted.*\n\n## Q8 \u2014 S4: Social Skills\n*To be drafted.*\n\n## Q9 \u2014 C1: SEO/GEO Cognition\n*To be drafted.*\n\n## Q10 \u2014 C2: Content Writing Cognition\n*To be drafted.*\n\n## Q11 \u2014 C3: Ads Cognition\n*To be drafted.*\n\n## Q12 \u2014 C4: Social Cognition\n*To be drafted.*\n\n## Q13 \u2014 I1: Shared Foundations\n*To be drafted.*\n\n## Q14 \u2014 I2: Build Sequence (Day-1 \u2192 Month-3)\n*To be drafted.*\n\n## Q15 \u2014 I3: Cross-Domain Failure Modes\n*To be drafted.*",
+  "benchmark_answers": [
+    {
+      "id": "q1",
+      "answer": "For benchmark q1, the key explanation is grounded in the run sources. Required details: components, data flow, external dependencies, ranking signal source, content store, human-in-loop, kill-switch, convergence, disagreement, file:line. Cited evidence: source-seo-geo, source-shared-infra.",
+      "citations": [
+        "source-seo-geo",
+        "source-shared-infra"
+      ]
+    },
+    {
+      "id": "q2",
+      "answer": "For benchmark q2, the key explanation is grounded in the run sources. Required details: ideation, outline, draft, edit, publish, LLM role, human review point, style guide injection, load-bearing, file:line. Cited evidence: source-content-writing, source-shared-infra.",
+      "citations": [
+        "source-content-writing",
+        "source-shared-infra"
+      ]
+    },
+    {
+      "id": "q3",
+      "answer": "For benchmark q3, the key explanation is grounded in the run sources. Required details: campaign feed, bidding, reporting, attribution model, conversion event, budget pacing, anomaly detection, platform-agnostic boundary, data model, file:line. Cited evidence: source-ads, source-shared-infra.",
+      "citations": [
+        "source-ads",
+        "source-shared-infra"
+      ]
+    },
+    {
+      "id": "q4",
+      "answer": "For benchmark q4, the key explanation is grounded in the run sources. Required details: listen, post, schedule, engage, monitor, multi-platform abstraction, rate limit, credit accounting, content moderation, file:line. Cited evidence: source-social, source-shared-infra.",
+      "citations": [
+        "source-social",
+        "source-shared-infra"
+      ]
+    },
+    {
+      "id": "q5",
+      "answer": "For benchmark q5, the key explanation is grounded in the run sources. Required details: skill name, invocation surface, input schema, output schema, state persistence, version, deprecation, duplicate, canonical, file:line. Cited evidence: source-seo-geo, source-skills-catalog.",
+      "citations": [
+        "source-seo-geo",
+        "source-skills-catalog"
+      ]
+    },
+    {
+      "id": "q6",
+      "answer": "For benchmark q6, the key explanation is grounded in the run sources. Required details: prompt template, voice and tone, multi-lingual, image and text, evaluation rubric, drift, hallucination, register, retrieval grounding, file:line. Cited evidence: source-content-writing, source-skills-catalog.",
+      "citations": [
+        "source-content-writing",
+        "source-skills-catalog"
+      ]
+    },
+    {
+      "id": "q7",
+      "answer": "For benchmark q7, the key explanation is grounded in the run sources. Required details: keyword analysis, bid strategy, creative generation, budget allocation, anomaly detection, A/B test, platform-bound, platform-agnostic abstraction, kill criteria, file:line. Cited evidence: source-ads, source-skills-catalog.",
+      "citations": [
+        "source-ads",
+        "source-skills-catalog"
+      ]
+    },
+    {
+      "id": "q8",
+      "answer": "For benchmark q8, the key explanation is grounded in the run sources. Required details: listening, topic selection, multi-platform rewrite, scheduling, reply, sentiment, platform difference, parameterization, API change failure, file:line. Cited evidence: source-social, source-skills-catalog.",
+      "citations": [
+        "source-social",
+        "source-skills-catalog"
+      ]
+    },
+    {
+      "id": "q9",
+      "answer": "For benchmark q9, the key explanation is grounded in the run sources. Required details: topical authority, E-E-A-T, GEO vs SEO, intent mapping, content velocity, anti-pattern, worked here, failed here, trigger condition, file:line. Cited evidence: source-seo-geo, source-cognitive-models, source-failure-modes.",
+      "citations": [
+        "source-seo-geo",
+        "source-cognitive-models",
+        "source-failure-modes"
+      ]
+    },
+    {
+      "id": "q10",
+      "answer": "For benchmark q10, the key explanation is grounded in the run sources. Required details: user journey, content portfolio, distribution over production, ROI window, brand voice, anti-pattern, worked here, failed here, links to Q2, links to Q6. Cited evidence: source-content-writing, source-cognitive-models, source-failure-modes.",
+      "citations": [
+        "source-content-writing",
+        "source-cognitive-models",
+        "source-failure-modes"
+      ]
+    },
+    {
+      "id": "q11",
+      "answer": "For benchmark q11, the key explanation is grounded in the run sources. Required details: LTV CAC, pacing, creative fatigue, attribution paradox, kill criteria, scale criteria, platform change, anti-pattern, worked here, failed here. Cited evidence: source-ads, source-cognitive-models, source-failure-modes.",
+      "citations": [
+        "source-ads",
+        "source-cognitive-models",
+        "source-failure-modes"
+      ]
+    },
+    {
+      "id": "q12",
+      "answer": "For benchmark q12, the key explanation is grounded in the run sources. Required details: platform game theory, algorithm preference, community fit, brand voice, viral mechanics, automation visibility, anti-pattern, worked here, failed here, platform difference. Cited evidence: source-social, source-cognitive-models, source-failure-modes.",
+      "citations": [
+        "source-social",
+        "source-cognitive-models",
+        "source-failure-modes"
+      ]
+    },
+    {
+      "id": "q13",
+      "answer": "For benchmark q13, the key explanation is grounded in the run sources. Required details: identity, data lake, task queue, observability, LLM gateway, human-in-loop console, secrets, repo template, domain-isolated, decision rule. Cited evidence: source-shared-infra, source-skills-catalog, source-platform-prototypes.",
+      "citations": [
+        "source-shared-infra",
+        "source-skills-catalog",
+        "source-platform-prototypes"
+      ]
+    },
+    {
+      "id": "q14",
+      "answer": "For benchmark q14, the key explanation is grounded in the run sources. Required details: Day-1, Week-1, Week-4, Month-3, milestone done criteria, next-trigger, deferral, minimum viable, evidence from corpus evolution, cross-reference. Cited evidence: source-seo-geo, source-content-writing, source-ads, source-social, source-shared-infra, source-platform-prototypes, source-cognitive-models, source-vertical-cases, source-skills-catalog, source-failure-modes.",
+      "citations": [
+        "source-seo-geo",
+        "source-content-writing",
+        "source-ads",
+        "source-social",
+        "source-shared-infra",
+        "source-platform-prototypes",
+        "source-cognitive-models",
+        "source-vertical-cases",
+        "source-skills-catalog",
+        "source-failure-modes"
+      ]
+    },
+    {
+      "id": "q15",
+      "answer": "For benchmark q15, the key explanation is grounded in the run sources. Required details: structural cause, early symptom, prophylactic, growth-engine-legacy, abandoned, deprecated, recurrence count, evidence pair, cross-domain, file:line. Cited evidence: source-failure-modes, source-cognitive-models, source-platform-prototypes.",
+      "citations": [
+        "source-failure-modes",
+        "source-cognitive-models",
+        "source-platform-prototypes"
+      ]
+    }
+  ],
+  "notes": [
+    "Generated by the built-in mock provider."
+  ]
+}
