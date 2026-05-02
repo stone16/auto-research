@@ -1,0 +1,23 @@
+{
+  "topic": "Growth Engine From Scratch — synthesizing architecture, skills, and practitioner cognition from ~64 getuai/ repos",
+  "slug": "growth-engine-from-scratch",
+  "provider": {
+    "kind": "command",
+    "command": ""
+  },
+  "evaluation": {
+    "minimum_improvement": 0.01,
+    "allow_tie_if_shorter": true,
+    "gate_threshold": 0.55
+  },
+  "producer": {
+    "cli": "codex",
+    "flags": "",
+    "timeout_seconds": 3600
+  },
+  "judge": {
+    "cli": "claude",
+    "flags": "",
+    "timeout_seconds": 1800
+  }
+}
