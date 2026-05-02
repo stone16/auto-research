@@ -1,7 +1,7 @@
 {
-  "iteration": 0,
-  "best_score": 0.0,
-  "best_iteration": 0,
-  "current_knowledge_chars": 0,
-  "last_kept_experiment": null
+  "iteration": 1,
+  "best_score": 0.85,
+  "best_iteration": 1,
+  "current_knowledge_chars": 29396,
+  "last_kept_experiment": "replace-placeholder-with-evidence-dense-q1-q15-synthesis"
 }
