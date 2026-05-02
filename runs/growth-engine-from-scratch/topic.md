@@ -89,3 +89,23 @@ The control loop: producer proposes a `knowledge_base.md` revision, judge scores
 against §5 benchmark using §6 calibration rules, only score-improving changes are
 kept. Per §7, cross-model validation runs at iter-1 anchor crystallization, every
 threshold crossing, iters 5/15/30, and the final iteration.
+
+---
+
+## Run-Init Verification (Path B, 2026-05-02)
+
+- ✅ All 10 `sources/source-*.md` digests composed from 64-repo `_raw/` extracts
+- ✅ `benchmark.json` contains 15 questions extracted from spec §5
+- ✅ `topic.md`, `program.md`, `run.json`, `knowledge_base.md` seeded
+- ✅ Mock iteration completed; framework reads run cleanly
+- ⏸ DEFERRED: provisional anchors (§6.10 — progressive crystallization)
+- ⏸ DEFERRED: §8.6 OS sandbox + point-verify tool (honor-system risk accepted for early iters)
+- ⏭ NEXT: trigger iter-1 with real producer/judge:
+
+  ```bash
+  uv run autoresearch loop runs/growth-engine-from-scratch \
+    --producer codex --judge claude \
+    --tag growth-v1 \
+    --max-total-iterations 40 \
+    --dimension-threshold 0.80
+  ```
