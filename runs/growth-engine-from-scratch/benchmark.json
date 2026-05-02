@@ -1,0 +1,821 @@
+[
+  {
+    "id": "q1",
+    "question": "Reading across the SEO/GEO repos in getuai/, what from-scratch architecture for a SEO/GEO subsystem emerges as the converged pattern \u2014 components, data stores, external dependencies, and human-in-loop control points \u2014 and where do these repos disagree about that pattern?",
+    "rubric": "Specify the components (crawler, ranking sensor, content store, generator, publisher, evaluator) and their data flow with explicit interfaces. Name external dependencies (search APIs, LLM providers, CMS) and their failure handling. Identify human-in-loop control points (approval, override, kill-switch). For every architectural claim, cite at least one repo:file:line. Where repos disagree (e.g., one uses pull-based ranking checks, another push-based webhooks), name both repos and state the trade-off. Penalize answers that describe an aspirational design not actually present in code.",
+    "rubric_criteria": [
+      {
+        "id": "q1.r1",
+        "weight": 1.0,
+        "criterion": "Components (crawler, ranking sensor, content store, generator, publisher, evaluator) named AND data flow specified with explicit interfaces"
+      },
+      {
+        "id": "q1.r2",
+        "weight": 1.0,
+        "criterion": "External dependencies (search APIs, LLM providers, CMS) named with explicit failure handling per dependency"
+      },
+      {
+        "id": "q1.r3",
+        "weight": 1.0,
+        "criterion": "Human-in-loop control points (approval, override, kill-switch) identified with repo evidence"
+      },
+      {
+        "id": "q1.r4",
+        "weight": 1.0,
+        "criterion": "Every architectural claim cites at least one repo:file:line"
+      },
+      {
+        "id": "q1.r5",
+        "weight": 1.0,
+        "criterion": "Where repos disagree, both repos named AND the trade-off stated"
+      }
+    ],
+    "penalty_criteria": [
+      {
+        "id": "q1.p1",
+        "deduction": 0.15,
+        "trigger": "Any architectural claim is aspirational rather than present-in-code (uncitable to a real implementation)"
+      }
+    ],
+    "must_include": [
+      "components",
+      "data flow",
+      "external dependencies",
+      "ranking signal source",
+      "content store",
+      "human-in-loop",
+      "kill-switch",
+      "convergence",
+      "disagreement",
+      "file:line"
+    ],
+    "required_sources": [
+      "source-seo-geo",
+      "source-shared-infra"
+    ]
+  },
+  {
+    "id": "q2",
+    "question": "From the corpus, what is the from-scratch architecture of a Content Writing subsystem \u2014 the stages from ideation through publish, the role of LLMs at each stage, and the human-review insertion points \u2014 and which choices in this architecture are load-bearing versus stylistic?",
+    "rubric": "Walk the pipeline: ideation, outline, draft, edit, publish, post-publish iteration. For each stage, name LLM role (none / generator / critic / orchestrator), input contract, output contract, and the human-review hook if any. Distinguish load-bearing choices (those whose change breaks correctness, e.g. mandatory style-guide injection) from stylistic ones (e.g. which template format). Cite repo:file:line for each pipeline component. Penalize generic 'agent writes blog post' answers without stage-by-stage decomposition.",
+    "rubric_criteria": [
+      {
+        "id": "q2.r1",
+        "weight": 1.0,
+        "criterion": "Pipeline stages (ideation, outline, draft, edit, publish, post-publish) walked with input/output contracts per stage"
+      },
+      {
+        "id": "q2.r2",
+        "weight": 1.0,
+        "criterion": "LLM role per stage named (none / generator / critic / orchestrator) with repo evidence"
+      },
+      {
+        "id": "q2.r3",
+        "weight": 1.0,
+        "criterion": "Human-review hooks identified with specific repo evidence per hook"
+      },
+      {
+        "id": "q2.r4",
+        "weight": 1.0,
+        "criterion": "Load-bearing vs stylistic choices distinguished with reasoning, with at least 2 examples on each side"
+      },
+      {
+        "id": "q2.r5",
+        "weight": 1.0,
+        "criterion": "Every pipeline component cites repo:file:line"
+      }
+    ],
+    "penalty_criteria": [
+      {
+        "id": "q2.p1",
+        "deduction": 0.15,
+        "trigger": "Generic 'agent writes blog post' framing without stage-by-stage decomposition"
+      }
+    ],
+    "must_include": [
+      "ideation",
+      "outline",
+      "draft",
+      "edit",
+      "publish",
+      "LLM role",
+      "human review point",
+      "style guide injection",
+      "load-bearing",
+      "file:line"
+    ],
+    "required_sources": [
+      "source-content-writing",
+      "source-shared-infra"
+    ]
+  },
+  {
+    "id": "q3",
+    "question": "What from-scratch architecture for an Ads management subsystem emerges from the getuai/getuai-ads* and attribution repos \u2014 the closed loop of campaign feed \u2192 bidding \u2192 reporting \u2192 attribution \u2192 optimization \u2014 and how are the boundaries between platform-API integration and platform-agnostic logic drawn?",
+    "rubric": "Specify the closed loop end-to-end. Name the data model for campaigns, ad groups, creatives, conversions. Describe bidding strategy implementation, attribution model implementation, anomaly detection. State explicitly where platform-specific code lives (e.g. Google Ads vs Facebook Ads) versus where shared business logic sits. Cite repo:file:line for each boundary. Penalize answers that conflate the closed-loop with platform SDKs without naming the abstraction layer.",
+    "rubric_criteria": [
+      {
+        "id": "q3.r1",
+        "weight": 1.0,
+        "criterion": "Closed loop (campaign feed \u2192 bidding \u2192 reporting \u2192 attribution \u2192 optimization) specified end-to-end with data flows"
+      },
+      {
+        "id": "q3.r2",
+        "weight": 1.0,
+        "criterion": "Data model for campaigns, ad groups, creatives, conversions explicitly named with field-level detail"
+      },
+      {
+        "id": "q3.r3",
+        "weight": 1.0,
+        "criterion": "Bidding strategy, attribution model, anomaly detection implementations cited"
+      },
+      {
+        "id": "q3.r4",
+        "weight": 1.0,
+        "criterion": "Platform-specific code vs platform-agnostic logic boundary explicitly drawn with file:line"
+      },
+      {
+        "id": "q3.r5",
+        "weight": 1.0,
+        "criterion": "Every architectural claim cites repo:file:line"
+      }
+    ],
+    "penalty_criteria": [
+      {
+        "id": "q3.p1",
+        "deduction": 0.15,
+        "trigger": "Conflating the closed loop with platform SDKs without naming the abstraction layer"
+      }
+    ],
+    "must_include": [
+      "campaign feed",
+      "bidding",
+      "reporting",
+      "attribution model",
+      "conversion event",
+      "budget pacing",
+      "anomaly detection",
+      "platform-agnostic boundary",
+      "data model",
+      "file:line"
+    ],
+    "required_sources": [
+      "source-ads",
+      "source-shared-infra"
+    ]
+  },
+  {
+    "id": "q4",
+    "question": "From reddit-scount, x-api-credit-monitor, youtube-api-demo and the social-touching parts of openclaw-marketing, what from-scratch architecture for a Social media subsystem emerges \u2014 covering listen, post, schedule, engage, monitor \u2014 and what unifying abstraction (if any) lets one engine speak to multiple platforms without an N\u00d7M explosion?",
+    "rubric": "Decompose into the listen / post / schedule / engage / monitor surfaces. Name the multi-platform abstraction (or admit none exists in the corpus, with evidence). Specify rate-limit and credit accounting (x-api-credit-monitor is a strong signal here). Specify content-moderation insertion point. Cite repo:file:line. Penalize answers that assume a unified abstraction without finding it in code; an honest 'corpus uses N adapters with no shared abstraction' is worth more than a fictitious clean design.",
+    "rubric_criteria": [
+      {
+        "id": "q4.r1",
+        "weight": 1.0,
+        "criterion": "All five surfaces (listen, post, schedule, engage, monitor) decomposed with per-surface contracts"
+      },
+      {
+        "id": "q4.r2",
+        "weight": 1.0,
+        "criterion": "Multi-platform abstraction named OR honest 'no shared abstraction' verdict given with corpus evidence"
+      },
+      {
+        "id": "q4.r3",
+        "weight": 1.0,
+        "criterion": "Rate-limit and credit accounting cited (x-api-credit-monitor or equivalent)"
+      },
+      {
+        "id": "q4.r4",
+        "weight": 1.0,
+        "criterion": "Content moderation insertion point identified with repo evidence"
+      },
+      {
+        "id": "q4.r5",
+        "weight": 1.0,
+        "criterion": "Every architectural claim cites repo:file:line"
+      }
+    ],
+    "penalty_criteria": [
+      {
+        "id": "q4.p1",
+        "deduction": 0.15,
+        "trigger": "Assumed unified abstraction without finding it in code"
+      }
+    ],
+    "must_include": [
+      "listen",
+      "post",
+      "schedule",
+      "engage",
+      "monitor",
+      "multi-platform abstraction",
+      "rate limit",
+      "credit accounting",
+      "content moderation",
+      "file:line"
+    ],
+    "required_sources": [
+      "source-social",
+      "source-shared-infra"
+    ]
+  },
+  {
+    "id": "q5",
+    "question": "What are the reusable skills in the SEO/GEO domain across the corpus \u2014 for each: what it does, how it is invoked, what parameters and output contract it enforces, what state it persists, and how it is maintained (versioning, dependencies, retries) \u2014 and which skills are duplicated across repos versus genuinely unique?",
+    "rubric": "Enumerate the skills as a table with the 8-column contract from \u00a78.3: skill_name, originating_repo, path_reference (the directory or file path under ~/dev/getuai/<repo>/... where the skill lives, with optional :LINE), invocation_surface (CLI / function call / agent message / cron), input_schema, output_schema, state_persistence, maintenance_signals (last-modified, recent commits, deprecation markers). For duplicates, name all repos that carry a near-equivalent and pick the canonical one with rationale. Penalize answers that list skill names without invocation/contract detail. Require at least 8 skills enumerated; no skill counts unless it has a path_reference that resolves under the corpus.",
+    "rubric_criteria": [
+      {
+        "id": "q5.r1",
+        "weight": 1.0,
+        "criterion": "\u22658 skills enumerated as a table with all 8 columns (skill_name, originating_repo, path_reference, invocation_surface, input_schema, output_schema, state_persistence, maintenance_signals) per the \u00a78.3 contract"
+      },
+      {
+        "id": "q5.r2",
+        "weight": 1.0,
+        "criterion": "Duplicates identified across repos with canonical pick + rationale"
+      },
+      {
+        "id": "q5.r3",
+        "weight": 1.0,
+        "criterion": "Maintenance signals populated (last-modified, recent commits, deprecation markers), not stubbed"
+      },
+      {
+        "id": "q5.r4",
+        "weight": 1.0,
+        "criterion": "Each skill row's path_reference resolves under ~/dev/getuai/<repo>/... (this is row identity, not a \u00a76.3 citation; supporting claims in the row follow \u00a76.3 per \u00a76.2.1)"
+      }
+    ],
+    "penalty_criteria": [
+      {
+        "id": "q5.p1",
+        "deduction": 0.2,
+        "trigger": "<8 skills enumerated OR skills listed without invocation/contract detail OR rows missing path reference"
+      }
+    ],
+    "must_include": [
+      "skill name",
+      "invocation surface",
+      "input schema",
+      "output schema",
+      "state persistence",
+      "version",
+      "deprecation",
+      "duplicate",
+      "canonical",
+      "file:line"
+    ],
+    "required_sources": [
+      "source-seo-geo",
+      "source-skills-catalog"
+    ]
+  },
+  {
+    "id": "q6",
+    "question": "What are the reusable Content Writing skills in the corpus \u2014 prompt templates, voice/tone systems, multi-lingual handlers, image+text composers, evaluation rubrics \u2014 and how do these skills handle the brittleness problems unique to LLM-driven content (drift, hallucination, register collapse)?",
+    "rubric": "Enumerate skills with the same 8-column table format as Q5 (\u00a78.3 contract: skill_name, originating_repo, path_reference, invocation_surface, input_schema, output_schema, state_persistence, maintenance_signals). For each skill, name the brittleness problem it addresses (drift / hallucination / register collapse / factual contamination / language register / cultural fit) and the technique used (template variables / few-shot / critic loop / human review / retrieval grounding). Supporting claims (brittleness, technique) are cited per \u00a76.3 / \u00a76.2.1. Penalize answers that ignore brittleness or treat all LLM content generation as equivalent.",
+    "rubric_criteria": [
+      {
+        "id": "q6.r1",
+        "weight": 1.0,
+        "criterion": "Skills enumerated as a table with all 8 columns per \u00a78.3 contract (same as Q5)"
+      },
+      {
+        "id": "q6.r2",
+        "weight": 1.0,
+        "criterion": "Each skill names the brittleness problem it addresses (drift / hallucination / register collapse / contamination / language register / cultural fit)"
+      },
+      {
+        "id": "q6.r3",
+        "weight": 1.0,
+        "criterion": "Each skill names the mitigation technique (template variables / few-shot / critic loop / human review / retrieval grounding)"
+      },
+      {
+        "id": "q6.r4",
+        "weight": 1.0,
+        "criterion": "Each skill row's path_reference resolves under ~/dev/getuai/; supporting brittleness/technique claims cite per \u00a76.3 / \u00a76.2.1"
+      }
+    ],
+    "penalty_criteria": [
+      {
+        "id": "q6.p1",
+        "deduction": 0.15,
+        "trigger": "Treats LLM content generation as monolithic / ignores the brittleness dimension"
+      }
+    ],
+    "must_include": [
+      "prompt template",
+      "voice and tone",
+      "multi-lingual",
+      "image and text",
+      "evaluation rubric",
+      "drift",
+      "hallucination",
+      "register",
+      "retrieval grounding",
+      "file:line"
+    ],
+    "required_sources": [
+      "source-content-writing",
+      "source-skills-catalog"
+    ]
+  },
+  {
+    "id": "q7",
+    "question": "What are the reusable Ads skills in the corpus \u2014 keyword analysis, bid strategy, creative generation, budget allocation, anomaly detection, A/B test orchestration \u2014 and which are explicitly platform-bound versus platform-agnostic, with the contract for the platform abstraction?",
+    "rubric": "Enumerate skills. For each: platform-bound (which platform) vs platform-agnostic, abstraction contract if agnostic, dependence on attribution data, kill criteria embedded. Show repo:file:line evidence per skill. Penalize 'this skill exists for Google Ads' without invocation and contract detail.",
+    "rubric_criteria": [
+      {
+        "id": "q7.r1",
+        "weight": 1.0,
+        "criterion": "Skills enumerated with table format covering keyword analysis, bid strategy, creative generation, budget allocation, anomaly detection, A/B test"
+      },
+      {
+        "id": "q7.r2",
+        "weight": 1.0,
+        "criterion": "Platform-bound vs platform-agnostic explicitly tagged per skill"
+      },
+      {
+        "id": "q7.r3",
+        "weight": 1.0,
+        "criterion": "Abstraction contract specified for platform-agnostic skills (interface and parameters)"
+      },
+      {
+        "id": "q7.r4",
+        "weight": 1.0,
+        "criterion": "Kill criteria embedded per skill where applicable, with repo:file:line evidence"
+      }
+    ],
+    "penalty_criteria": [
+      {
+        "id": "q7.p1",
+        "deduction": 0.15,
+        "trigger": "Skill listed without invocation/contract detail or platform classification"
+      }
+    ],
+    "must_include": [
+      "keyword analysis",
+      "bid strategy",
+      "creative generation",
+      "budget allocation",
+      "anomaly detection",
+      "A/B test",
+      "platform-bound",
+      "platform-agnostic abstraction",
+      "kill criteria",
+      "file:line"
+    ],
+    "required_sources": [
+      "source-ads",
+      "source-skills-catalog"
+    ]
+  },
+  {
+    "id": "q8",
+    "question": "What are the reusable Social skills \u2014 listening (topic / sentiment / mention), topic selection, multi-platform rewrite, scheduling, reply, sentiment classification \u2014 and how do they encode the platform-specific differences in tone, length, and engagement pattern without forking per platform?",
+    "rubric": "Enumerate skills. For each: cross-platform versus per-platform, the parameterization that captures platform difference (max length, hashtag policy, mention semantics, image/video requirement), and the failure mode when the platform changes its API or rules. Cite repo:file:line. Penalize answers that pretend platforms are interchangeable.",
+    "rubric_criteria": [
+      {
+        "id": "q8.r1",
+        "weight": 1.0,
+        "criterion": "Skills enumerated covering listening, topic selection, multi-platform rewrite, scheduling, reply, sentiment"
+      },
+      {
+        "id": "q8.r2",
+        "weight": 1.0,
+        "criterion": "Cross-platform vs per-platform tagged per skill"
+      },
+      {
+        "id": "q8.r3",
+        "weight": 1.0,
+        "criterion": "Parameterization captures platform difference (max length, hashtag policy, mention semantics, image/video requirement)"
+      },
+      {
+        "id": "q8.r4",
+        "weight": 1.0,
+        "criterion": "Failure mode for each skill when the platform changes API or rules cited from repo evidence"
+      }
+    ],
+    "penalty_criteria": [
+      {
+        "id": "q8.p1",
+        "deduction": 0.15,
+        "trigger": "Pretends platforms are interchangeable / lacks platform-difference parameterization"
+      }
+    ],
+    "must_include": [
+      "listening",
+      "topic selection",
+      "multi-platform rewrite",
+      "scheduling",
+      "reply",
+      "sentiment",
+      "platform difference",
+      "parameterization",
+      "API change failure",
+      "file:line"
+    ],
+    "required_sources": [
+      "source-social",
+      "source-skills-catalog"
+    ]
+  },
+  {
+    "id": "q9",
+    "question": "What mental models do the SEO/GEO practitioners in the corpus apply when making decisions \u2014 topical authority, E-E-A-T, the GEO-vs-SEO pivot, intent mapping, content velocity vs depth \u2014 and where do these models prove right or wrong as evidenced by the repos?",
+    "rubric": "Name each mental model explicitly. For each model: the canonical decision it shapes, the trigger conditions that invoke it, and at least one 'this model worked here' repo:file:line evidence AND one 'this model failed here' repo:file:line evidence (or commit message admitting failure). Identify at least 2 anti-patterns the corpus reveals. Penalize generic SEO advice not grounded in repo evidence; demand the model-evidence pairing.",
+    "rubric_criteria": [
+      {
+        "id": "q9.r1",
+        "weight": 1.0,
+        "criterion": "\u22653 mental models named explicitly (e.g., topical authority, E-E-A-T, GEO vs SEO pivot, intent mapping, content velocity vs depth)"
+      },
+      {
+        "id": "q9.r2",
+        "weight": 1.0,
+        "criterion": "Each model has trigger conditions stated"
+      },
+      {
+        "id": "q9.r3",
+        "weight": 1.0,
+        "criterion": "Each model has \u22651 'worked here' repo:file:line evidence (per \u00a76.7, models without paired evidence score 0.0 in this clause)"
+      },
+      {
+        "id": "q9.r4",
+        "weight": 1.0,
+        "criterion": "Each model has \u22651 'failed here' repo:file:line evidence (or commit message admitting failure)"
+      },
+      {
+        "id": "q9.r5",
+        "weight": 1.0,
+        "criterion": "\u22652 anti-patterns identified with corpus evidence"
+      }
+    ],
+    "penalty_criteria": [
+      {
+        "id": "q9.p1",
+        "deduction": 0.2,
+        "trigger": "Generic SEO advice not grounded in repo evidence; reciting industry slogans"
+      }
+    ],
+    "must_include": [
+      "topical authority",
+      "E-E-A-T",
+      "GEO vs SEO",
+      "intent mapping",
+      "content velocity",
+      "anti-pattern",
+      "worked here",
+      "failed here",
+      "trigger condition",
+      "file:line"
+    ],
+    "required_sources": [
+      "source-seo-geo",
+      "source-cognitive-models",
+      "source-failure-modes"
+    ]
+  },
+  {
+    "id": "q10",
+    "question": "What cognitive frames do the content practitioners apply \u2014 user journey mapping, content portfolio theory, distribution-over-production, ROI time windows, brand voice as forcing function \u2014 and how do those frames shape the architecture and skill choices already documented in Q2 and Q6?",
+    "rubric": "Name each cognitive frame, its decision-shaping role, and at least one 'worked' / 'failed' repo evidence pairing. Explicitly link each frame to a Q2 architecture choice or a Q6 skill choice (cross-question hook). Identify at least 2 anti-patterns. Penalize answers that treat content as a craft question rather than a system question.",
+    "rubric_criteria": [
+      {
+        "id": "q10.r1",
+        "weight": 1.0,
+        "criterion": "\u22653 cognitive frames named (e.g., user journey, content portfolio, distribution-over-production, ROI window, brand voice as forcing function)"
+      },
+      {
+        "id": "q10.r2",
+        "weight": 1.0,
+        "criterion": "Each frame has its decision-shaping role explicitly stated"
+      },
+      {
+        "id": "q10.r3",
+        "weight": 1.0,
+        "criterion": "Each frame has worked + failed repo evidence pairing (per \u00a76.7, frames without paired evidence score 0.0 in this clause)"
+      },
+      {
+        "id": "q10.r4",
+        "weight": 1.0,
+        "criterion": "Each frame is explicitly linked to a Q2 architecture choice OR a Q6 skill choice (cross-question hook)"
+      },
+      {
+        "id": "q10.r5",
+        "weight": 1.0,
+        "criterion": "\u22652 anti-patterns identified with corpus evidence"
+      }
+    ],
+    "penalty_criteria": [
+      {
+        "id": "q10.p1",
+        "deduction": 0.15,
+        "trigger": "Treats content as craft rather than system; no Q2/Q6 cross-references"
+      }
+    ],
+    "must_include": [
+      "user journey",
+      "content portfolio",
+      "distribution over production",
+      "ROI window",
+      "brand voice",
+      "anti-pattern",
+      "worked here",
+      "failed here",
+      "links to Q2",
+      "links to Q6"
+    ],
+    "required_sources": [
+      "source-content-writing",
+      "source-cognitive-models",
+      "source-failure-modes"
+    ]
+  },
+  {
+    "id": "q11",
+    "question": "What mental models do the ads practitioners apply \u2014 LTV/CAC discipline, pacing logic, creative fatigue curves, attribution paradox, kill-vs-double-down criteria \u2014 and how do they survive contact with the realities of platform algorithm changes and attribution windows?",
+    "rubric": "Name each model, the decision it shapes, the conditions where it holds, and the conditions where it breaks (with repo evidence). Provide at least 2 'this model survived a platform change here' or 'broke here' pairings. Demand explicit kill-vs-scale criteria. Penalize answers that recite ads-buyer slogans without naming the breakage conditions in the corpus.",
+    "rubric_criteria": [
+      {
+        "id": "q11.r1",
+        "weight": 1.0,
+        "criterion": "\u22653 mental models named (e.g., LTV/CAC, pacing, creative fatigue, attribution paradox, kill-vs-double-down)"
+      },
+      {
+        "id": "q11.r2",
+        "weight": 1.0,
+        "criterion": "Each model has both holding-conditions AND breaking-conditions named, each with repo evidence (per \u00a76.7, models without paired evidence score 0.0)"
+      },
+      {
+        "id": "q11.r3",
+        "weight": 1.0,
+        "criterion": "\u22652 'survived a platform change' or 'broke under platform change' pairings provided"
+      },
+      {
+        "id": "q11.r4",
+        "weight": 1.0,
+        "criterion": "Explicit kill-vs-scale criteria stated, citable to a repo's actual decision logic"
+      },
+      {
+        "id": "q11.r5",
+        "weight": 1.0,
+        "criterion": "\u22652 anti-patterns identified with corpus evidence"
+      }
+    ],
+    "penalty_criteria": [
+      {
+        "id": "q11.p1",
+        "deduction": 0.15,
+        "trigger": "Recites ads-buyer slogans without naming breakage conditions in the corpus"
+      }
+    ],
+    "must_include": [
+      "LTV CAC",
+      "pacing",
+      "creative fatigue",
+      "attribution paradox",
+      "kill criteria",
+      "scale criteria",
+      "platform change",
+      "anti-pattern",
+      "worked here",
+      "failed here"
+    ],
+    "required_sources": [
+      "source-ads",
+      "source-cognitive-models",
+      "source-failure-modes"
+    ]
+  },
+  {
+    "id": "q12",
+    "question": "What cognitive models do the social practitioners apply \u2014 platform-as-game-theory, algorithm preference modeling, community-fit-before-brand-voice, viral mechanics, the costs of automation visibility \u2014 and which of these models are validated, contested, or debunked by the corpus's actual outcomes?",
+    "rubric": "Name each model, its decision-shaping role, supporting and contradicting repo evidence. Specifically address the automation visibility cost (when audiences detect AI-generated posts and disengage) with at least one repo example. Identify 2+ anti-patterns. Penalize 'platform best practices' answers without per-platform repo evidence.",
+    "rubric_criteria": [
+      {
+        "id": "q12.r1",
+        "weight": 1.0,
+        "criterion": "\u22653 cognitive models named (e.g., platform game theory, algorithm preference modeling, community fit, viral mechanics, automation visibility cost)"
+      },
+      {
+        "id": "q12.r2",
+        "weight": 1.0,
+        "criterion": "Each model has supporting + contradicting repo evidence (per \u00a76.7, models without paired evidence score 0.0)"
+      },
+      {
+        "id": "q12.r3",
+        "weight": 1.0,
+        "criterion": "Automation visibility cost addressed specifically with \u22651 repo example"
+      },
+      {
+        "id": "q12.r4",
+        "weight": 1.0,
+        "criterion": "Per-platform repo evidence provided (not generic platform-best-practices)"
+      },
+      {
+        "id": "q12.r5",
+        "weight": 1.0,
+        "criterion": "\u22652 anti-patterns identified with corpus evidence"
+      }
+    ],
+    "penalty_criteria": [
+      {
+        "id": "q12.p1",
+        "deduction": 0.15,
+        "trigger": "Generic 'platform best practices' answer without per-platform repo evidence"
+      }
+    ],
+    "must_include": [
+      "platform game theory",
+      "algorithm preference",
+      "community fit",
+      "brand voice",
+      "viral mechanics",
+      "automation visibility",
+      "anti-pattern",
+      "worked here",
+      "failed here",
+      "platform difference"
+    ],
+    "required_sources": [
+      "source-social",
+      "source-cognitive-models",
+      "source-failure-modes"
+    ]
+  },
+  {
+    "id": "q13",
+    "question": "Across the four domains, what infrastructure must be shared (identity, data lake, task queue, observability, LLM gateway, human-in-loop console, secrets and credentials, repo-template conventions) and what must be domain-isolated, and what is the criterion that decides which side of that line a new component belongs on?",
+    "rubric": "List the shared foundations with the corpus evidence for each (at least 2 repos showing convergent pattern). For each foundation, name the contract (interface, schema, version policy). Provide an explicit decision rule: when does a new component belong in the shared layer vs in a domain-specific repo? Penalize answers that handwave 'platform stuff is shared' without naming the contract.",
+    "rubric_criteria": [
+      {
+        "id": "q13.r1",
+        "weight": 1.0,
+        "criterion": "\u22656 shared foundations listed (identity, data lake, task queue, observability, LLM gateway, human-in-loop console, secrets, repo-template)"
+      },
+      {
+        "id": "q13.r2",
+        "weight": 1.0,
+        "criterion": "Each foundation has corpus evidence from \u22652 repos showing convergent pattern"
+      },
+      {
+        "id": "q13.r3",
+        "weight": 1.0,
+        "criterion": "Each foundation has contract specified (interface, schema, version policy)"
+      },
+      {
+        "id": "q13.r4",
+        "weight": 1.0,
+        "criterion": "Domain-isolated components also enumerated with rationale"
+      },
+      {
+        "id": "q13.r5",
+        "weight": 1.0,
+        "criterion": "Explicit decision rule stated for 'new component \u2192 shared layer vs domain-specific'"
+      }
+    ],
+    "penalty_criteria": [
+      {
+        "id": "q13.p1",
+        "deduction": 0.15,
+        "trigger": "Handwaves 'platform stuff is shared' without naming the contract"
+      }
+    ],
+    "must_include": [
+      "identity",
+      "data lake",
+      "task queue",
+      "observability",
+      "LLM gateway",
+      "human-in-loop console",
+      "secrets",
+      "repo template",
+      "domain-isolated",
+      "decision rule"
+    ],
+    "required_sources": [
+      "source-shared-infra",
+      "source-skills-catalog",
+      "source-platform-prototypes"
+    ]
+  },
+  {
+    "id": "q14",
+    "question": "If a small team starts on Day 1 with the goal of running a growth engine across the four domains in three months, what is the minimum-viable build sequence \u2014 what is built first, what is deferred, what triggers introducing each next subsystem, and what is the explicit decision rule for declaring a milestone done \u2014 grounded in evidence from the corpus's own evolution (prototypes \u2192 MVP \u2192 product)?",
+    "rubric": "Produce a sequenced plan with at least 6 milestones (Day-1, Week-1, Week-2, Week-4, Week-8, Week-12). For each milestone: scope, dependencies on prior milestones, explicit done criteria, the next-trigger that pulls the following milestone in. Reference the corpus's own evolution (e.g., 0407-prototype \u2192 0408-prototype \u2192 getuai-mvp \u2192 getuai-2.0) as evidence for the sequence shape. Cross-reference Q1-Q13 for what each milestone delivers AND fold in skill-delivery milestones (Q5-Q8 evidence) and failure-informed deferrals (Q15 evidence). Penalize 'do everything at once' or vague timelines. Demand at least 3 explicit deferrals (X is intentionally not built before Y because Z).",
+    "rubric_criteria": [
+      {
+        "id": "q14.r1",
+        "weight": 1.0,
+        "criterion": "\u22656 milestones (Day-1, Week-1, Week-2, Week-4, Week-8, Week-12) defined"
+      },
+      {
+        "id": "q14.r2",
+        "weight": 1.0,
+        "criterion": "Each milestone has scope + dependencies + done criteria + next-trigger"
+      },
+      {
+        "id": "q14.r3",
+        "weight": 1.0,
+        "criterion": "References the corpus's evolution (0407-prototype \u2192 0408-prototype \u2192 getuai-mvp \u2192 getuai-2.0 or equivalent) as evidence for sequence shape"
+      },
+      {
+        "id": "q14.r4",
+        "weight": 1.0,
+        "criterion": "Cross-references Q1-Q13 for what each milestone delivers; specifically includes skill-delivery milestones (Q5-Q8 evidence) and failure-informed deferrals (Q15 evidence)"
+      },
+      {
+        "id": "q14.r5",
+        "weight": 1.0,
+        "criterion": "\u22653 explicit deferrals stated (X is intentionally not built before Y because Z), each citable"
+      }
+    ],
+    "penalty_criteria": [
+      {
+        "id": "q14.p1",
+        "deduction": 0.2,
+        "trigger": "'Do everything at once' or vague timelines / no deferral discipline"
+      }
+    ],
+    "must_include": [
+      "Day-1",
+      "Week-1",
+      "Week-4",
+      "Month-3",
+      "milestone done criteria",
+      "next-trigger",
+      "deferral",
+      "minimum viable",
+      "evidence from corpus evolution",
+      "cross-reference"
+    ],
+    "required_sources": [
+      "source-seo-geo",
+      "source-content-writing",
+      "source-ads",
+      "source-social",
+      "source-shared-infra",
+      "source-platform-prototypes",
+      "source-cognitive-models",
+      "source-vertical-cases",
+      "source-skills-catalog",
+      "source-failure-modes"
+    ]
+  },
+  {
+    "id": "q15",
+    "question": "What failure modes and anti-patterns recur across multiple domains in the corpus \u2014 including the lessons from growth-engine-legacy and the abandoned/deprecated paths in other repos \u2014 and for each failure, what is the structural cause, the symptom you would observe early, and the architectural or cognitive prophylactic that the corpus has already converged on?",
+    "rubric": "Enumerate at least 8 failure modes. For each: affected domains (named explicitly), structural cause, early-symptom signal a builder would see in the first weeks, prophylactic measure (architectural pattern OR cognitive guardrail). Evidence requirements: (a) \u22651 failure-occurrence repo:file:line citation per affected domain (a failure mode claimed cross-domain across N domains needs \u2265N failure-occurrence citations across those N domains \u2014 single-domain evidence does NOT qualify a cross-domain claim and is scored 0); (b) \u22651 prophylactic-adoption repo:file:line citation. Special weight on growth-engine-legacy lessons since it is an explicit prior attempt. Penalize listed-but-uncited failure modes \u2014 every claim must have evidence per the per-domain rule.",
+    "rubric_criteria": [
+      {
+        "id": "q15.r1",
+        "weight": 1.0,
+        "criterion": "\u22658 failure modes enumerated"
+      },
+      {
+        "id": "q15.r2",
+        "weight": 1.0,
+        "criterion": "Each mode has structural cause + early-symptom signal + prophylactic stated"
+      },
+      {
+        "id": "q15.r3",
+        "weight": 1.5,
+        "criterion": "For each cross-domain claim, \u22651 failure-occurrence citation PER affected domain (cross-domain claims with single-domain evidence are scored 0 in this clause); per-domain evidence count must equal or exceed the number of domains claimed"
+      },
+      {
+        "id": "q15.r4",
+        "weight": 1.0,
+        "criterion": "\u22651 prophylactic-adoption citation per failure mode"
+      },
+      {
+        "id": "q15.r5",
+        "weight": 1.0,
+        "criterion": "\u22653 modes derived from growth-engine-legacy lessons, tagged with origin"
+      }
+    ],
+    "penalty_criteria": [
+      {
+        "id": "q15.p1",
+        "deduction": 0.25,
+        "trigger": "Failure mode listed without evidence pair OR cross-domain claim with single-domain evidence (these are also scored 0 in q15.r3)"
+      }
+    ],
+    "must_include": [
+      "structural cause",
+      "early symptom",
+      "prophylactic",
+      "growth-engine-legacy",
+      "abandoned",
+      "deprecated",
+      "recurrence count",
+      "evidence pair",
+      "cross-domain",
+      "file:line"
+    ],
+    "required_sources": [
+      "source-failure-modes",
+      "source-cognitive-models",
+      "source-platform-prototypes"
+    ]
+  }
+]

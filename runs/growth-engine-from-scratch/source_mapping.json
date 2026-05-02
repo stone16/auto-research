@@ -1,0 +1,47 @@
+{
+  "source-seo-geo": [
+    "geo-aeo", "geo-seo-v2", "geowriter", "getuai-seo",
+    "rankgale", "rankncompare", "rankncompare_v2", "seo-poster"
+  ],
+  "source-content-writing": [
+    "geowriter", "seo-poster", "getuai-email-2.0",
+    "openclaw-marketing", "OpenBox-Marketing", "Vibe-marketing", "LLMRush"
+  ],
+  "source-ads": [
+    "getuai-ads", "getuai-ads-attribution", "getuai-ads-attribution-sdk",
+    "getuai-ads-data", "getuai-ads-sdk", "getu_ads_v2",
+    "attribution_v2", "Fast-Attribution", "ads-library", "facebook-ads-library-api-demo"
+  ],
+  "source-social": [
+    "reddit-scount", "x-api-credit-monitor", "youtube-api-demo",
+    "openclaw-marketing"
+  ],
+  "source-shared-infra": [
+    "getuai-api", "getuai-console", "getuai-ui", "getuai-auth-center",
+    "getuai-mvp", "getuai-plugin", "Pi", "Visionary", "clawcloud",
+    "cloud-claw-k", "valuecell", "project-base",
+    "optiminds-org-config", "optiminds-repo-template"
+  ],
+  "source-skills-catalog": [
+    "openclaw-mu",
+    "lawyer_finder", "lawyer_marketing",
+    "getu_ads_v2", "optiminds-repo-template", "attribution_v2",
+    "openfang", "geo-seo-v2", "OpenBox", "clawcloud"
+  ],
+  "source-cognitive-models": [
+    "growth-engine", "growth-engine-legacy",
+    "attribution_v2", "multica", "optiminds-repo-template",
+    "lawyer_finder", "openfang", "claw-mu",
+    "cuilawgroup", "lawyer_marketing"
+  ],
+  "source-failure-modes": [
+    "growth-engine-legacy", "growth-engine"
+  ],
+  "source-vertical-cases": [
+    "lawyer_marketing", "lawyer_finder", "law-intake", "cuilawgroup"
+  ],
+  "source-platform-prototypes": [
+    "0407-prototype", "0408-prototype", "getuai-2.0", "getuai-mvp",
+    "gmi-prototype", "getuai-comp-analysis-demo", "getuai-competitor-analysis"
+  ]
+}
