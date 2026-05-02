@@ -7,7 +7,6 @@ import sys
 
 SPEC = Path("docs/superpowers/specs/2026-05-01-growth-engine-from-scratch-design.md")
 SCRIPT = Path("scripts/extract_benchmark.py")
-OUTPUT = Path("runs/growth-engine-from-scratch/benchmark.json")
 
 
 def test_script_exists():

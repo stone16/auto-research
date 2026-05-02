@@ -37,7 +37,11 @@ def main(argv: list[str]) -> int:
         return 2
     spec_path = Path(argv[1])
     out_path = Path(argv[2])
-    spec_text = spec_path.read_text()
+    if not spec_path.is_file():
+        print(f"ERROR: spec not found: {spec_path}", file=sys.stderr)
+        return 2
+    # Normalize CRLF so the JSON-block regex matches on Windows-saved specs.
+    spec_text = spec_path.read_text().replace("\r\n", "\n")
     questions = extract_questions(spec_text)
     if len(questions) != 15:
         print(f"ERROR: expected 15 questions, found {len(questions)}", file=sys.stderr)
