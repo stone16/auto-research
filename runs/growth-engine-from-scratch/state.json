@@ -1,7 +1,7 @@
 {
-  "iteration": 2,
-  "best_score": 0.9,
-  "best_iteration": 2,
-  "current_knowledge_chars": 35847,
-  "last_kept_experiment": "tighten-q13-q15-cross-domain-hooks"
+  "iteration": 6,
+  "best_score": 0.98,
+  "best_iteration": 6,
+  "current_knowledge_chars": 51533,
+  "last_kept_experiment": "embed evaluation rubric and upgrade cognition pair clauses"
 }
