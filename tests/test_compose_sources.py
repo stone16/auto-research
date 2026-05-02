@@ -71,3 +71,36 @@ def test_missing_repo_in_mapping_warns_but_succeeds(tmp_path):
     )
     assert result.returncode == 0  # graceful
     assert "WARNING" in result.stdout or "WARNING" in result.stderr
+
+
+def test_max_bytes_per_repo_truncates(tmp_path):
+    """Per-repo blocks are truncated to the max-bytes budget."""
+    raw, mapping, out = setup_inputs(tmp_path)
+    # alpha.md is 60 bytes; expand it to 5000 bytes so we can see truncation
+    big_content = "# Repo: alpha\n## README.md\n```markdown\n" + ("X" * 5000) + "\n```\n"
+    (raw / "alpha.md").write_text(big_content)
+    subprocess.run(
+        [sys.executable, str(SCRIPT), str(raw), str(mapping), str(out),
+         "--max-bytes-per-repo", "1000"],
+        check=True, cwd=Path.cwd(),
+    )
+    foo = (out / "source-foo.md").read_text()
+    # alpha's section should appear but be truncated
+    assert "# Repo: alpha" in foo
+    assert "[... truncated" in foo
+    # the X's that exceeded the budget should NOT all be present
+    assert foo.count("X") < 5000
+    # beta should still be intact (only 60 bytes, well under 1000)
+    assert "BETA-CONTENT" in foo
+
+
+def test_default_budget_does_not_truncate_small_repos(tmp_path):
+    """Default budget leaves small repos intact."""
+    raw, mapping, out = setup_inputs(tmp_path)
+    subprocess.run(
+        [sys.executable, str(SCRIPT), str(raw), str(mapping), str(out)],
+        check=True, cwd=Path.cwd(),
+    )
+    foo = (out / "source-foo.md").read_text()
+    # No truncation marker should appear since alpha and beta are tiny
+    assert "[... truncated" not in foo
