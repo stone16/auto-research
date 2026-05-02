@@ -1,7 +1,7 @@
 {
-  "iteration": 1,
-  "best_score": 0.85,
-  "best_iteration": 1,
-  "current_knowledge_chars": 29396,
-  "last_kept_experiment": "replace-placeholder-with-evidence-dense-q1-q15-synthesis"
+  "iteration": 2,
+  "best_score": 0.9,
+  "best_iteration": 2,
+  "current_knowledge_chars": 35847,
+  "last_kept_experiment": "tighten-q13-q15-cross-domain-hooks"
 }
