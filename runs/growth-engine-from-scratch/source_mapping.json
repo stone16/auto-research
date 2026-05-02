@@ -23,10 +23,16 @@
     "optiminds-org-config", "optiminds-repo-template"
   ],
   "source-skills-catalog": [
-    "*"
+    "openclaw-mu",
+    "lawyer_finder", "lawyer_marketing",
+    "getu_ads_v2", "optiminds-repo-template", "attribution_v2",
+    "openfang", "geo-seo-v2", "OpenBox", "clawcloud"
   ],
   "source-cognitive-models": [
-    "*"
+    "growth-engine", "growth-engine-legacy",
+    "attribution_v2", "multica", "optiminds-repo-template",
+    "lawyer_finder", "openfang", "claw-mu",
+    "cuilawgroup", "lawyer_marketing"
   ],
   "source-failure-modes": [
     "growth-engine-legacy", "growth-engine"

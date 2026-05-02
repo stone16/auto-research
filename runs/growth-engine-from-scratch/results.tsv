@@ -1,2 +1,1 @@
 iteration	timestamp	score	prev_best	status	knowledge_chars	provider	experiment	change_summary
-1	2026-05-02T01:54:49+00:00	1.0000	0.0000	keep	9542	mock	iteration-1-mock-synthesis	Generate a benchmark-oriented synthesis from the fixed sources.
