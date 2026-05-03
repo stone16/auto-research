@@ -2,8 +2,8 @@
   "iteration": 4,
   "violations": [
     {
-      "code": "verdict_score_mismatch",
-      "message": "verdict=candidate_better but overall_score=0.8833 < previous_best=0.9000"
+      "code": "priority_not_lowest",
+      "message": "priority_dimension='Cross-model evaluability' has score=0.9 but the actual minimum is 0.8 at ['Citation discipline']"
     }
   ]
 }
