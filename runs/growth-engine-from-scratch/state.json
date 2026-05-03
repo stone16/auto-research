@@ -1,7 +1,7 @@
 {
-  "iteration": 5,
-  "best_score": 0.9333,
-  "best_iteration": 5,
-  "current_knowledge_chars": 31997,
-  "last_kept_experiment": "extend stable artifact IDs across skill build and failure tables"
+  "iteration": 11,
+  "best_score": 0.95,
+  "best_iteration": 11,
+  "current_knowledge_chars": 37172,
+  "last_kept_experiment": "merge q13 foundation table while preserving rendered skill cognition and trace artifacts"
 }
