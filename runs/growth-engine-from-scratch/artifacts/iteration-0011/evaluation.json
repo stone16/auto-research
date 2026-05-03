@@ -1,0 +1,409 @@
+{
+  "total_score": 0.605,
+  "details": [
+    {
+      "benchmark_id": "q1",
+      "score": 0.55,
+      "coverage_score": 0.4,
+      "citation_score": 1.0,
+      "matched_must_include": [
+        "external dependencies",
+        "content store",
+        "kill-switch",
+        "disagreement"
+      ],
+      "matched_sources": [
+        "source-seo-geo",
+        "source-shared-infra"
+      ],
+      "missing_must_include": [
+        "components",
+        "data flow",
+        "ranking signal source",
+        "human-in-loop",
+        "convergence",
+        "file:line"
+      ],
+      "missing_sources": [],
+      "explanation": "coverage=0.40, citations=1.00, matched facts=4/10"
+    },
+    {
+      "benchmark_id": "q2",
+      "score": 0.7,
+      "coverage_score": 0.6,
+      "citation_score": 1.0,
+      "matched_must_include": [
+        "ideation",
+        "outline",
+        "draft",
+        "edit",
+        "publish",
+        "load-bearing"
+      ],
+      "matched_sources": [
+        "source-content-writing",
+        "source-shared-infra"
+      ],
+      "missing_must_include": [
+        "LLM role",
+        "human review point",
+        "style guide injection",
+        "file:line"
+      ],
+      "missing_sources": [],
+      "explanation": "coverage=0.60, citations=1.00, matched facts=6/10"
+    },
+    {
+      "benchmark_id": "q3",
+      "score": 0.625,
+      "coverage_score": 0.5,
+      "citation_score": 1.0,
+      "matched_must_include": [
+        "campaign feed",
+        "bidding",
+        "reporting",
+        "budget pacing",
+        "anomaly detection"
+      ],
+      "matched_sources": [
+        "source-ads",
+        "source-shared-infra"
+      ],
+      "missing_must_include": [
+        "attribution model",
+        "conversion event",
+        "platform-agnostic boundary",
+        "data model",
+        "file:line"
+      ],
+      "missing_sources": [],
+      "explanation": "coverage=0.50, citations=1.00, matched facts=5/10"
+    },
+    {
+      "benchmark_id": "q4",
+      "score": 0.7,
+      "coverage_score": 0.6,
+      "citation_score": 1.0,
+      "matched_must_include": [
+        "listen",
+        "post",
+        "schedule",
+        "engage",
+        "monitor",
+        "credit accounting"
+      ],
+      "matched_sources": [
+        "source-social",
+        "source-shared-infra"
+      ],
+      "missing_must_include": [
+        "multi-platform abstraction",
+        "rate limit",
+        "content moderation",
+        "file:line"
+      ],
+      "missing_sources": [],
+      "explanation": "coverage=0.60, citations=1.00, matched facts=6/10"
+    },
+    {
+      "benchmark_id": "q5",
+      "score": 0.625,
+      "coverage_score": 0.5,
+      "citation_score": 1.0,
+      "matched_must_include": [
+        "invocation surface",
+        "output schema",
+        "state persistence",
+        "duplicate",
+        "canonical"
+      ],
+      "matched_sources": [
+        "source-seo-geo",
+        "source-skills-catalog"
+      ],
+      "missing_must_include": [
+        "skill name",
+        "input schema",
+        "version",
+        "deprecation",
+        "file:line"
+      ],
+      "missing_sources": [],
+      "explanation": "coverage=0.50, citations=1.00, matched facts=5/10"
+    },
+    {
+      "benchmark_id": "q6",
+      "score": 0.55,
+      "coverage_score": 0.4,
+      "citation_score": 1.0,
+      "matched_must_include": [
+        "prompt template",
+        "drift",
+        "hallucination",
+        "register"
+      ],
+      "matched_sources": [
+        "source-content-writing",
+        "source-skills-catalog"
+      ],
+      "missing_must_include": [
+        "voice and tone",
+        "multi-lingual",
+        "image and text",
+        "evaluation rubric",
+        "retrieval grounding",
+        "file:line"
+      ],
+      "missing_sources": [],
+      "explanation": "coverage=0.40, citations=1.00, matched facts=4/10"
+    },
+    {
+      "benchmark_id": "q7",
+      "score": 0.4,
+      "coverage_score": 0.2,
+      "citation_score": 1.0,
+      "matched_must_include": [
+        "platform-bound",
+        "kill criteria"
+      ],
+      "matched_sources": [
+        "source-ads",
+        "source-skills-catalog"
+      ],
+      "missing_must_include": [
+        "keyword analysis",
+        "bid strategy",
+        "creative generation",
+        "budget allocation",
+        "anomaly detection",
+        "A/B test",
+        "platform-agnostic abstraction",
+        "file:line"
+      ],
+      "missing_sources": [],
+      "explanation": "coverage=0.20, citations=1.00, matched facts=2/10"
+    },
+    {
+      "benchmark_id": "q8",
+      "score": 0.4,
+      "coverage_score": 0.2,
+      "citation_score": 1.0,
+      "matched_must_include": [
+        "reply",
+        "platform difference"
+      ],
+      "matched_sources": [
+        "source-social",
+        "source-skills-catalog"
+      ],
+      "missing_must_include": [
+        "listening",
+        "topic selection",
+        "multi-platform rewrite",
+        "scheduling",
+        "sentiment",
+        "parameterization",
+        "API change failure",
+        "file:line"
+      ],
+      "missing_sources": [],
+      "explanation": "coverage=0.20, citations=1.00, matched facts=2/10"
+    },
+    {
+      "benchmark_id": "q9",
+      "score": 0.7,
+      "coverage_score": 0.6,
+      "citation_score": 1.0,
+      "matched_must_include": [
+        "topical authority",
+        "E-E-A-T",
+        "intent mapping",
+        "content velocity",
+        "anti-pattern",
+        "file:line"
+      ],
+      "matched_sources": [
+        "source-seo-geo",
+        "source-cognitive-models",
+        "source-failure-modes"
+      ],
+      "missing_must_include": [
+        "GEO vs SEO",
+        "worked here",
+        "failed here",
+        "trigger condition"
+      ],
+      "missing_sources": [],
+      "explanation": "coverage=0.60, citations=1.00, matched facts=6/10"
+    },
+    {
+      "benchmark_id": "q10",
+      "score": 0.55,
+      "coverage_score": 0.4,
+      "citation_score": 1.0,
+      "matched_must_include": [
+        "user journey",
+        "content portfolio",
+        "distribution over production",
+        "brand voice"
+      ],
+      "matched_sources": [
+        "source-content-writing",
+        "source-cognitive-models",
+        "source-failure-modes"
+      ],
+      "missing_must_include": [
+        "ROI window",
+        "anti-pattern",
+        "worked here",
+        "failed here",
+        "links to Q2",
+        "links to Q6"
+      ],
+      "missing_sources": [],
+      "explanation": "coverage=0.40, citations=1.00, matched facts=4/10"
+    },
+    {
+      "benchmark_id": "q11",
+      "score": 0.55,
+      "coverage_score": 0.4,
+      "citation_score": 1.0,
+      "matched_must_include": [
+        "pacing",
+        "creative fatigue",
+        "attribution paradox",
+        "scale criteria"
+      ],
+      "matched_sources": [
+        "source-ads",
+        "source-cognitive-models",
+        "source-failure-modes"
+      ],
+      "missing_must_include": [
+        "LTV CAC",
+        "kill criteria",
+        "platform change",
+        "anti-pattern",
+        "worked here",
+        "failed here"
+      ],
+      "missing_sources": [],
+      "explanation": "coverage=0.40, citations=1.00, matched facts=4/10"
+    },
+    {
+      "benchmark_id": "q12",
+      "score": 0.625,
+      "coverage_score": 0.5,
+      "citation_score": 1.0,
+      "matched_must_include": [
+        "algorithm preference",
+        "community fit",
+        "brand voice",
+        "viral mechanics",
+        "automation visibility"
+      ],
+      "matched_sources": [
+        "source-social",
+        "source-cognitive-models",
+        "source-failure-modes"
+      ],
+      "missing_must_include": [
+        "platform game theory",
+        "anti-pattern",
+        "worked here",
+        "failed here",
+        "platform difference"
+      ],
+      "missing_sources": [],
+      "explanation": "coverage=0.50, citations=1.00, matched facts=5/10"
+    },
+    {
+      "benchmark_id": "q13",
+      "score": 0.775,
+      "coverage_score": 0.7,
+      "citation_score": 1.0,
+      "matched_must_include": [
+        "identity",
+        "observability",
+        "LLM gateway",
+        "human-in-loop console",
+        "secrets",
+        "domain-isolated",
+        "decision rule"
+      ],
+      "matched_sources": [
+        "source-shared-infra",
+        "source-skills-catalog",
+        "source-platform-prototypes"
+      ],
+      "missing_must_include": [
+        "data lake",
+        "task queue",
+        "repo template"
+      ],
+      "missing_sources": [],
+      "explanation": "coverage=0.70, citations=1.00, matched facts=7/10"
+    },
+    {
+      "benchmark_id": "q14",
+      "score": 0.7,
+      "coverage_score": 0.6,
+      "citation_score": 1.0,
+      "matched_must_include": [
+        "Day-1",
+        "Week-1",
+        "Week-4",
+        "Month-3",
+        "deferral",
+        "minimum viable"
+      ],
+      "matched_sources": [
+        "source-seo-geo",
+        "source-content-writing",
+        "source-ads",
+        "source-social",
+        "source-shared-infra",
+        "source-platform-prototypes",
+        "source-cognitive-models",
+        "source-vertical-cases",
+        "source-skills-catalog",
+        "source-failure-modes"
+      ],
+      "missing_must_include": [
+        "milestone done criteria",
+        "next-trigger",
+        "evidence from corpus evolution",
+        "cross-reference"
+      ],
+      "missing_sources": [],
+      "explanation": "coverage=0.60, citations=1.00, matched facts=6/10"
+    },
+    {
+      "benchmark_id": "q15",
+      "score": 0.625,
+      "coverage_score": 0.5,
+      "citation_score": 1.0,
+      "matched_must_include": [
+        "structural cause",
+        "early symptom",
+        "prophylactic",
+        "recurrence count",
+        "evidence pair"
+      ],
+      "matched_sources": [
+        "source-failure-modes",
+        "source-cognitive-models",
+        "source-platform-prototypes"
+      ],
+      "missing_must_include": [
+        "growth-engine-legacy",
+        "abandoned",
+        "deprecated",
+        "cross-domain",
+        "file:line"
+      ],
+      "missing_sources": [],
+      "explanation": "coverage=0.50, citations=1.00, matched facts=5/10"
+    }
+  ]
+}

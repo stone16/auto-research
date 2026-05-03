@@ -1,15 +1,15 @@
-## Review
+## Candidate vs Current Best
 
-**Strengths over current best**
-- Q9–Q12 now expose **five named mental models per domain**, each with explicit `Worked here:` AND `Failed here:` evidence pairs anchored to file:line citations. Current best collapsed Q9 into 3 mixed models and rendered Q10–Q12 as prose where the worked/failed pairing was not consistently per-model.
-- Each cognition entry now includes a `Decision shaped` and `Trigger condition` clause, making the model usable as a checklist rather than a description.
-- Q10–Q12 add explicit `Links to Q2`/`Links to Q6`/anti-pattern footers, reinforcing cross-question hooks without harming Q13–Q15 integration discipline.
-- Anti-pattern lists are now per-domain at the end of Q9, Q10, Q11, Q12 — easier to evaluate per-criterion across models.
+**Net improvements in candidate:**
+- Cognition table now carries stable row IDs `q9.cog1`-`q12.cog5` as a first column, mirroring the `q1.trace*`/`q3.trace*` pattern. This is a direct lift for cross-model evaluability — judges can score row-by-row instead of by free-text matching.
+- Q15 benchmark answer now invokes a specific cognition row by ID (`q12.cog1 "Universal social adapter without per-channel policy/gating"`) as an explicit cross-question hook, strengthening Q15 ↔ Q12 integration.
+- `q9.cog3` failed-here citations widened from single lines (`growth-engine.md:8`, `:27`) to ranges (`:7-13`, `:23-30`), which is more defensible under the citation policy.
+- Q6 benchmark answer flags multilingual handling and evaluation-rubric discipline as required contract gaps; Q7 explicitly defers A/B test orchestration; Q8 adds hashtag/mention/length policy parameterization. These tighten the answer-side specification without inflating the catalog.
+- Q13 benchmark answer adds `approval` to the boundary list in the decision rule, matching the prose section.
 
-**Unchanged but already strong**
-- Q1–Q4 architecture grounding, Q5–Q8 skill catalogs (9 + 8 + 9 + 8 = 34 rows ≥ goal of 32), Q13 (8 rows × 4 cols), Q14 (6 milestones × 6 cols), Q15 (9 rows × 7 cols) all match or exceed goal thresholds and remain identical to the retained best.
+**Regressions in candidate:**
+- Q13 prose contains a typo `getu-ads.md:21-28` (current best uses correct `getuai-ads.md:21-28`). This is a broken citation under the file:line policy.
 
-**Residual gap**
-- Cross-model evaluability still relies on stable IDs (q1–q15) plus prose; the KB does not embed per-criterion rubric weights or score targets, so cross-model comparison still depends on the judge prompt rather than the artifact itself.
+**Unchanged surfaces:** Q1-Q4 traces, Q5-Q8 skill catalog (still 34 rows / 8 columns / margin audit), Q14 build sequence, Q15 failure modes table, Q2/Q4 trace tables.
 
-**Net**: candidate dominates on Cognition evidence pairing without regressing any other dimension.
+The stable-ID upgrade plus the explicit cross-question hook in Q15 are meaningful gains against named dimensions. The Q13 citation typo is a real but local regression that should be folded back rather than blocking the swap.

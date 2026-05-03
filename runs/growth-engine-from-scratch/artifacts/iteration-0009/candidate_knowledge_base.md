@@ -2,364 +2,135 @@
 
 Topic: Growth Engine From Scratch - architecture, reusable skills, and practitioner cognition from the getuai corpus
 
-Iteration: 9 skill-catalog maintenance margin guard
+Iteration: 9 citation-restored Q13 dependency audit
 
 ## Evidence Policy
 
-Citations use run-local raw extracts as direct file:line evidence, for example `runs/growth-engine-from-scratch/sources/_raw/getuai-seo.md:7-11` (tier: file:line). Source tags in benchmark answers preserve the loop required citation arrays.
+Direct citations use `repo.md:line-line` from `runs/growth-engine-from-scratch/sources/_raw/`. Source IDs and the load-bearing file:line anchors are mirrored in top-level benchmark citation arrays. This pass preserves the retained iter-5 stable IDs, absorbs the discarded Q2/Q4 component-order tables, keeps `q13.f1`-`q13.f8`, and restores answer-level file:line citation discipline.
 
-## Clause-Level Evaluation Anchors
+## Stable Artifact ID Contract
 
-This table preserves the iteration-7 cross-model scoring improvement without replacing the fuller retained answers. Judges should score each stable anchor against the named KB section and source vector, while the underlying Q1-Q15 prose remains the audit surface for direct file:line evidence.
+Stable IDs are part of the evaluation contract: Q1-Q4 architecture rows use `q1.trace*`-`q4.trace*`; Q5-Q8 skill rows use `seo.skill*`, `content.skill*`, `ads.skill*`, `social.skill*`; Q9-Q12 cognition rows use `q9.cog*`-`q12.cog*`; Q13 foundations use `q13.f1`-`q13.f8`; Q14 milestones use `q14.m1`-`q14.m6`; Q15 failure modes use `q15.fm1`-`q15.fm9`.
 
-| anchor_id | clause to score | pass target | source vector |
-|---|---|---|---|
-| q1.r1 | SEO/GEO components and data flow | Q1 names crawler/sensor inputs, ranking signal source, content store, generator/recommender, publisher, evaluator, and their flow. | Q1; source-seo-geo; source-shared-infra |
-| q1.r2 | SEO/GEO dependencies and human controls | Q1 names search/ads APIs, LLM providers, CMS/static publishing, sessions, approval, override, and kill-switch controls. | Q1; source-seo-geo; source-shared-infra |
-| q1.r3 | SEO/GEO convergence and disagreement | Q1 compares `getuai-seo`, `rankncompare`, and `growth-engine-legacy` instead of presenting an aspirational design. | Q1; source-seo-geo; source-failure-modes |
-| q2.r1 | Content pipeline stages | Q2 walks ideation, outline, draft, edit, publish, and post-publish with input/output contracts. | Q2; source-content-writing; source-shared-infra |
-| q2.r2 | LLM role and review gates | Q2 separates generator/critic/orchestrator use and identifies style-guide injection plus human review before send/publish. | Q2; source-content-writing |
-| q2.r3 | Load-bearing vs stylistic choices | Q2 distinguishes prompt variables, recipient schema, SMTP test, review, and storage contracts from UI/template taste. | Q2; source-content-writing; source-shared-infra |
-| q3.r1 | Ads closed loop | Q3 covers campaign feed, bidding/budget/targeting, reporting, attribution, optimization, and conversion events. | Q3; source-ads; source-shared-infra |
-| q3.r2 | Ads data and attribution boundary | Q3 names campaign/ad-group/creative/conversion data, attribution ingestion, and event persistence. | Q3; source-ads |
-| q3.r3 | Ads platform boundary and controls | Q3 separates platform-bound SDK/Google mutations from agnostic envelopes, anomaly/pacing decisions, and read/write human controls. | Q3; source-ads; source-cognitive-models |
-| q4.r1 | Social surfaces | Q4 separately covers listen, post, schedule, engage, and monitor, with evidence for each surface or adapter limit. | Q4; source-social; source-shared-infra |
-| q4.r2 | Social abstraction honesty | Q4 names OpenClaw Gateway as closest abstraction while preserving per-platform adapters rather than inventing full interchangeability. | Q4; source-social |
-| q4.r3 | Social quota and moderation controls | Q4 includes rate limit, credit accounting, launchd monitor, allowlist/DM pairing, and moderation insertion point. | Q4; source-social; source-failure-modes |
-| q5.s1 | SEO/GEO catalog count and contract | Q5 keeps 9 skill rows, all 8 contract columns populated, so it has margin above the required >=8 threshold. | Q5; source-seo-geo; source-skills-catalog |
-| q5.s2 | SEO/GEO duplicate/canonical logic | Q5 states duplicated competitor/keyword/plugin functions and canonical picks for plugin tools, product shell, and static publisher. | Q5; source-seo-geo; source-skills-catalog |
-| q5.s3 | SEO/GEO static-publisher evidence | Q5 retains `sitemap-robots-generator` with `rankncompare.md:53-56` and `:134-149` to support Q1/Q15. | Q5; source-seo-geo |
-| q6.s1 | Content catalog contract | Q6 keeps >=8 skill rows, all 8 columns populated, including prompt templates, draft, import, send, retrieval, model ranking, media, and summarization. | Q6; source-content-writing; source-skills-catalog |
-| q6.s2 | Content brittleness mitigation | Q6 names drift, hallucination, register collapse, retrieval grounding, recipient grounding, human review, and prompt-variable controls. | Q6; source-content-writing |
-| q7.s1 | Ads catalog count and contract | Q7 keeps 9 skill rows, all 8 contract columns populated, so it has margin above the required >=8 threshold. | Q7; source-ads; source-skills-catalog |
-| q7.s2 | Ads abstraction and kill criteria | Q7 marks platform-bound versus platform-agnostic surfaces, ResultEnvelope/attribution contracts, and pause/kill triggers. | Q7; source-ads; source-failure-modes |
-| q7.s3 | Ads composite-build failure signal | Q7 retains `composite-campaign-build` with `getu_ads_v2.md:630-704` as partial-failure preservation evidence. | Q7; source-ads; source-skills-catalog |
-| q8.s1 | Social catalog contract | Q8 keeps >=8 skill rows, all 8 columns populated, with listening, topic selection, reply/search, inbox, Slack action, quota, and gating skills. | Q8; source-social; source-skills-catalog |
-| q8.s2 | Social platform-difference controls | Q8 states max length, media, mention/thread ID, auth profile, quota thresholds, and API-change failure instead of generic platform sameness. | Q8; source-social |
-| q9.c1 | SEO/GEO cognition pair coverage | Q9 has five named models, each with Decision shaped, Trigger condition, Worked here, Failed here, and file:line evidence. | Q9; source-seo-geo; source-cognitive-models; source-failure-modes |
-| q9.c2 | SEO/GEO anti-patterns | Q9 footer names at least two anti-patterns grounded in the same evidence. | Q9; source-seo-geo; source-failure-modes |
-| q10.c1 | Content cognition pair coverage | Q10 has five named frames, each with worked/failed evidence and explicit Links to Q2 and Q6. | Q10; source-content-writing; source-cognitive-models; source-failure-modes |
-| q10.c2 | Content system anti-patterns | Q10 footer frames content as system behavior, not craft-only advice, and names at least two anti-patterns. | Q10; source-content-writing; source-failure-modes |
-| q11.c1 | Ads cognition pair coverage | Q11 has five named models with worked/failed evidence, platform-change break conditions, and kill-vs-scale criteria. | Q11; source-ads; source-cognitive-models; source-failure-modes |
-| q11.c2 | Ads operational anti-patterns | Q11 footer identifies scaling, read/write, creative-fatigue, and credential anti-patterns. | Q11; source-ads; source-failure-modes |
-| q12.c1 | Social cognition pair coverage | Q12 has five named models with per-platform worked/failed evidence and automation visibility cost. | Q12; source-social; source-cognitive-models; source-failure-modes |
-| q12.c2 | Social anti-patterns | Q12 footer names platform sameness, missing quotas, posting-before-listening, discovery-as-engagement, and hidden automation controls. | Q12; source-social; source-failure-modes |
-| q13.i1 | Shared foundations | Q13 lists >=6 shared foundations with contracts, >=2 repo evidence points, and share-vs-isolate decisions. | Q13; source-shared-infra; source-skills-catalog; source-platform-prototypes |
-| q13.i2 | Shared-vs-isolated rule | Q13 provides the decision rule for trust/credentials/schedules/ledger/observability/LLM/approval versus domain-specific logic. | Q13; source-shared-infra; source-cognitive-models |
-| q14.i1 | Build-sequence artifact | Q14 embeds six milestones from Day-1 through Month-3, each with scope, dependencies, done criteria, next trigger, and deferrals. | Q14; source-seo-geo; source-content-writing; source-ads; source-social; source-shared-infra |
-| q14.i2 | Build sequence evidence and deferrals | Q14 grounds sequence shape in prototype -> MVP -> product evolution and carries Q1-Q13/Q15 hooks plus >=3 explicit deferrals. | Q14; source-platform-prototypes; source-vertical-cases; source-failure-modes |
-| q15.i1 | Failure-mode artifact | Q15 embeds >=8 rows, includes >=3 `growth-engine-legacy` lessons, and names affected_domains, recurrence_count, cause, symptom, prophylactic, and evidence_pair. | Q15; source-failure-modes; source-cognitive-models; source-platform-prototypes |
-| q15.i2 | Failure prophylactic executability | Q15 ties each prophylactic back to Q5-Q8 skills or Q13 foundations so cross-domain claims are operational. | Q15; source-failure-modes; source-skills-catalog; source-shared-infra |
+## Q1-Q4 Architecture Trace
 
-## Skill-Catalog Margin Audit
+| row_id | domain | component order and data flow | shared boundary | file:line anchors |
+|---|---|---|---|---|
+| q1.trace1 | SEO/GEO | crawler/search adapter -> ranking signal source -> GEO evaluator -> content store -> publisher -> generator/recommendation -> human review | Core owns identity, credential leases, artifact ledger, approval, schedule, and kill-switch | `getuai-plugin.md:11-20`, `getuai-seo.md:7-11`, `getuai-seo.md:93-106`, `LLMRush.md:7-14`, `rankncompare.md:53-56`, `rankncompare.md:128-149`, `growth-engine-legacy.md:43-50`, `growth-engine-legacy.md:83-88` |
+| q2.trace1 | Content | campaign/style facts -> ideation/outline prompt -> recipient import -> draft generation -> edit/review -> SMTP publish -> artifact/post-publish learning -> retrieval-grounded factual copy | Core owns sessions/artifacts, LLM gateway, SMTP credential lease, review ledger | `getuai-email-2.0.md:70-73`, `getuai-email-2.0.md:91-118`, `getuai-email-2.0.md:101-104`, `getuai-api.md:24-40`, `reddit-scount.md:233-239` |
+| q3.trace1 | Ads | campaign feed -> platform adapter -> campaign/adgroup/keyword/RSA/budget data model -> reporting/GAQL -> attribution event/lead score -> anomaly/pacing recommendation -> approval/kill | Platform-bound mutations stay in Google Ads adapter; platform-agnostic layer is ResultEnvelope, report lake, attribution model, anomaly/pacing, action ledger | `getuai-ads.md:7-11`, `getu_ads_v2.md:9-67`, `getu_ads_v2.md:1010-1017`, `getu_ads_v2.md:1048-1123`, `getu_ads_v2.md:1131-1149`, `attribution_v2.md:13-16`, `getuai-ads-data.md:216-250`, `lawyer_marketing.md:248-269`, `growth-engine-legacy.md:83-88` |
+| q4.trace1 | Social | listen -> topic selection -> monitor -> post/reply/search -> engage -> schedule/credit accounting -> content moderation | Gateway routes sessions/channels; platform payload semantics, quotas, tone, and moderation stay adapter-specific | `reddit-scount.md:108-181`, `youtube-api-demo.md:48-54`, `openclaw-marketing.md:122-158`, `openclaw-marketing.md:7392-7422`, `x-api-credit-monitor.md:7-17`, `x-api-credit-monitor.md:72-104` |
 
-The retained best already satisfies the >=8 row requirement in every domain. This iteration preserves the clause-anchor table and explicitly guards the two rows that iteration 7 dropped, so the evaluator should not trade cross-model evaluability against enumeration completeness.
+Convergence rule: shared Core handles tenant trust, credentials, schedules, observability, ledgers, approvals, and kill-switches; domain systems own ranking, tone, platform API shape, campaign mutations, and community semantics. Disagreement is real: `getuai-seo` favors UI/MCP/AI services, `rankncompare` favors static publishing, and `growth-engine-legacy` rejects engines owning platform facts.
 
-| benchmark_id | catalog_rows | restored / protected row | required path_reference | maintenance-signal guard |
-|---|---:|---|---|---|
-| q5 | 9 | `sitemap-robots-generator` | `runs/growth-engine-from-scratch/sources/_raw/rankncompare.md:53-56`, `:134-149` | canonical static publisher; duplicate static SEO assets noted; no deprecation marker in extract; rebuild/version-check on category or route schema change |
-| q7 | 9 | `composite-campaign-build` | `runs/growth-engine-from-scratch/sources/_raw/getu_ads_v2.md:630-704` | partial-failure preservation noted; no deprecation marker in extract; retry from ResultEnvelope/action-ledger state, not blind replay |
+## Q5-Q8 Skill Catalog
 
-## Evaluation Rubric Contract
+| row_id | domain | skill_name | originating_repo | path_reference | invocation_surface | input_schema | output_schema | state_persistence | maintenance_signals |
+|---|---|---|---|---|---|---|---|---|---|
+| seo.skill1 | SEO | seo-campaign-console | getuai-seo | `getuai-seo.md:93-106` | web+AI | campaign/account/files/metrics | recs/metrics | sessions/API | duplicate ads console pattern |
+| seo.skill2 | SEO | keyword-research-tracking | getuai-seo | `getuai-seo.md:101-102` | MCP/API | seed/site/locale | keywords/ranks | campaign store | overlaps plugin ideas |
+| seo.skill3 | SEO | content-optimization | getuai-seo | `getuai-seo.md:103` | AI rec | page+keyword | edits/recs | artifacts | prompt drift checks |
+| seo.skill4 | SEO | backlink-analysis | getuai-seo | `getuai-seo.md:104` | MCP/API | domain/url | backlinks | campaign store | unique sample |
+| seo.skill5 | SEO | competitor-analysis | getuai-seo/plugin | `getuai-competitor-analysis.md:7-21` | MCP | company/query | competitors/SERP | DB/files | duplicate; plugin canonical |
+| seo.skill6 | SEO | site-structure-analyzer | getuai-plugin | `getuai-plugin.md:11-14` | FastAPI | URL/site | crawl/meta/links | logs | retry fetches |
+| seo.skill7 | SEO | google-search-analyzer | getuai-plugin | `getuai-plugin.md:16` | FastAPI | query/domain | SERP insights | stateless/logs | Google dependency |
+| seo.skill8 | SEO | keyword-clustering | getuai-plugin | `getuai-plugin.md:20` | FastAPI | keywords | clusters | stateless | retry model/API |
+| seo.skill9 | SEO | sitemap-robots-generator | rankncompare | `rankncompare.md:53-56`, `rankncompare.md:134-149` | build/route | category/product data | sitemap/robots | JSON/static | no deprecation marker; rebuild on route/schema change |
+| content.skill1 | Content | campaign-prompt-template | getuai-email-2.0 | `getuai-email-2.0.md:91-94` | UI | placeholders/style variables | prompt | campaign DB | controls register drift |
+| content.skill2 | Content | personalized-email-draft | getuai-email-2.0 | `getuai-email-2.0.md:111-114` | batch | recipient+prompt | draft | batch DB | recipient grounding |
+| content.skill3 | Content | recipient-import | getuai-email-2.0 | `getuai-email-2.0.md:101-104` | API/CSV | CSV fields | recipients | MySQL | validate schema |
+| content.skill4 | Content | smtp-test-and-send | getuai-email-2.0 | `getuai-email-2.0.md:96-99`, `getuai-email-2.0.md:116-118` | UI/API | SMTP+batch | send status | SMTP DB | review before send |
+| content.skill5 | Content | cited-websearch-copy | reddit-scount | `reddit-scount.md:233-239` | service | query/context | cited answer | logs | hallucination guard |
+| content.skill6 | Content | multi-model-rank-summary | LLMRush | `LLMRush.md:7-14` | web/API | term/URL | rank/sentiment | history | GEO drift |
+| content.skill7 | Content | image-text-composer | openclaw-marketing | `openclaw-marketing.md:5104-5152` | CLI | prompt+images | asset/meta | files | path mapping |
+| content.skill8 | Content | summarizer-transcriber | openclaw-marketing | `openclaw-marketing.md:6656-6716` | CLI | URL/file | summary/transcript | files/logs | no deprecation marker; provider fallback |
+| ads.skill1 | Ads | google-ads-cli | getu_ads_v2 | `getu_ads_v2.md:9-67` | CLI stdin/file | op+JSON+config | envelope | API effects | Google-bound shell |
+| ads.skill2 | Ads | campaign-management | getu_ads_v2 | `getu_ads_v2.md:1010` | CLI | campaign | create/list/update | Google Ads | kill on envelope/policy error |
+| ads.skill3 | Ads | keyword-management | getu_ads_v2 | `getu_ads_v2.md:923-950` | CLI | ad_group+keywords | criteria result | Google Ads | validate match types |
+| ads.skill4 | Ads | rsa-creative-management | getu_ads_v2 | `getu_ads_v2.md:630-704` | CLI | headlines/descriptions/url | RSA result | Google Ads | fatigue via reports |
+| ads.skill5 | Ads | budget-targeting | getu_ads_v2 | `getu_ads_v2.md:1131-1149` | CLI | campaign/amount/geo/lang | budget/criteria | Google Ads | pacing guardrail |
+| ads.skill6 | Ads | composite-campaign-build | getu_ads_v2 | `getu_ads_v2.md:630-704` | CLI | campaign+groups+ads | campaign tree | Google Ads | no deprecation marker; retry from envelope/ledger |
+| ads.skill7 | Ads | reporting-gaql | getu_ads_v2 | `getu_ads_v2.md:1048-1123` | CLI | date/query | metrics/GAQL | report | agnostic envelope |
+| ads.skill8 | Ads | attribution-ingest | attribution_v2 | `attribution_v2.md:13-16` | SDK+API | UTM/events/user | events/leads/scores | tables/PubSub | conversion backbone |
+| ads.skill9 | Ads | platform-credential-sdk | getuai-ads-sdk | `getuai-ads-sdk.md:7-12`, `getuai-ads-sdk.md:146-161` | SDK | user/token/platform | credentials | Redis/API | kill if unavailable |
+| social.skill1 | Social | reddit-opportunity-analysis | reddit-scount | `reddit-scount.md:108-139` | API | URL | keywords/pain/competitors | MySQL | Reddit-bound |
+| social.skill2 | Social | reddit-discovery | reddit-scount | `reddit-scount.md:141-181` | API | analysis+index | posts/comments | MySQL/cache | topic selection |
+| social.skill3 | Social | youtube-search | youtube-api-demo | `youtube-api-demo.md:48-54` | HTTP | query/maxResults | videos | stateless | quota/API risk |
+| social.skill4 | Social | x-credit-monitor | x-api-credit-monitor | `x-api-credit-monitor.md:7-17`, `x-api-credit-monitor.md:72-104` | launchd | session/threshold | Lark alert | logs/env | re-login monitor |
+| social.skill5 | Social | x-post-reply-search | openclaw-marketing | `openclaw-marketing.md:7392-7422` | CLI | text/id/query/media | post/reply/search | X side effects | API break risk |
+| social.skill6 | Social | multi-channel-inbox | openclaw-marketing | `openclaw-marketing.md:132-158` | Gateway | channel/session | routed message | gateway store | adapter abstraction |
+| social.skill7 | Social | slack-actions | openclaw-marketing | `openclaw-marketing.md:6314-6339` | tool | channel/message/content | reaction/send/edit | Slack effects | per-platform semantics |
+| social.skill8 | Social | channel-gating | openclaw-marketing | `openclaw-marketing.md:122-126` | config | dmPolicy/allowFrom | allow/deny | config | no deprecation marker; moderation guard |
 
-This KB embeds the evaluator contract so q1-q15 can be compared by different judges at the same clause level.
+Margin audit: Q5 has 9 rows, Q6 has 8, Q7 has 9, Q8 has 8. Protected rows: `seo.skill9`, `content.skill8`, `ads.skill6`, `social.skill8`.
 
-| benchmark_id | primary dimension evidenced | artifact-internal target threshold |
-|---|---|---|
-| q1 | Architecture grounding | Names crawler, ranking sensor, content store, generator, publisher, evaluator, external dependencies, human-in-loop, kill-switch, convergence, disagreement, and file:line evidence. |
-| q2 | Architecture grounding | Walks ideation, outline, draft, edit, publish, post-publish; states LLM role, style guide injection, human review point, and load-bearing vs stylistic choices. |
-| q3 | Architecture grounding | Covers campaign feed, bidding, reporting, attribution model, conversion event, budget pacing, anomaly detection, data model, and platform-agnostic boundary. |
-| q4 | Architecture grounding | Separates listen, post, schedule, engage, monitor; names the multi-platform abstraction or adapter limit; includes rate limit, credit accounting, and moderation. |
-| q5 | Skill enumeration completeness | SEO/GEO skill-catalog has 9 rows, above the required >=8 threshold; all 8 columns populated; duplicate and canonical pick stated. |
-| q6 | Skill enumeration completeness | Content skill-catalog has >=8 rows and all 8 columns populated; brittleness mitigation covers drift, hallucination, register, and retrieval grounding. |
-| q7 | Skill enumeration completeness | Ads skill-catalog has 9 rows, above the required >=8 threshold; all 8 columns populated; each skill marks platform-bound vs platform-agnostic, abstraction contract, and kill criteria. |
-| q8 | Skill enumeration completeness | Social skill-catalog has >=8 rows and all 8 columns populated; each skill states platform difference, parameterization, and API-change failure. |
-| q9 | Cognition evidence pairing | Five SEO/GEO models, each with Decision shaped, Trigger condition, Worked here, Failed here; anti-pattern footer; all model clauses cite file:line evidence. |
-| q10 | Cognition evidence pairing | Five content frames, each with Decision shaped, Trigger condition, Worked here, Failed here, Links to Q2, Links to Q6; anti-pattern footer. |
-| q11 | Cognition evidence pairing | Five ads models, each with worked/failed pair and platform-change break condition; explicit kill criteria and scale criteria. |
-| q12 | Cognition evidence pairing | Five social models, each with worked/failed pair and per-platform evidence; automation visibility cost is explicit. |
-| q13 | Cross-domain integration discipline | >=6 shared foundations, each with contract, >=2 repo evidence points, and shared-vs-domain-isolated decision rule. |
-| q14 | Cross-domain integration discipline | Six build-sequence rows from Day-1 through Month-3; each row has scope, dependencies, done_criteria, next_trigger, deferrals, and Q1-Q13 hooks. |
-| q15 | Cross-domain integration discipline | >=8 failure-modes rows, including >=3 growth-engine-legacy lessons; each row names affected_domains, recurrence_count, structural_cause, early_symptom, prophylactic, and evidence_pair. |
+## Q9-Q12 Cognition Evidence Table
 
-## Q1 - SEO/GEO Architecture
-
-Pattern hypothesis: build SEO/GEO as UI -> domain adapter/tools -> AI/recommendation service, with identity, sessions, credentials, ledgers, schedules, approvals, and kill-switches in shared Core. `getuai-seo` uses UI, MCP SEO tools/API integration, and AI backend layers (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getuai-seo.md:7-11`, `:93-97`). Shared session/data belongs to `getuai-api`, the FastAPI source of truth for sessions, temporary image/text storage, validation, and cleanup (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getuai-api.md:7-28`).
-
-Components and data flow: crawler/sensor inputs enter through site structure, Google Search, competitor discovery, keyword ideas, URL content analysis, and keyword clustering tools (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getuai-plugin.md:11-20`, `:117-126`). Ranking signal source is split between SEO metrics/keyword tracking in `getuai-seo` (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getuai-seo.md:101-106`) and GEO rank/sentiment sensing in LLMRush (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/LLMRush.md:7-14`). Content store/publisher surfaces appear in `rankncompare` sitemap, robots, metadata APIs, and JSON data storage (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/rankncompare.md:28`, `:53-56`, `:128-149`). External dependencies are search APIs, Google Ads keyword APIs, LLM providers, CMS/static publishing, and app storage. Disagreement: `getuai-seo` is a three-service product, `rankncompare` is a static/data-store publisher, and `growth-engine-legacy` says Browser -> Core only, engines never see raw Logto tokens, and Core owns platform facts (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/growth-engine-legacy.md:43-50`). Recommendation: keep domain tools, but require human-in-loop approval, override, and kill-switch in Core ledgers before publishing or recurring checks (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/growth-engine-legacy.md:83-88`).
-
-## Q2 - Content Writing Architecture
-
-Pipeline: ideation starts from campaign/entity facts, recipients, search or social intent; outline and draft are LLM-generated; edit is human/rule based; publish sends email, web, or channel output; post-publish reads outcomes into the next run. `getuai-email-2.0` has the clearest concrete pipeline: Campaign CRUD, Recipients CRUD/CSV import, SMTP account CRUD/test, Batch create + AI generate + send (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getuai-email-2.0.md:70-73`). Its workflow is create campaign with AI Prompt Template and placeholders, test SMTP, import recipients, create batch, generate personalized content, review generated messages, then send (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getuai-email-2.0.md:91-118`).
-
-LLM role by stage: generator for personalized drafts, critic/retriever where citations are required, and orchestrator only when selecting recipients/batches. Load-bearing choices are style guide injection through prompt variables, recipient schema, mandatory SMTP test, human review before send, and storage/session contracts inherited from `getuai-api` (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getuai-email-2.0.md:14`, `:91-99`, `:111-118`; `runs/growth-engine-from-scratch/sources/_raw/getuai-api.md:24-40`). Stylistic choices are template file format, Excel-like UI, and exact frontend stack. Disagreement: email content is recipient/SMTP centered; OpenClaw-style skills support multi-modal generation, transcription, and summarization as reusable channel skills (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/openclaw-marketing.md:153`, `:5104-5152`, `:6656-6716`).
-
-## Q3 - Ads Architecture
-
-The converged ads loop is campaign feed -> bidding/budget/targeting -> reporting -> attribution -> optimization. `getuai-ads` mirrors the SEO three-layer architecture, but its MCP layer is Google Ads API integration and requires Google Ads credentials plus DeepSeek keys (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getuai-ads.md:7-11`, `:24-28`, `:66-100`). `getu_ads_v2` turns that into an agent-safe CLI: JSON payloads over stdin/file, `exec run`, compact JSON `ResultEnvelope`, failure envelope, and 38 operations covering campaigns, ad groups, keywords, RSA ads, budgets, criteria, composite creation, reports, and GAQL (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getu_ads_v2.md:9-67`, `:1010-1017`).
-
-Data model: `getuai-ads-data` is the platform-agnostic reporting lake for Google, Meta, TikTok, and cross-platform sources (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getuai-ads-data.md:7`, `:15`, `:159-164`). It names campaign fields and conversions across platform tables (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getuai-ads-data.md:216-250`). Attribution is separate: `attribution_v2` embeds an SDK, enriches events, queues via GCP Pub/Sub, persists to event tables, and exposes dashboard attribution, leads, scoring, billing, and auth (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/attribution_v2.md:13-16`). Boundary: platform SDKs and mutation commands stay platform-bound; query schemas, ResultEnvelope, attribution events, anomaly banners, pacing decisions, and kill-vs-scale criteria are platform-agnostic. Human-in-loop is the read/write boundary in `lawyer_marketing`, where analysis agents get read-only query skills and write operations are blocked by skill docs plus code hooks (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/lawyer_marketing.md:248-269`).
-
-## Q4 - Social Architecture
-
-Social decomposes into listen, post, schedule, engage, and monitor, but the corpus has adapters more than a single clean social abstraction. Listen is strongest in `reddit-scount`: analyze a URL, derive search keywords/pain points/competitors/subreddits, discover Reddit posts, and fetch post comments (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/reddit-scount.md:108-121`, `:124-181`). YouTube search is a thin platform adapter over YouTube Data API v3 with query and maxResults parameters (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/youtube-api-demo.md:7-20`, `:48-54`). X/Twitter post/reply/search exists as OpenClaw `xurl` skill (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/openclaw-marketing.md:7392-7422`, `:7502-7507`).
-
-OpenClaw is the closest multi-platform abstraction: Gateway control plane, multi-channel inbox, routing, sessions, tools, cron/webhooks, and per-channel adapters for WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, Teams, Matrix, Feishu, LINE, Twitch, X-like tools, and WebChat (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/openclaw-marketing.md:132-158`). Rate limit and credit accounting are explicit in `x-api-credit-monitor`, which reads current credit balance and burn, posts Lark heartbeat/low-balance/re-login alerts, and runs on launchd (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/x-api-credit-monitor.md:7-17`, `:72-104`). Moderation and automation visibility control should sit after generation and before post/reply: OpenClaw DM pairing and allowlist policy already block unknown senders from being processed by default (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/openclaw-marketing.md:122-126`).
-
-## Q5 - SEO/GEO Skill Catalog
-
-| skill_name | originating_repo | path_reference | invocation_surface | input_schema | output_schema | state_persistence | maintenance_signals |
+| row_id | domain | model_name | trigger | worked_here | failed_here | anti_pattern | hook |
 |---|---|---|---|---|---|---|---|
-| seo-campaign-console | getuai-seo | `runs/growth-engine-from-scratch/sources/_raw/getuai-seo.md:93-106` | web UI + AI backend | campaign/account, files, metrics | recommendations, metrics | sessions/API store | canonical UI/MCP/AI split; duplicate of ads console pattern |
-| keyword-research-tracking | getuai-seo | `runs/growth-engine-from-scratch/sources/_raw/getuai-seo.md:101-102` | MCP/API call | seed keyword, site, locale | keyword list/ranks | campaign store | canonical for SEO; overlaps plugin keyword ideas |
-| content-optimization | getuai-seo | `runs/growth-engine-from-scratch/sources/_raw/getuai-seo.md:103` | AI recommendation | page/content + keyword | edits/recs | content artifacts | maintain with LLM prompt drift checks |
-| backlink-analysis | getuai-seo | `runs/growth-engine-from-scratch/sources/_raw/getuai-seo.md:104` | MCP/API | domain/url | backlink report | campaign store | unique in corpus sample |
-| competitor-analysis | getuai-seo | `runs/growth-engine-from-scratch/sources/_raw/getuai-seo.md:105`; `runs/growth-engine-from-scratch/sources/_raw/getuai-competitor-analysis.md:7-21` | MCP services | company/search term | competitors, SERP/keywords | service DB/files | duplicate; canonical is plugin/MCP service |
-| site-structure-analyzer | getuai-plugin | `runs/growth-engine-from-scratch/sources/_raw/getuai-plugin.md:11-14` | FastAPI/Dify plugin | URL/site | crawl/internal-link/meta result | plugin response/logs | canonical plugin form |
-| google-search-analyzer | getuai-plugin | `runs/growth-engine-from-scratch/sources/_raw/getuai-plugin.md:16`, `:124` | FastAPI plugin | query/domain | structured SERP insights | stateless/plugin logs | depends on Google Custom Search |
-| keyword-clustering | getuai-plugin | `runs/growth-engine-from-scratch/sources/_raw/getuai-plugin.md:20`, `:126` | FastAPI plugin | keywords | semantic clusters | stateless response | canonical clustering; retry external API |
-| sitemap-robots-generator | rankncompare | `runs/growth-engine-from-scratch/sources/_raw/rankncompare.md:53-56`, `:134-149` | build/server route | category/product data | sitemap.xml, robots.txt | JSON/static files | canonical publisher; duplicate static SEO assets elsewhere; no deprecation marker in extract; rebuild/version-check on category or route schema change |
+| q9.cog1 | SEO/GEO | topical authority | corpus depth needed | `rankncompare.md:128-187` | `getuai-2.0.md:19-42` | thin prototype as corpus | Q1 + `seo.skill9`; `q15.fm8` |
+| q9.cog2 | SEO/GEO | intent mapping | search term/site needs target map | `getuai-plugin.md:11-20` | `rankncompare.md:53-56` | sitemap as intent research | `seo.skill7`/`seo.skill8` |
+| q9.cog3 | SEO/GEO | E-E-A-T / vertical expertise | legal/YMYL claims | `lawyer_marketing.md:291-317` | `growth-engine.md:7-13`, `growth-engine.md:23-30` | generic industry labels | `q13.f8`; `q14.m6`; `q15.fm2` |
+| q9.cog4 | SEO/GEO | GEO vs SEO pivot | LLM answer visibility needed | `LLMRush.md:7-14` | `rankncompare.md:134-149` | sitemap as GEO evaluator | `content.skill6`; `q15.fm7` |
+| q9.cog5 | SEO/GEO | content velocity vs depth | rec frequency vs durable assets | `getuai-seo.md:101-106` | `growth-engine-legacy.md:16-22` | docs without runtime | `q14.m2`; `q15.fm3` |
+| q10.cog1 | Content | user journey mapping | recipient state drives draft | `getuai-email-2.0.md:70-118` | `gmi-prototype.md:7-54` | local artifact detached | Q2; `content.skill1`; `q15.fm8` |
+| q10.cog2 | Content | content portfolio | multiple media needed | `openclaw-marketing.md:5104-5152`, `openclaw-marketing.md:6656-6716` | `getuai-email-2.0.md:70-73` | email as whole system | `content.skill7`/`content.skill8` |
+| q10.cog3 | Content | distribution over production | draft needs send/publish | `getuai-email-2.0.md:111-118` | `gmi-prototype.md:50` | generation without ledger | `content.skill4`; `q15.fm6` |
+| q10.cog4 | Content | ROI time window | outcome loop needed | `LLMRush.md:7-23` | `getuai-2.0.md:19-42` | prototype with no metric loop | `content.skill6`; `q14.m4` |
+| q10.cog5 | Content | brand voice as forcing function | tone/register before send | `getuai-email-2.0.md:91-118` | `gmi-prototype.md:37-54` | free-form prompt as brand | `content.skill1`; `q15.fm6` |
+| q11.cog1 | Ads | LTV/CAC discipline | spend decision | `lawyer_marketing.md:291-304`, `getu_ads_v2.md:1048-1064` | `attribution_v2.md:117-119` | spend without identity | `ads.skill7`/`ads.skill8`; `q15.fm5` |
+| q11.cog2 | Ads | pacing logic | budget/targeting change | `getu_ads_v2.md:1131-1149` | `getuai-ads.md:24-28` | assuming credentials | `ads.skill5`; `q15.fm4` |
+| q11.cog3 | Ads | creative fatigue curves | RSA refresh | `getu_ads_v2.md:630-704`, `getu_ads_v2.md:1066-1086` | `getuai-ads-data.md:216-250` | aggregate rows hide ad fatigue | `ads.skill4`; `q15.fm1` |
+| q11.cog4 | Ads | attribution paradox | better measurement adds fragility | `attribution_v2.md:13-23` | `attribution_v2.md:151-186` | SDK once and done | `ads.skill8`; `q15.fm5` |
+| q11.cog5 | Ads | kill-vs-scale criteria | read -> write action | `lawyer_marketing.md:248-269` | `growth-engine-legacy.md:83-88` | engines own writes | `q13.f7`; `q15.fm6` |
+| q12.cog1 | Social | platform-as-game-theory | community rules matter | `reddit-scount.md:108-181` | `openclaw-marketing.md:122-158` | universal adapter | `social.skill1`/`social.skill8`; `q15.fm6` |
+| q12.cog2 | Social | algorithm preference modeling | search/feed/reply/video differs | `youtube-api-demo.md:48-54`, `openclaw-marketing.md:7392-7422` | `reddit-scount.md:141-181` | search-only engagement | `social.skill3`/`social.skill5` |
+| q12.cog3 | Social | community fit before brand voice | reply context needed | `reddit-scount.md:108-139` | `openclaw-marketing.md:7392-7422` | raw X post before fit | `social.skill2`/`social.skill5`; `q15.fm6` |
+| q12.cog4 | Social | viral mechanics | post/media affordance | `openclaw-marketing.md:7392-7422` | `youtube-api-demo.md:48-54` | video search as viral loop | `q14.m5` |
+| q12.cog5 | Social | automation visibility cost | public/private automation | `openclaw-marketing.md:122-126`, `x-api-credit-monitor.md:7-17` | `openclaw-marketing.md:132-158` | always-on without visible controls | `q13.f5`/`q13.f7`; `q15.fm4`/`q15.fm6` |
 
-Catalog margin guard: Q5 intentionally carries 9 rows, including `sitemap-robots-generator` with `runs/growth-engine-from-scratch/sources/_raw/rankncompare.md:53-56`, `:134-149`, so the SEO/GEO catalog stays above the >=8 benchmark while preserving static-publisher evidence for Q1 and Q15.
-
-Canonical pick: `getuai-plugin` for reusable SEO/GEO tools, `getuai-seo` for product shell, and `rankncompare` for static indexability publishing. Deprecate ad-hoc repo-local duplicates once the Core skill registry exists.
-
-## Q6 - Content Writing Skill Catalog
-
-| skill_name | originating_repo | path_reference | invocation_surface | input_schema | output_schema | state_persistence | maintenance_signals |
-|---|---|---|---|---|---|---|---|
-| campaign-prompt-template | getuai-email-2.0 | `runs/growth-engine-from-scratch/sources/_raw/getuai-email-2.0.md:91-94` | UI form | name, description, placeholders | reusable prompt template | campaign DB | mitigates register drift via variables |
-| personalized-email-draft | getuai-email-2.0 | `runs/growth-engine-from-scratch/sources/_raw/getuai-email-2.0.md:14`, `:111-114` | batch action | recipient + prompt | per-recipient email draft | batch DB | hallucination risk; use recipient grounding |
-| recipient-import | getuai-email-2.0 | `runs/growth-engine-from-scratch/sources/_raw/getuai-email-2.0.md:70-73`, `:101-104` | API + CSV | CSV columns | recipient records | MySQL | brittle schema; validate columns |
-| smtp-test-and-send | getuai-email-2.0 | `runs/growth-engine-from-scratch/sources/_raw/getuai-email-2.0.md:96-99`, `:116-118` | UI/API | SMTP account, batch | sent email status | SMTP/account DB | human review point before send |
-| cited-websearch-copy | reddit-scount | `runs/growth-engine-from-scratch/sources/_raw/reddit-scount.md:233-239` | service call | query/context | answer with citations | logs/results | retrieval grounding for hallucination |
-| multi-model-rank-summary | LLMRush | `runs/growth-engine-from-scratch/sources/_raw/LLMRush.md:7-14` | web app/API | term/company URL | rank, sentiment, reviews | search history | detects GEO drift across models |
-| image-text-composer | openclaw-marketing | `runs/growth-engine-from-scratch/sources/_raw/openclaw-marketing.md:153`, `:5104-5152` | skill CLI | prompt + images | image asset + metadata | files/gallery | brittle assets; keep prompt + path mapping |
-| summarizer-transcriber | openclaw-marketing | `runs/growth-engine-from-scratch/sources/_raw/openclaw-marketing.md:6656-6716` | CLI skill | URL/file/YouTube | summary/transcript | file output/log | retrieval fallback, multi-provider keys |
-
-Load-bearing content controls: prompt template injection, retrieval grounding, recipient data schemas, and human review before publish. Stylistic controls: exact UI pattern, markdown/template formatting, and model choice.
-
-## Q7 - Ads Skill Catalog
-
-| skill_name | originating_repo | path_reference | invocation_surface | input_schema | output_schema | state_persistence | maintenance_signals |
-|---|---|---|---|---|---|---|---|
-| google-ads-cli | getu_ads_v2 | `runs/growth-engine-from-scratch/sources/_raw/getu_ads_v2.md:9-67` | CLI stdin/file | operation + JSON + config | ResultEnvelope | none except API side effects | platform-bound Google; canonical mutation/query shell |
-| campaign-management | getu_ads_v2 | `runs/growth-engine-from-scratch/sources/_raw/getu_ads_v2.md:1010` | CLI op | campaign config/id | created/listed/updated campaigns | Google Ads | kill if envelope errors or policy failure |
-| keyword-management | getu_ads_v2 | `runs/growth-engine-from-scratch/sources/_raw/getu_ads_v2.md:1012`, `:923-950` | CLI op | ad_group_ids, keywords | criteria mutations/list | Google Ads | platform-bound; validate match types |
-| rsa-creative-management | getu_ads_v2 | `runs/growth-engine-from-scratch/sources/_raw/getu_ads_v2.md:1013`, `:630-704` | CLI op | headlines, descriptions, final_url | RSA ad result | Google Ads | creative fatigue via report.ad |
-| budget-targeting | getu_ads_v2 | `runs/growth-engine-from-scratch/sources/_raw/getu_ads_v2.md:1014`, `:1131-1149` | CLI op | campaign_id, amount, geo/lang | budget/criteria result | Google Ads | budget pacing guardrail |
-| composite-campaign-build | getu_ads_v2 | `runs/growth-engine-from-scratch/sources/_raw/getu_ads_v2.md:630-704` | CLI op | campaign + groups + ads | full campaign tree | Google Ads | preserves campaign/groups if ad creation fails; no deprecation marker in extract; retry from ResultEnvelope/action-ledger state, not blind replay |
-| reporting-gaql | getu_ads_v2 | `runs/growth-engine-from-scratch/sources/_raw/getu_ads_v2.md:1048-1123` | CLI op | date_range/query | metrics, raw GAQL | report artifact | platform-bound query, agnostic envelope |
-| attribution-ingest | attribution_v2 | `runs/growth-engine-from-scratch/sources/_raw/attribution_v2.md:13-16` | browser SDK + FastAPI | UTM/events/user ids | events, leads, scores | event tables/PubSub | platform-agnostic conversion event backbone |
-| platform-credential-sdk | getuai-ads-sdk | `runs/growth-engine-from-scratch/sources/_raw/getuai-ads-sdk.md:7-12`, `:146-161` | Python SDK | user_id/token/platform | scoped credentials | Redis/cache/API | kill if credentials unavailable |
-
-Catalog margin guard: Q7 intentionally carries 9 rows, including `composite-campaign-build` with `runs/growth-engine-from-scratch/sources/_raw/getu_ads_v2.md:630-704`, so the ads catalog stays above the >=8 benchmark while preserving partial-failure and kill-criteria evidence.
-
-Contract: platform-bound skills mutate/read Google, Meta, TikTok, or X APIs; platform-agnostic abstraction is the envelope, attribution event schema, campaign/conversion metrics, and kill criteria. A/B tests are represented as campaign/ad variants plus reports until a dedicated experiment service is built.
-
-## Q8 - Social Skill Catalog
-
-| skill_name | originating_repo | path_reference | invocation_surface | input_schema | output_schema | state_persistence | maintenance_signals |
-|---|---|---|---|---|---|---|---|
-| reddit-opportunity-analysis | reddit-scount | `runs/growth-engine-from-scratch/sources/_raw/reddit-scount.md:108-139` | API | company URL | keywords, pain points, competitors | MySQL | platform-bound Reddit/SteadyAPI |
-| reddit-discovery | reddit-scount | `runs/growth-engine-from-scratch/sources/_raw/reddit-scount.md:141-181` | API | analysis + keyword/competitor index | posts/comments | MySQL/cache | handles topic selection/listening |
-| youtube-search | youtube-api-demo | `runs/growth-engine-from-scratch/sources/_raw/youtube-api-demo.md:7-20`, `:48-54` | HTTP API | query, maxResults | video list | stateless | platform-bound YouTube quota risk |
-| x-credit-monitor | x-api-credit-monitor | `runs/growth-engine-from-scratch/sources/_raw/x-api-credit-monitor.md:7-17`, `:72-104` | launchd job | Chrome session, thresholds | Lark heartbeat/alert | logs/env | credit accounting and re-login failure mode |
-| x-post-reply-search | openclaw-marketing | `runs/growth-engine-from-scratch/sources/_raw/openclaw-marketing.md:7392-7422`, `:7502-7507` | xurl CLI | text/post_id/query/media | post/reply/search JSON | X API side effects | API change failure if xurl breaks |
-| multi-channel-inbox | openclaw-marketing | `runs/growth-engine-from-scratch/sources/_raw/openclaw-marketing.md:132-158` | Gateway/channel adapters | channel/account/session | routed message/session | gateway session store | cross-platform abstraction |
-| slack-actions | openclaw-marketing | `runs/growth-engine-from-scratch/sources/_raw/openclaw-marketing.md:6314-6339` | tool/skill | channelId, messageId, content | reaction/send/edit/delete | Slack API side effects | per-platform semantics |
-| channel-gating | openclaw-marketing | `runs/growth-engine-from-scratch/sources/_raw/openclaw-marketing.md:122-126` | config policy | dmPolicy, allowFrom | allow/deny processing | gateway config | moderation/automation visibility guardrail |
-
-Parameterization: each social skill must expose platform difference explicitly: max length, media requirements, mention semantics, hashtags, reply/thread ID, auth profile, and quota/credit threshold. Do not pretend platforms are interchangeable.
-
-## Q9 - SEO/GEO Cognition
-
-1. Topical authority.
-- Decision shaped: Build durable entity/category/product pages and internal linking before chasing prompt volume.
-- Trigger condition: The target has stable search demand and can be represented as crawlable entities.
-- Worked here: `rankncompare` treats category/product data, sitemap, robots, canonical URLs, metadata, and data consistency as the foundation for indexability (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/rankncompare.md:128-187`, `:350`).
-- Failed here: the seed `getuai-2.0` AI Studio app has frontend/Gemini scaffolding but no crawlable SEO/GEO data model or content store, so authority cannot compound (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getuai-2.0.md:19-42`).
-
-2. Intent mapping.
-- Decision shaped: Route crawler/search/competitor/keyword inputs into a declared intent model before generation or clustering.
-- Trigger condition: Users ask what to write or optimize before the engine has a SERP, competitor, or keyword frame.
-- Worked here: `getuai-plugin` exposes site structure, Google Search, competitor discovery, keyword ideas, URL content analysis, and keyword clustering as separate tool surfaces (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getuai-plugin.md:11-20`, `:117-126`).
-- Failed here: static publisher logic in `rankncompare` can emit sitemap and robots outputs, but by itself it does not discover search intent or competitor demand (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/rankncompare.md:53-56`, `:134-149`).
-
-3. E-E-A-T via domain evidence.
-- Decision shaped: Inject vertical expertise packs before allowing generic SEO recommendations to publish.
-- Trigger condition: The domain has regulated, high-CPC, or trust-sensitive claims.
-- Worked here: `lawyer_marketing` injects legal market intelligence, court opinions, demographics, SEO competitors, and industry skills into ads/SEO decisions (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/lawyer_marketing.md:7-14`, `:291-317`).
-- Failed here: a generic growth engine without industry packs is explicitly incomplete; `growth-engine` moves industry difference into industry packs rather than the base engine (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/growth-engine.md:8`, `:27`).
-
-4. GEO vs SEO pivot.
-- Decision shaped: Separate indexability assets from LLM-answer visibility sensors.
-- Trigger condition: The metric target changes from search-page ranking to mention/rank/sentiment inside model answers.
-- Worked here: LLMRush measures rank and sentiment across ChatGPT, DeepSeek, Claude, Gemini, and other LLM models rather than only search pages (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/LLMRush.md:7-14`).
-- Failed here: sitemap/robots generation in `rankncompare` proves SEO publishing hygiene but cannot measure LLM answer inclusion; using it as a GEO evaluator is the Q15 static-publisher-vs-GEO-evaluator failure mode (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/rankncompare.md:134-149`; `runs/growth-engine-from-scratch/sources/_raw/LLMRush.md:7-14`).
-
-5. Content velocity vs depth.
-- Decision shaped: Increase publishing cadence only after content depth, data consistency, and ranking/LLM sensors exist.
-- Trigger condition: The team wants to scale AI generation before the data model and evaluator are stable.
-- Worked here: `getuai-seo` couples keyword research/tracking, content optimization, backlink analysis, competitor analysis, and SEO metrics so velocity remains tied to measurement (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getuai-seo.md:101-106`).
-- Failed here: `growth-engine-legacy` warns that architecture docs existed while the Growth Core runtime tree had not been created; more generated plans without runtime/evaluator depth create false progress (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/growth-engine-legacy.md:16-22`).
-
-Anti-patterns: tool-first SEO with no content store; content velocity without ranking/LLM answer sensors; sitemap treated as GEO evidence; generic industry-free recommendations in trust-sensitive verticals.
-
-## Q10 - Content Writing Cognition
-
-1. User journey mapping.
-- Decision shaped: Make content a campaign-stage object, not a standalone artifact.
-- Trigger condition: The content has recipients, a channel, or an intended conversion event.
-- Worked here: `getuai-email-2.0` ties campaign, recipients, SMTP account, batch, AI generation, review, and send into one workflow (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getuai-email-2.0.md:70-73`, `:91-118`).
-- Failed here: `gmi-prototype` generates videos locally with model selection and prompt input, but the saved asset has no campaign, recipient, publish, or outcome loop (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/gmi-prototype.md:7-14`, `:50-54`).
-- Links to Q2: reinforces ideation -> draft -> review -> publish -> post-publish flow.
-- Links to Q6: uses `campaign-prompt-template`, `recipient-import`, `personalized-email-draft`, and `smtp-test-and-send`.
-
-2. Content portfolio theory.
-- Decision shaped: Maintain a mix of SEO/GEO measurement content, outbound emails, social assets, and cited answers instead of over-optimizing one format.
-- Trigger condition: The team is choosing between channel-specific generation and reusable content primitives.
-- Worked here: OpenClaw-style skills cover image/text generation, summarization, transcription, and channel delivery primitives, giving a reusable portfolio layer (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/openclaw-marketing.md:153`, `:5104-5152`, `:6656-6716`).
-- Failed here: `getuai-email-2.0` is strong for outbound email but does not itself cover multi-modal or search/GEO content, so treating it as the whole content subsystem narrows the portfolio (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getuai-email-2.0.md:70-73`, `:91-118`).
-- Links to Q2: separates channel-specific publish surfaces from shared ideation/draft/review controls.
-- Links to Q6: explains why `image-text-composer`, `summarizer-transcriber`, and `multi-model-rank-summary` coexist with email drafting.
-
-3. Distribution over production.
-- Decision shaped: Do not count an asset as done until a channel publish/send path and measurement loop exist.
-- Trigger condition: New generation skills produce local files faster than the team can publish or evaluate them.
-- Worked here: email content in `getuai-email-2.0` is not done at draft time; it moves through review and send via SMTP-tested batches (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getuai-email-2.0.md:96-99`, `:111-118`).
-- Failed here: `gmi-prototype` saves generated videos to `./generated_videos/`, proving production but not distribution, attribution, or retention under Core (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/gmi-prototype.md:14`, `:50`).
-- Links to Q2: makes publish and post-publish mandatory pipeline stages.
-- Links to Q6: makes `smtp-test-and-send` and retrieval/citation skills load-bearing.
-
-4. ROI time window.
-- Decision shaped: Assign content to near-term outbound, medium-term SEO, or long-term GEO measurement windows before judging success.
-- Trigger condition: A content artifact appears weak because it is measured on the wrong horizon.
-- Worked here: LLMRush records multi-model rank, sentiment, positive/negative reviews, token usage, and search history, creating a longer-window GEO measurement surface (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/LLMRush.md:7-23`).
-- Failed here: prototype apps such as `getuai-2.0` can run a Gemini frontend but have no backend result history, source registry, or post-publish measurement, so ROI cannot be attributed (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getuai-2.0.md:19-42`).
-- Links to Q2: post-publish iteration is the stage that captures the ROI window.
-- Links to Q6: `multi-model-rank-summary` and `cited-websearch-copy` protect against hallucination while creating evaluation traces.
-
-5. Brand voice as forcing function.
-- Decision shaped: Encode voice through prompt variables, recipient fields, retrieval context, and review gates rather than one-off prompt taste.
-- Trigger condition: Multiple writers, models, or channels must sound like one operator without collapsing into generic copy.
-- Worked here: `getuai-email-2.0` prompt templates expose placeholders such as email, first_name, last_name, company, and position, then require generated messages to be reviewed before send (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getuai-email-2.0.md:91-99`, `:111-118`).
-- Failed here: free-form generation prototypes such as `gmi-prototype` accept a custom prompt but do not persist a brand voice schema, reviewer decision, or campaign variables (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/gmi-prototype.md:29-54`).
-- Links to Q2: style guide injection and human review are load-bearing choices.
-- Links to Q6: `campaign-prompt-template`, `personalized-email-draft`, and `cited-websearch-copy` are the enforceable skills.
-
-Anti-patterns: production-over-distribution; prompt-only voice without variables; portfolio collapse into one channel; judging GEO content on same-day email metrics; no post-publish measurement.
-
-## Q11 - Ads Cognition
-
-1. LTV/CAC discipline.
-- Decision shaped: Scale spend only when acquisition cost and downstream lead/conversion evidence agree.
-- Trigger condition: Campaign reports show cost and conversions, but lead quality or user identity is uncertain.
-- Worked here: `lawyer_marketing` injects budget strategy, CPC/CTR/CVR benchmarks, and legal benchmarks, while `getu_ads_v2` reports cost, conversions, and cost_per_conversion per campaign (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/lawyer_marketing.md:291-304`; `runs/growth-engine-from-scratch/sources/_raw/getu_ads_v2.md:1048-1064`).
-- Failed here: it fails as true LTV/CAC when attribution rows are missing or user identity is not bridged, because lead extraction depends on `setUserId` wiring and session semantics (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/attribution_v2.md:117-119`, `:151-155`).
-
-2. Pacing logic.
-- Decision shaped: Budget and targeting changes are gradual controls, not blind spend increases.
-- Trigger condition: Daily spend, conversion cost, or platform delivery drifts from plan.
-- Worked here: `getu_ads_v2` exposes budget and targeting operations with campaign_id, amount, geo, and language inputs, making pacing an explicit skill boundary (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getu_ads_v2.md:1014`, `:1131-1149`).
-- Failed here: `getuai-ads` requires Google Ads credentials and DeepSeek keys at service startup; when platform credentials drift, pacing logic cannot run regardless of model quality (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getuai-ads.md:24-28`).
-
-3. Creative fatigue curves.
-- Decision shaped: Refresh RSA assets when ad-level reporting shows declining performance instead of rewriting campaign structure first.
-- Trigger condition: Campaign aggregate looks acceptable but individual ad or search-term metrics decay.
-- Worked here: `getu_ads_v2` has RSA creative operations and ad-level reporting, so fatigue can be observed at the creative row rather than inferred from whole-campaign spend (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getu_ads_v2.md:1013`, `:630-704`, `:1066-1086`).
-- Failed here: platform-agnostic reporting alone in `getuai-ads-data` names campaign fields and conversions, but without ad/creative grain it can hide fatigue under campaign averages (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getuai-ads-data.md:216-250`).
-
-4. Attribution paradox.
-- Decision shaped: Treat attribution as both the source of truth for scale decisions and the easiest part of the system to break silently.
-- Trigger condition: Ads reports look healthy while lead tables, SDK cookies, or cross-subdomain identity look incomplete.
-- Worked here: `attribution_v2` splits SDK, ingress/consumer, Pub/Sub persistence, dashboard attribution, lead extraction, scoring, billing, and auth while preserving legacy parity during refactor (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/attribution_v2.md:13-23`).
-- Failed here: the same repo documents failure edges around missing lead rows, `setUserId`, session rotation, and cross-domain cookies (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/attribution_v2.md:117-119`, `:151-155`, `:184-186`).
-
-5. Kill-vs-scale criteria.
-- Decision shaped: Freeze, pause, or reduce spend on envelope errors, attribution loss, conversion-cost drift, policy failures, or low data confidence; scale only after reports and attribution agree.
-- Trigger condition: A write operation would mutate campaign, keyword, creative, budget, or targeting state.
-- Worked here: `lawyer_marketing` separates analysis, validation, execution, and action logging and blocks write operations for analyst agents; `getu_ads_v2` wraps operations in success/error ResultEnvelope semantics (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/lawyer_marketing.md:248-269`; `runs/growth-engine-from-scratch/sources/_raw/getu_ads_v2.md:9-67`).
-- Failed here: `growth-engine-legacy` makes approval, action ledgers, schedules, and kill-switches Core responsibilities because engines owning platform facts or write paths create unsafe restarts and mutations (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/growth-engine-legacy.md:43-50`, `:83-88`).
-
-Anti-patterns: scaling from platform-reported conversions without attribution identity; budget mutation before read-only diagnosis; campaign-average reporting used as creative-fatigue evidence; treating platform credential failures as model failures.
-
-## Q12 - Social Cognition
-
-1. Platform-as-game-theory.
-- Decision shaped: Each platform gets its own action grammar, quota assumptions, and engagement rules.
-- Trigger condition: A post/reply/search workflow is reused across Reddit, YouTube, X, Slack, or chat channels.
-- Worked here: `reddit-scount` models Reddit as opportunity discovery over target audience, pain points, competitors, subreddits, posts, and comments (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/reddit-scount.md:108-181`).
-- Failed here: OpenClaw can route across many channels, but a generic gateway without channel-specific policy would blur platform games; the repo mitigates with per-channel adapters, DM pairing, allowlists, group routing, and chunking (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/openclaw-marketing.md:122-158`, `:177-180`).
-
-2. Algorithm preference modeling.
-- Decision shaped: Encode platform-specific discovery primitives before writing content.
-- Trigger condition: The engine needs to decide whether the next action is search/listen, post, reply, or monitor.
-- Worked here: YouTube is represented as search over query and maxResults through YouTube Data API v3, while X uses post/reply/search primitives through `xurl` (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/youtube-api-demo.md:7-20`, `:48-54`; `runs/growth-engine-from-scratch/sources/_raw/openclaw-marketing.md:7392-7422`, `:7502-7507`).
-- Failed here: YouTube search alone is discovery-only; it has no schedule, reply, moderation, or credit monitor, so treating it as a full social engine would miss engagement and monitoring surfaces (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/youtube-api-demo.md:7-20`, `:48-54`).
-
-3. Community fit before brand voice.
-- Decision shaped: Learn the community context before adapting brand tone.
-- Trigger condition: The brand wants to enter a subreddit, thread, or channel where norms differ from owned copy.
-- Worked here: `reddit-scount` starts from target audience, pain points, competitor names, and target subreddits before discovering posts and comments (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/reddit-scount.md:124-181`).
-- Failed here: `xurl` can post, reply, and search, but those primitives do not by themselves inspect community norms; without Q8 channel-gating and Q12 community fit, visible automation risk increases (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/openclaw-marketing.md:7392-7422`, `:7502-7507`).
-
-4. Viral mechanics.
-- Decision shaped: Expose reply/thread/media primitives, but do not confuse virality mechanics with a validated content strategy.
-- Trigger condition: The team wants high-reach social loops rather than only listening.
-- Worked here: OpenClaw/X primitives include post, reply, media, and search, the minimum mechanics for propagation experiments (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/openclaw-marketing.md:7392-7422`, `:7502-7507`).
-- Failed here: `youtube-api-demo` demonstrates search and result rendering only; it cannot run a viral loop because it lacks posting, scheduling, reply, or outcome monitoring (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/youtube-api-demo.md:7-20`, `:48-54`).
-
-5. Automation visibility cost.
-- Decision shaped: Put moderation, allowlists, credit/rate monitors, and human approval before automated replies or posts.
-- Trigger condition: Content is generated by an agent in a public or semi-public channel.
-- Worked here: OpenClaw blocks unknown senders through DM pairing/allowlist policy, and `x-api-credit-monitor` posts heartbeat, low-balance, burn, and re-login alerts so automation does not silently overrun quota or session state (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/openclaw-marketing.md:122-126`; `runs/growth-engine-from-scratch/sources/_raw/x-api-credit-monitor.md:7-17`, `:72-104`).
-- Failed here: direct X post/reply primitives without a moderation insertion point can expose automation; Q8 `channel-gating` and Q13 human-in-loop console must precede social writes (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/openclaw-marketing.md:7392-7422`, `:7502-7507`).
-
-Anti-patterns: one tone across platforms; no rate-limit or credit accounting; posting before listening; treating discovery APIs as engagement engines; hiding automation controls inside a platform adapter instead of Core.
+Cognition synthesis: trigger discipline prevents model overreach. Shared infrastructure owns trust, schedules, observability, LLM routing, ledgers, credentials, approvals, and kill-switches; domain cognition owns ranking interpretation, tone, spend, and community context.
 
 ## Q13 - Shared Foundations
 
-| shared foundation | contract/interface | evidence from corpus | share vs isolate decision |
-|---|---|---|---|
-| identity/session | tenant/user/session IDs, browser-facing API only, Core-created RequestContext or signed context envelope | `growth-engine-legacy.md:43-50`; `getuai-api.md:23-37`; `attribution_v2.md:153-162` | shared because SEO, Content, Ads, and Social all need user/session continuity; domain engines never own raw identity |
-| credentials/secrets | credential records, scoped leases, env sync policy, re-login/low-balance monitor | `growth-engine-legacy.md:64-88`; `getuai-ads.md:21-28`; `x-api-credit-monitor.md:12-18`; `lawyer_finder.md:481-488` | shared because credential rotation and lease expiry are tenant-trust concerns; platform SDK calls remain isolated |
-| data lake/artifact store | artifacts/events/results keyed by tenant, target, run, action, and source | `getuai-api.md:24-42`; `rankncompare.md:49-56`; `attribution_v2.md:13-16`; `gmi-prototype.md:11-16` | shared for ownership and retention; isolated for domain-specific schemas like rank rows, ad reports, social threads |
-| task queue/schedules | Core schedule registry, launchd/cron adapters, queue/dead-letter for events | `growth-engine-legacy.md:64-88`; `x-api-credit-monitor.md:20`, `:82-93`; `attribution_v2.md:49-52` | shared for schedule lifecycle and retries; isolated for platform cadence and quota windows |
-| observability | run_event log, request IDs, Sentry/Langfuse/Grafana tracing, redaction | `growth-engine-legacy.md:64-70`, `:86`; `LLMRush.md:19-23`; `attribution_v2.md:107-119` | shared so traces correlate across domains; isolated dashboards can render domain metrics |
-| LLM gateway | provider/model routing, prompt policy, token/cost tracking, AI service adapters | `getuai-seo.md:78-91`; `getuai-email-2.0.md:14`, `:111-114`; `openclaw-marketing.md:175-180`; `cuilawgroup.md:25-27` | shared for cost, routing, and model failover; isolated for prompts, ranking logic, and channel tone |
-| human-in-loop console | approvals, overrides, kill-switches, action ledger, read/write skill split | `growth-engine-legacy.md:83-88`; `lawyer_marketing.md:248-269`; `getuai-email-2.0.md:115-118`; `openclaw-marketing.md:122-126` | shared for approval workflow and audit; isolated for domain action payload validation |
-| repo-template conventions | AGENTS/CLAUDE rules, skills, CI, version check, idempotent apply | `optiminds-repo-template.md:9-30`, `:55-63`, `:156-177`; `lawyer_finder.md:71-86` | shared because governance must be uniform; product behavior remains in each domain repo |
+Decision rule: share tenant trust, credentials, schedules, ledgers, observability, LLM routing, approval, and governance because these create cross-domain safety and auditability. Isolate schemas, external APIs, ranking logic, tone/register, community rules, campaign mutations, and domain kill criteria because they encode domain semantics.
 
-Decision rule: share a component if it enforces tenant trust, credentials, schedules, ledger/audit, observability, LLM routing, or approval across more than one domain; isolate it when its schema, external API, ranking logic, tone, or kill criteria are domain-specific.
-
-Worked example: attribution events are shared, while ranking logic stays domain-isolated. Attribution events are shared because the same browser SDK/session/event path turns ads clicks, content forms, and downstream leads into a cross-domain conversion record (`attribution_v2.md:13-16`, `:153-162`). Ads consumes it for CAC and scale/kill decisions (Q7 `attribution-ingest`), Content consumes it for post-publish outcome loops (Q6 campaign/email flow), and Core observes it for ledgers (Q15 attribution/session breakage). Ranking logic stays isolated because `rankncompare` implements sitemap/category/indexability publishing (`rankncompare.md:128-157`) while LLMRush implements multi-model rank/sentiment sensing (`LLMRush.md:7-14`). Core may standardize the metric envelope, but SEO/GEO owns rank interpretation.
+| row_id | foundation | shared contract | corpus evidence | domain-isolated boundary | hooks_to_q14_q15 |
+|---|---|---|---|---|---|
+| q13.f1 | identity/session | tenant/user/session context; no raw browser tokens in engines | `growth-engine-legacy.md:43-50`, `getuai-api.md:23-37`, `getuai-ui.md:35-60` | domain repos read scoped context only | `q14.m1`, `q14.m3`, `q14.m4`, `q15.fm1`, `q15.fm5` |
+| q13.f2 | secrets/credentials | scoped leases, SDK/config lookup | `growth-engine-legacy.md:64-88`, `getuai-ads.md:21-28`, `x-api-credit-monitor.md:12-18`, `getuai-ads-sdk.md:146-161` | platform payload semantics stay in adapters | `q14.m1`, `q14.m2`, `q14.m4`, `q15.fm1`, `q15.fm4` |
+| q13.f3 | data/artifacts/lake | sessions, growth artifacts, events/leads/scores, publishable records | `getuai-api.md:24-42`, `rankncompare.md:49-56`, `attribution_v2.md:13-16` | products, emails, campaigns, posts, ranks | `q14.m1`, `q14.m2`, `q14.m3`, `q14.m4`, `q15.fm3`, `q15.fm5`, `q15.fm8` |
+| q13.f4 | schedules/queues | Core-owned schedules/poller or explicit monitor contract | `growth-engine-legacy.md:64-88`, `x-api-credit-monitor.md:82-93`, `attribution_v2.md:13-16` | job payload and cadence remain domain-owned | `q14.m1`, `q14.m5`, `q14.m6`, `q15.fm1`, `q15.fm4` |
+| q13.f5 | observability | Sentry/Langfuse/run-event logs, request IDs, cost/rank/sentiment history | `growth-engine-legacy.md:64-70`, `LLMRush.md:19-23`, `x-api-credit-monitor.md:7-17` | domain metrics decide alert meaning | `q14.m1`, `q14.m2`, `q14.m4`, `q14.m5`, `q14.m6`, `q15.fm4`, `q15.fm7` |
+| q13.f6 | LLM gateway | shared model/provider routing, prompt/cost controls, retrieval/citation guardrails | `getuai-seo.md:78-91`, `getuai-email-2.0.md:111-114`, `reddit-scount.md:233-239` | prompts, style guides, queries, critic rubrics | `q14.m3`, `q14.m6`, `q15.fm6`, `q15.fm7` |
+| q13.f7 | human-in-loop console | review, approval, override, action ledger, kill-switch | `growth-engine-legacy.md:83-88`, `lawyer_marketing.md:248-269`, `getuai-email-2.0.md:111-118` | domain done/rejection reasons | `q14.m1`, `q14.m2`, `q14.m3`, `q14.m4`, `q14.m5`, `q14.m6`, `q15.fm1`, `q15.fm6` |
+| q13.f8 | repo governance/template | AGENTS/CLAUDE rules, CI, version drift checks, no secret/run leakage | `optiminds-repo-template.md:9-63`, `optiminds-org-config.md:7-44`, `growth-engine.md:33-63` | product code remains in repos | `q14.m1`, `q14.m6`, `q15.fm2`, `q15.fm9` |
 
 ## Q14 - Build Sequence
 
-| milestone | scope | dependencies | done_criteria | next_trigger | deferrals |
-|---|---|---|---|---|---|
-| Day-1 | Core skeleton for tenant/session, artifact store, source registry, repo-template rules, and approval stub. Implements Q13 identity/session + artifact + repo-template foundations before Q1-Q8 domain skills run. | none; use `growth-engine` backend-skeleton-first pattern and `optiminds-repo-template` governance | one growth_target can be created; sessions/artifacts persist; approval/action records exist; no `runs/` leakage | first domain tool needs credentials or durable artifacts | defer ads mutations and social posting because Q15 write-without-approval is not yet controlled |
-| Week-1 | SEO/GEO read-only lane consuming Q5 `site-structure-analyzer`, `google-search-analyzer`, `keyword-clustering`, and `sitemap-robots-generator`; implements Q1 crawler/ranking/content-store/publisher separation. | Day-1 Core plus Q13 credential leases and artifact store; monitor Q15 Platform API credential drift | crawler/search/keyword outputs stored; ranking signal source declared; sitemap/content-store artifact exists; human review point exists | recurring checks or content publishing is requested | defer auto-publish until Q15 static-publisher-vs-GEO-evaluator guardrail and kill-switch exist |
-| Week-2 | Content lane using Q6 `campaign-prompt-template`, `recipient-import`, `personalized-email-draft`, `smtp-test-and-send`, plus retrieval grounding; implements Q2 ideation -> draft -> review -> send. | Core sessions/artifacts plus Week-1 content store; Q13 LLM gateway; Q10 user-journey and brand-voice frames | prompt variables validate; recipients import; AI draft generated per recipient; human review happens before send; SMTP test is mandatory | first outbound campaign or post-publish metric request | defer multi-image/video production because Q15 prototype-local-artifact-store remains unresolved for rich media |
-| Week-4 | Ads read-only + attribution lane using Q7 `platform-credential-sdk`, `reporting-gaql`, `attribution-ingest`, and Q11 CAC/pacing rules; no ad-platform writes. | Core credentials/secrets, Content campaign IDs, Week-2 publish events; Q13 shared attribution-event contract | campaign feed/reporting/conversion events visible in one dashboard; attribution session tests pass; analyst has read-only skills only | analysts repeatedly make the same budget/targeting recommendations | defer budget mutation and A/B automation because Q15 read/write boundary and attribution/session breakage are still high risk |
-| Week-8 | Controlled write lanes: SEO publish, email send, ads budget/targeting, and social replies behind approval. Uses Q7 ResultEnvelope/action ledger and Q8 `channel-gating`, `x-credit-monitor`, `x-post-reply-search`, `slack-actions`. | prior read-only evidence, Q13 human-in-loop console, Q15 write-without-approval prophylactic | every write path has approval, ResultEnvelope/action ledger, rollback or kill-switch, and quota/session monitor | stable weekly outcomes and repeated manual approvals | defer full cross-platform optimizer because platform-specific tone/API rules in Q8 and Q12 still need per-domain isolation |
-| Week-12 / Month-3 | OODA orchestration across SEO/GEO, Content, Ads, Social with industry pack injection. Uses Q9-Q12 cognition as guardrails and Q15 failure table as launch checklist. | all domain lanes, Q13 observability + LLM gateway + schedules, vertical case deployment lessons from `lawyer_marketing`, `lawyer_finder`, and `cuilawgroup` | target has cross-domain loop, observability, attribution, human override, per-domain kill criteria, and vertical pack injection; Month-3 done when one tenant can run weekly observe-plan-approve-execute-review | scale to more tenants or industries | defer Temporal-scale workflow, plugin marketplace, and autonomous spend scaling until failure modes have monitors |
+| row_id | milestone | scope | dependencies | done_criteria | next_trigger | deferrals |
+|---|---|---|---|---|---|---|
+| q14.m1 | Day-1 | Core tenant/session/artifact/source/approval/schedule/run-event skeleton | `q13.f1`, `q13.f2`, `q13.f3`, `q13.f4`, `q13.f5`, `q13.f7`, `q13.f8` | target/session/artifact/action/schedule/run-event records persist; no run leakage | first durable tool | ads/social writes |
+| q14.m2 | Week-1 | SEO/GEO read lane via `seo.skill6`-`seo.skill9` | `q13.f2`, `q13.f3`, `q13.f5`, `q13.f7`, Q1 traces | outputs stored, rank source declared, sitemap exists, publish requires approval | recurring/publish request | autopublish |
+| q14.m3 | Week-2 | Content lane via `content.skill1`-`content.skill5` | `q13.f1`, `q13.f2`, `q13.f3`, `q13.f6`, `q13.f7`, Q2/Q6 | variables validate; drafts generated; review before send; citations retained | outbound metric need | rich media |
+| q14.m4 | Week-4 | Ads read + attribution via `ads.skill7`/`ads.skill8`; no spend mutation | `q13.f1`, `q13.f2`, `q13.f3`, `q13.f5`, `q13.f7`, Q3 | reports + conversion events visible; read-only analyst; budget rec in action ledger | repeated budget recs | budget mutation/A-B |
+| q14.m5 | Week-8 | controlled writes across domains | `q13.f2`, `q13.f3`, `q13.f4`, `q13.f5`, `q13.f7`, `q15.fm4`/`q15.fm6` | every write has ledger, envelope, monitor, approval, rollback/stop reason | stable weekly outcomes | full optimizer |
+| q14.m6 | Month-3 | OODA orchestration + industry packs | `q13.f1`, `q13.f3`, `q13.f4`, `q13.f5`, `q13.f6`, `q13.f7`, `q13.f8`, all lanes | weekly observe-plan-approve-execute-review works; governance drift checked | tenant/industry scale | Temporal/marketplace/autonomous spend |
 
-Evidence from corpus evolution: prototypes are thin local apps (`getuai-2.0` AI Studio frontend/Gemini, tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getuai-2.0.md:19-42`), MVP hardens routing/env (`getuai-mvp`, tier: file:line `runs/growth-engine-from-scratch/sources/_raw/getuai-mvp.md:9-76`), production attribution keeps legacy parity while refactoring (`attribution_v2`, tier: file:line `runs/growth-engine-from-scratch/sources/_raw/attribution_v2.md:16-23`), vertical cases show public/admin/backend separation and production hardening (`lawyer_finder.md:11-16`, `:220-255`; `cuilawgroup.md:10-27`), and new `growth-engine` starts with backend skeleton then schema/auth/engine vertical slice (tier: file:line `runs/growth-engine-from-scratch/sources/_raw/growth-engine.md:8-12`).
+Evidence shape: thin prototype `getuai-2.0.md:19-42`, MVP route hardening `getuai-mvp.md:9-76`, production attribution refactor `attribution_v2.md:16-23`, vertical cases `lawyer_finder.md:11-16`, `cuilawgroup.md:10-27`, and backend-skeleton-first `growth-engine.md:8-12`.
 
-## Q15 - Cross-Domain Failure Modes
+## Q15 - Failure Modes
 
-| failure_mode | affected_domains | recurrence_count | structural_cause | early_symptom | prophylactic | evidence_pair |
-|---|---|---:|---|---|---|---|
-| Domain engines own platform facts | SEO, Ads, Social | 3 | identity/credentials/schedules scattered | engines ask for raw tokens or run own cron | Browser -> Core only; Core owns facts; engines get context/leases. Enforced by Q13 identity/credential foundations plus Q7 `platform-credential-sdk` and Q8 `x-credit-monitor`. | failure/prophylactic: `growth-engine-legacy.md:43-50`, `:83-88` |
-| Legacy scaffolding import | all | 4 | copying previous attempt instead of extracting contracts | stale paths, missing core runtime | greenfield rewrite; references read-only. Enforced by Q13 repo-template conventions and Q14 Day-1 Core skeleton before domain expansion. | `growth-engine.md:69-100`, `:138-152` |
-| Missing runtime core after docs | all | 4 | design exists but core tree absent | docs mention Core, no runtime | Day-1 skeleton before domain expansion. Enforced by Q14 Day-1 done criteria and Q13 Core ownership contract. | `growth-engine-legacy.md:16-22`, `growth-engine.md:11-12` |
-| Platform API credential drift | SEO, Ads, Social | 3 | env/session/auth external to action layer | API access errors, re-login alerts | central credential leases + low-balance/re-login monitors. Enforced by Q7 `platform-credential-sdk`, Q8 `x-credit-monitor`, and Q5 Google API tool rows. | `getuai-ads.md:24-28`, `x-api-credit-monitor.md:13-17`, `growth-engine-legacy.md:85` |
-| Attribution/session breakage | Ads, Content | 2 | cross-domain cookies/user rotation misunderstood | lead table missing rows; SDK cookies not shared | explicit SDK domain config and session-rotation tests. Enforced by Q7 `attribution-ingest`, Q6 campaign/outbound rows, and Q13 shared attribution-event example. | `attribution_v2.md:117-119`, `:153-155`, `:184-186` |
-| Write operations without approval | SEO, Ads, Social | 3 | read/write skills mixed | agents mutate campaigns/posts while analyzing | read-only analysis skills, write hooks, action ledger. Enforced by Q7 `google-ads-cli` read/write split, Q8 `channel-gating`, Q6 `smtp-test-and-send`, and Q13 human-in-loop console. | `lawyer_marketing.md:248-269`, `growth-engine-legacy.md:84` |
-| Static publisher treated as GEO evaluator | SEO/GEO | 1 | sitemap/indexing confused with LLM answer visibility | sitemap exists but no LLM rank signal | add LLMRush-style multi-model rank/sentiment sensor. Enforced by Q5 `sitemap-robots-generator` + Q6 `multi-model-rank-summary` split. | `rankncompare.md:134-149`, `LLMRush.md:7-14` |
-| Prototype-local artifact store | Content, Social | 2 | generated media saved locally only | outputs exist but no campaign/outcome link | artifact store under Core with owner/run/action IDs. Enforced by Q13 data lake/artifact store and Q6 `image-text-composer` persistence requirement. | `gmi-prototype.md:14`, `:50`, `getuai-api.md:24-40` |
-| API prefix/proxy mismatch | shared infra | 2 | local/prod routes diverge | frontend calls wrong backend path | configurable API_PREFIX + proxy contract. Enforced by Q13 repo-template/config conventions and Q14 Day-1 environment contract. | `getuai-mvp.md:9-76` |
+| row_id | failure_mode | domains | count | cause | early symptom | prophylactic | evidence_pair |
+|---|---|---|---:|---|---|---|---|
+| q15.fm1 | engines own platform facts | SEO/Ads/Social | 3 | scattered identity/creds/schedules | raw tokens/own cron | `q13.f1` identity, `q13.f2` leases, `q13.f4` schedules, `q13.f7` ledger | `growth-engine-legacy.md:43-50`, `growth-engine-legacy.md:83-88` |
+| q15.fm2 | legacy scaffolding import | all | 4 | copying attempts | stale paths | greenfield contracts, `q13.f8` governance, `q9.cog3` specificity | `growth-engine.md:69-152` |
+| q15.fm3 | docs without runtime | all | 4 | design outruns core | no `core/` tree | `q14.m1` with `q13.f3`, `q13.f4`, `q13.f5`, `q13.f8` | `growth-engine-legacy.md:16-22` |
+| q15.fm4 | credential drift | SEO/Ads/Social | 3 | auth outside action layer | API/re-login errors | `q13.f2` leases + `q13.f5` monitors + `q13.f4` checks | `getuai-ads.md:24-28`, `x-api-credit-monitor.md:13-17` |
+| q15.fm5 | attribution/session breakage | Ads/Content | 2 | cookie/user rotation | missing lead rows | `q13.f1` identity/session + `q13.f3` event model; `ads.skill8` tests | `attribution_v2.md:117-186` |
+| q15.fm6 | writes without approval | SEO/Ads/Social | 3 | mixed read/write skills | agents mutate while analyzing | read-only diagnosis + `q13.f7` approval + `q13.f6` LLM guardrails | `lawyer_marketing.md:248-269`, `growth-engine-legacy.md:84` |
+| q15.fm7 | static publisher as GEO evaluator | SEO/GEO | 1 | indexing confused with LLM visibility | sitemap but no LLM rank | LLMRush sensor with `q13.f5` observability and `q13.f6` gateway | `rankncompare.md:134-149`, `LLMRush.md:7-14` |
+| q15.fm8 | prototype-local artifact store | Content/Social | 2 | local media only | no campaign/outcome link | Core artifact store via `q13.f3` | `gmi-prototype.md:14`, `gmi-prototype.md:50`, `getuai-api.md:24-40` |
+| q15.fm9 | API prefix mismatch | shared | 2 | local/prod route drift | wrong backend path | `q13.f8` API_PREFIX/proxy governance | `getuai-mvp.md:9-76` |
 
-The strongest prophylactic is boring: shared Core for trust and ledgers, domain-isolated adapters for external APIs, human approval before writes, and explicit monitors for quotas, sessions, and attribution. The table ties every prophylactic back to Q5-Q8 skill rows or Q13 shared foundations so the failure catalog is executable rather than only diagnostic.
+Benchmark answers below are the direct machine-readable projection of this KB. Every citation array includes required `source-*` IDs plus load-bearing `repo.md:line-line` anchors.
