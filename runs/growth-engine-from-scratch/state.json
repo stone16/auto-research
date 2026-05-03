@@ -1,7 +1,7 @@
 {
-  "iteration": 10,
-  "best_score": 0.98,
-  "best_iteration": 6,
-  "current_knowledge_chars": 51533,
-  "last_kept_experiment": "embed evaluation rubric and upgrade cognition pair clauses"
+  "iteration": 0,
+  "best_score": 0.0,
+  "best_iteration": 0,
+  "current_knowledge_chars": 0,
+  "last_kept_experiment": null
 }
