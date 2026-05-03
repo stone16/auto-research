@@ -121,6 +121,36 @@ class TestResearchResponseParsing(unittest.TestCase):
             ["source-a", "source-b", "source-c"],
         )
 
+    def test_accepts_experiment_alias_for_experiment_title(self) -> None:
+        """Codex sometimes shortens "experiment_title" to "experiment" mid-run.
+        The parser must accept either to avoid 3-consecutive-crash loop halts.
+        """
+        from llm_autoresearch.models import ResearchResponse
+
+        raw = {
+            "experiment": "shorthand-key",
+            "change_summary": "summary",
+            "knowledge_base_markdown": "# KB",
+            "benchmark_answers": [],
+        }
+
+        response = ResearchResponse.from_dict(raw)
+
+        self.assertEqual(response.experiment_title, "shorthand-key")
+
+    def test_missing_both_title_keys_raises_clear_error(self) -> None:
+        from llm_autoresearch.models import ResearchResponse
+
+        raw = {
+            "change_summary": "summary",
+            "knowledge_base_markdown": "# KB",
+            "benchmark_answers": [],
+        }
+
+        with self.assertRaises(KeyError) as ctx:
+            ResearchResponse.from_dict(raw)
+        self.assertIn("experiment_title", str(ctx.exception))
+
 
 if __name__ == "__main__":
     unittest.main()

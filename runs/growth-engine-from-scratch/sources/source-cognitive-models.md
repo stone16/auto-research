@@ -64,9 +64,82 @@ references/   # Read-only git submodules — concept reference only, DO NOT impo
 ```
 
 Production directory boundaries are deliberately **not** locked yet — see `CLAUDE.md`:
-"Str
+"Structure first, naming later."
 
-[... truncated to 2500 bytes; full extract at sources/_raw/growth-engine.md ...]
+---
+
+## References Submodules
+
+`references/` carries three concept-reference repos pinned as submodules:
+
+- `lawyer_marketing/` — ads management reference
+- `cloud-claw-k/` — social media management reference
+- `geo-seo-v2/` — SEO/GEO reference
+
+Initialize / refresh:
+
+```bash
+git submodule update --init --recursive   # after fresh clone
+git submodule update --remote             # pull upstream (explicit opt-in only)
+```
+
+Their toolchains are isolated; `cd` into one before running its commands. The
+previous Growth Engine attempt is preserved at `Optiminds-Inc/growth-engine-legacy`
+for concept reference only — not imported here.
+
+---
+
+## Local Dev (After GE-01)
+
+The skeleton runs; full feature set requires GE-02 onwards. Local test paths
+(hermetic testcontainers, existing-Postgres reuse, `.env.example`) live in
+[`backend/README.md`](backend/README.md). `docker-compose.yml` at the repo root
+brings up Postgres; `scripts/run-backend-tests.sh` is the canonical test runner.
+
+Cloud runtime (Azure / AKS / Terraform / CI-CD) is owned by **GE-09a → GE-09b → GE-27** —
+not present until those lanes land.
+
+```
+
+## CLAUDE.md
+```markdown
+# Identity & Context Awareness
+
+**CRITICAL**: Address the user as "stometa" at the start of EVERY response.
+
+This serves as a context-awareness signal — if missing, indicates context drift.
+
+---
+
+# Growth Engine
+
+@AGENTS.md
+
+**Status**: Greenfield rewrite. Previous attempt is preserved at `Optiminds-Inc/growth-engine-legacy` for concept reference only — do not import its scaffolding wholesale.
+
+## Architecture Map
+
+```
+growth-engine/
+├── AGENTS.md              # Cross-tool rules (loaded above via @AGENTS.md)
+├── CLAUDE.md              # This file — Claude Code overlay
+├── references/            # Read-only git submodules (concept references)
+│   ├── lawyer_marketing/      # Ads management reference
+│   ├── cloud-claw-k/          # Social media management reference
+│   └── geo-seo-v2/            # SEO/GEO reference
+└── .harness/              # Harness orchestration scaffolding
+```
+
+Production directory layout is deliberately deferred. **Structure first, naming later** — do not lock module names or boundaries until the rewrite scope is defined.
+
+## Commands
+
+No build commands yet — repo is pre-implementation. Reference repos under `references/` carry their own toolchains; `cd` into one before running its commands.
+
+```bash
+git submodule upd
+
+[... truncated to 5000 bytes; full extract at sources/_raw/growth-engine.md ...]
 
 
 # Repo: growth-engine-legacy
@@ -133,9 +206,41 @@ yet and should be introduced only through the migration plan.
 growth-engine/
 ├── core/                        Core platform service (single deployable)
 │   ├── identity/                Logto verify, user/org sync, role/flag evaluator
-│   ├── runs
+│   ├── runs/                    workflow_runs, engine_runs, run_events ledgers
+│   ├── credentials/             credential records and lease issuer
+│   ├── schedules/               workflow_schedules and poller
+│   ├── observability/           Sentry/Langfuse helpers, run-event redactor
+│   ├── core_sdk/                transport abstraction (in-process + signed-http)
+│   └── engines/<name>/          in-process engine modules (default for new engines)
+├── engines/<name>/              remote engine services (existing SEO/GEO; new engines that opt remote)
+└── docs/                        specs, ADRs, runbooks, FUTURE_SCOPE
+```
 
-[... truncated to 2500 bytes; full extract at sources/_raw/growth-engine-legacy.md ...]
+The `core/engines/` and `engines/` split encodes the deployment-mode choice from
+ADR-0001: `core/engines/<name>/` is in-process under Core, `engines/<name>/` is a
+separate deployable.
+
+## Moat-binding rules
+
+| # | Rule | Source | Breaks if violated |
+|---|---|---|---|
+| 1 | Core is the only browser-facing surface; engines never receive raw Logto tokens. The trust boundary is logical — applies to in-process modules and remote services equally | series/11 §6, series/12 §2; ADR-0001 | identity stitching |
+| 2 | Platform facts written through `core_sdk` (`workflow_runs`, `engine_runs`, `run_events`, `growth_artifacts`, `action_ledger`) | series/11 §2 | attribution graph; audit trail |
+| 3 | Credentials never leave Core; engines get scoped, time-bound leases | series/11 §7, series/12 §4.1 | credential rotation |
+| 4 | Sentry + Langfuse + run-event log via `core/observability` only | series/11 §11 | trace correlation |
+| 5 | Industry adaptation = domain packs, not `if industry == "..."`; generic labels (`SaaS`, `legal`, `e-commerce`) forbidden — require product-vertical specificity | series/12 §1; Stometa 2026-04-28 | scaling to N industries |
+| 6 | Schedules registered in Core in Phase 1; engines do NOT run own cron loops | series/11 §4.1, series/12 §2 | Phase 2 Temporal migration |
+
+## Established rules
+
+- Branches: `feat/`, `fix/`, `docs/`, `refactor/` — never push to `main`
+- Commits: Conventional Commits; no `Co-Authored-By`; atomic (one concern per commit)
+- No secrets in git; if leaked, rotate FIRST then clean history
+- No `--no-verify`, no force-push to shared branches, no `--amend` on pushed commits without permission
+- No PII in logs; observability helpers must redact before write
+- Doc-first for non-trivial changes — needs `docs/series/` or `docs/adr/` paper trail before co
+
+[... truncated to 5000 bytes; full extract at sources/_raw/growth-engine-legacy.md ...]
 
 
 # Repo: attribution_v2
@@ -180,9 +285,76 @@ The active refactor goals are tracked in [`target.md`](target.md): reshape backe
    └──────────────────┬────────────────┬──────────┘
                       │                │
                ┌──────▼──────┐   ┌─────▼─────┐
-               │ M
+               │ MySQL         │   │ MySQL      │
+               │ DATA_DB       │   │ ADS_DB     │
+               │ (events, leads)│   │ (attribution)
+               └───────────────┘   └────────────┘
+                      ▲
+                      │
+               ┌──────┴──────────┐
+               │ GCP Pub/Sub     │
+               │ (event queue +  │
+               │  dead-letter)   │
+               └─────────────────┘
+```
 
-[... truncated to 2500 bytes; full extract at sources/_raw/attribution_v2.md ...]
+Full architectural landmines (dual-DB routing, cross-subdomain session, SDK dispatch bifurcation, user-id rotation semantics) live in [CLAUDE.md](CLAUDE.md). Read it before writing non-trivial code.
+
+## Run Locally
+
+### Prerequisites
+
+- **Node 20+** (SDK, frontend)
+- **Python 3.12+** (server), **3.11+** (events-track-server)
+- **uv** (Python package manager) — `brew install uv`
+- **MySQL** running locally (or access to a dev instance)
+- **Docker** (optional, for supporting services)
+- Access to shared secrets (GCP Pub/Sub credentials, DB credentials)
+
+### Setup
+
+```bash
+# 1. SDK
+cd sdk && npm install && npm run build
+
+# 2. Dashboard API (server/)
+cd ../server
+uv sync
+cp env.example .env                 # fill DB_HOST / ADS_DB_NAME / DATA_DB_NAME
+alembic upgrade head
+python start.py                     # :8000
+
+# 3. Event ingress + consumer (events-track-server/)
+cd ../events-track-server
+uv sync
+cp configs/env.example .env         # DB, Redis, Pub/Sub credentials
+python -m api.main                  # :8019
+
+# 4. Frontend v2 (current UI)
+cd ../frontend-v2
+npm install
+npm run dev                         # http://localhost:3103
+```
+
+### Expected
+
+`curl http://localhost:8000/dashboard/api/health` → 200. `curl http://localhost:8019/tracker/api/health` → 200. The Next.js dev server at :3103 renders without API errors in the browser console.
+
+## Run Tests
+
+- **SDK**: `cd sdk && npm test` / `npm run test:regression` (cross-subdomain + session rotation).
+- **Server / events-track-server**: `pytest tests/` (per-sub-package; coverage wiring still evolving).
+
+## Deploy
+
+`cd deploy && ./deploy.sh -b main -e production -y`. Full rollout procedure, branches-to-env mapping, and rollback steps are in [`deploy/DEPLOYMENT.md`](deploy/DEPLOYMENT.md) and [`docs/runbooks/deploy.md`](docs/runbooks/deploy.md).
+
+## Observability
+
+- **Logs**: <!-- TODO: paste production log aggregator link -->
+- **Met
+
+[... truncated to 5000 bytes; full extract at sources/_raw/attribution_v2.md ...]
 
 
 # Repo: multica
@@ -233,9 +405,74 @@ Multica manages the full agent lifecycle: from task assignment to execution moni
 
 - **Agents as Teammates** — assign to an agent like you'd assign to a colleague. They have profiles, show up on the board, post comments, create issues, and report blockers proactively.
 - **Autonomous Execution** — set it and forget it. Full task lifecycle management (enqueue, claim, start, complete/fail) with real-time progress streaming via WebSocket.
-- **Reusable Skills** — every solution becomes a reusable skill for the whole team. Deployments, migrations, code reviews — skills compound
+- **Reusable Skills** — every solution becomes a reusable skill for the whole team. Deployments, migrations, code reviews — skills compound your team's capabilities over time.
+- **Unified Runtimes** — one dashboard for all your compute. Local daemons and cloud runtimes, auto-detection of available CLIs, real-time monitoring.
+- **Multi-Workspace** — organize work across teams with workspace-level isolation. Each workspace has its own agents, issues, and settings.
 
-[... truncated to 2500 bytes; full extract at sources/_raw/multica.md ...]
+---
+
+## Quick Install
+
+### macOS / Linux (Homebrew - recommended)
+
+```bash
+brew install multica-ai/tap/multica
+```
+
+Use `brew upgrade multica-ai/tap/multica` to keep the CLI current.
+
+### macOS / Linux (install script)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/multica-ai/multica/main/scripts/install.sh | bash
+```
+
+Use this if Homebrew is not available. The script installs the Multica CLI on macOS and Linux by using Homebrew when it is on `PATH`, otherwise it downloads the binary directly.
+
+### Windows (PowerShell)
+
+```powershell
+irm https://raw.githubusercontent.com/multica-ai/multica/main/scripts/install.ps1 | iex
+```
+
+Then configure, authenticate, and start the daemon in one command:
+
+```bash
+multica setup          # Connect to Multica Cloud, log in, start daemon
+```
+
+> **Self-hosting?** Add `--with-server` to deploy a full Multica server on your machine:
+>
+> ```bash
+> curl -fsSL https://raw.githubusercontent.com/multica-ai/multica/main/scripts/install.sh | bash -s -- --with-server
+> multica setup self-host
+> ```
+>
+> Requires Docker. See the [Self-Hosting Guide](SELF_HOSTING.md) for details.
+
+---
+
+## Getting Started
+
+### 1. Set up and start the daemon
+
+```bash
+multica setup           # Configure, authenticate, and start the daemon
+```
+
+The daemon runs in the background and auto-detects agent CLIs (`claude`, `codex`, `openclaw`, `opencode`, `hermes`, `gemini`, `pi`, `cursor-agent`) on your PATH.
+
+### 2. Verify your runtime
+
+Open your workspace in the Multica web app. Navigate to **Settings → Runtimes** — you should see your machine listed as an active **Runtime**.
+
+> **What is a Runtime?** A Runtime is a compute environment that can execute agent tasks. It can be your local machine (via the daemon) or a cloud instance. Each runtime reports which agent CLIs are available, so Multica knows where to route work.
+
+### 3. Create an agent
+
+Go to **Settings → Agents** and click **New Agent**. Pick the runtime you just connected and choose a provider (Claude Code, Codex, OpenClaw, OpenCode, Hermes, Gemini, Pi, or Cursor Agent). Give your agent a name — this is how it will appear on the board, in comments, and in assig
+
+[... truncated to 5000 bytes; full extract at sources/_raw/multica.md ...]
 
 
 # Repo: optiminds-repo-template
@@ -307,9 +544,80 @@ so it works against private repos without `gh` or a PAT.
 Default (pull-mode) usage:
 
 ```bash
-~/.optiminds/scripts
+~/.optiminds/scripts/apply.sh --check ~/dev/my-repo
+```
 
-[... truncated to 2500 bytes; full extract at sources/_raw/optiminds-repo-template.md ...]
+Sample up-to-date output:
+
+```
+==> Fetching latest template version...
+==> Current applied:  0.4.1
+==> Template latest:  0.4.1  (up-to-date)
+```
+
+Strict mode for CI exits non-zero when the consumer is behind, so a
+pipeline step can surface the drift:
+
+```bash
+~/.optiminds/scripts/apply.sh --check --strict ~/dev/my-repo
+```
+
+Sample behind output:
+
+```
+==> Fetching latest template version...
+==> Current applied:  0.3.0
+==> Template latest:  0.4.1  (behind 1 minor, 1 patch)
+
+Files that would change if you re-apply:
+  M  .github/workflows/codex-review.yml         (template updated)
+  !  AGENTS.md                                   (consumer modified — would skip without --force)
+  +  docs/runbooks/cost-monitoring.template.md   (new in template)
+
+Run: ~/.optiminds/scripts/apply.sh ~/dev/my-repo
+```
+
+Exit codes follow the `grep`/`diff` convention: `0` for up-to-date,
+`2` for behind (under `--strict` only; default always exits 0), `1` for
+real errors (missing metadata, malformed JSON, target not a git repo).
+
+A compact push-mode banner fires automatically on `apply.sh <target>`
+when the consumer's `template_version` is behind the template's current
+version — no separate command needed. Sample banner when the consumer is
+one minor + one patch behind:
+
+```
+==> Template metadata upgrade: 0.3.0 → 0.4.1 (1 minor + 1 patch)
+==>   Run `apply.sh --check ~/dev/my-repo` for file-level diff before re-applying.
+```
+
+Set `OPTIMINDS_QUIET_VERSION=1` to silence the push-mode banner for
+CI/scripted consumers that have already acknowledged the drift and don't
+want log noise:
+
+```bash
+OPTIMINDS_QUIET_VERSION=1 ~/.optiminds/scripts/apply.sh ~/dev/my-repo
+```
+
+- Suppresses the minor / patch / ahead / first-tracking banners.
+- Does **not** suppress the BREAKING banner for major version jumps — by
+  design. Silently crossing a major boundary is the exact failure mode
+  SemVer's major signal exists to prevent, so the BREAKING line is the
+  one guard rail you cannot disable.
+
+**Known limitation** — `--check` relies on the template clone's local
+`origin/main` ref. A stale clone (corporate proxy that caches DNS, an
+offline laptop, or a long-lived checkout) can report a false "up-to-date".
+Run `git -C ~/.optiminds pull` periodically — or before a `--check` run
+you care about — to refresh the local ref.
+
+## What's in Layer 0 (the always-applies set)
+
+| File | Purpose |
+|---|---|
+| `.github/workflows/codex-review.yml` | 3-pass Codex AI review
+
+[... truncated to 5000 bytes; full extract at sources/_raw/optiminds-repo-template.md ...]
 
 
 # Repo: lawyer_finder
@@ -394,9 +702,46 @@ Coordinate specialized agents, tools, and skills so work is completed accurately
 - Delegate specialized work to the most appropriate agent.
 - Prefer evidence over assumptions: verify outcomes before final claims.
 - Choose the lightest-weight path that preserves quality.
-- Consult official docs before i
+- Consult official docs before implementing with SDKs/frameworks/APIs.
+</operating_principles>
 
-[... truncated to 2500 bytes; full extract at sources/_raw/lawyer_finder.md ...]
+<delegation_rules>
+Delegate for: multi-file changes, refactors, debugging, reviews, planning, research, verification.
+Work directly for: trivial ops, small clarifications, single commands.
+Route code to `executor` (use `model=opus` for complex work). Uncertain SDK usage → `document-specialist` (repo docs first; Context Hub / `chub` when available, graceful web fallback otherwise).
+</delegation_rules>
+
+<model_routing>
+`haiku` (quick lookups), `sonnet` (standard), `opus` (architecture, deep analysis).
+Direct writes OK for: `~/.Codex/**`, `.omc/**`, `.Codex/**`, `AGENTS.md`, `AGENTS.md`.
+</model_routing>
+
+<skills>
+Invoke via `/oh-my-Codex:<name>`. Trigger patterns auto-detect keywords.
+Tier-0 workflows include `autopilot`, `ultrawork`, `ralph`, `team`, and `ralplan`.
+Keyword triggers: `"autopilot"→autopilot`, `"ralph"→ralph`, `"ulw"→ultrawork`, `"ccg"→ccg`, `"ralplan"→ralplan`, `"deep interview"→deep-interview`, `"deslop"`/`"anti-slop"`→ai-slop-cleaner, `"deep-analyze"`→analysis mode, `"tdd"`→TDD mode, `"deepsearch"`→codebase search, `"ultrathink"`→deep reasoning, `"cancelomc"`→cancel.
+Team orchestration is explicit via `/team`.
+Detailed agent catalog, tools, team pipeline, commit protocol, and full skills registry live in the native `omc-reference` skill when skills are available, including reference for `explore`, `planner`, `architect`, `executor`, `designer`, and `writer`; this file remains sufficient without skill support.
+</skills>
+
+<verification>
+Verify before claiming completion. Size appropriately: small→haiku, standard→sonnet, large/security→opus.
+If verification fails, keep iterating.
+</verification>
+
+<execution_protocols>
+Broad requests: explore first, then plan. 2+ independent tasks in parallel. `run_in_background` for builds/tests.
+Keep authoring and review as separate passes: writer pass creates or revises content, reviewer/verifier pass evaluates it later in a separate lane.
+Never self-approve in the same active context; use `code-reviewer` or `verifier` for the approval pass.
+Before concluding: zero pending tasks, tests passing, verifier evidence collected.
+</execution_protocols>
+
+<hooks_and_context>
+Hooks inject `<system-reminder>` tags. Key patterns: `hook success: Success` (proceed), `[MAGIC KEYWORD: ...]` (invoke skill), `The boulder never stops` (ralph/ultrawork active).
+Persistence: `<remember>` (7 days), `<remember priority>` (permanent).
+Ki
+
+[... truncated to 5000 bytes; full extract at sources/_raw/lawyer_finder.md ...]
 
 
 # Repo: openfang
@@ -450,9 +795,47 @@ The entire system compiles to a **single ~32MB binary**. One install, one comman
 curl -fsSL https://openfang.sh/install | sh
 openfang init
 openfang start
-# Dashboard l
+# Dashboard live at http://localhost:4200
+```
 
-[... truncated to 2500 bytes; full extract at sources/_raw/openfang.md ...]
+<details>
+<summary><strong>Windows</strong></summary>
+
+```powershell
+irm https://openfang.sh/install.ps1 | iex
+openfang init
+openfang start
+```
+
+</details>
+
+---
+
+## Hands: Agents That Actually Do Things
+
+<p align="center"><em>"Traditional agents wait for you to type. Hands work <strong>for</strong> you."</em></p>
+
+**Hands** are OpenFang's core innovation — pre-built autonomous capability packages that run independently, on schedules, without you having to prompt them. This is not a chatbot. This is an agent that wakes up at 6 AM, researches your competitors, builds a knowledge graph, scores the findings, and delivers a report to your Telegram before you've had coffee.
+
+Each Hand bundles:
+- **HAND.toml** — Manifest declaring tools, settings, requirements, and dashboard metrics
+- **System Prompt** — Multi-phase operational playbook (not a one-liner — these are 500+ word expert procedures)
+- **SKILL.md** — Domain expertise reference injected into context at runtime
+- **Guardrails** — Approval gates for sensitive actions (e.g. Browser Hand requires approval before any purchase)
+
+All compiled into the binary. No downloading, no pip install, no Docker pull.
+
+### The 7 Bundled Hands
+
+| Hand | What It Actually Does |
+|------|----------------------|
+| **Clip** | Takes a YouTube URL, downloads it, identifies the best moments, cuts them into vertical shorts with captions and thumbnails, optionally adds AI voice-over, and publishes to Telegram and WhatsApp. 8-phase pipeline. FFmpeg + yt-dlp + 5 STT backends. |
+| **Lead** | Runs daily. Discovers prospects matching your ICP, enriches them with web research, scores 0-100, deduplicates against your existing database, and delivers qualified leads in CSV/JSON/Markdown. Builds ICP profiles over time. |
+| **Collector** | OSINT-grade intelligence. You give it a target (company, person, topic). It monitors continuously — change detection, sentiment tracking, knowledge graph construction, and critical alerts when something important shifts. |
+| **Predictor** | Superforecasting engine. Collects signals from multiple sources, builds calibrated reasoning chains, makes predictions with confidence intervals, and tracks its own accuracy using Brier scores. Has a contrarian mode that deliberately argues against consensus. |
+| **Researcher** | Deep autonomous researcher. Cross-references multiple sources, evaluates credibility using CRAAP criteria (Currency, Relevance, Authority, Accuracy,
+
+[... truncated to 5000 bytes; full extract at sources/_raw/openfang.md ...]
 
 
 # Repo: claw-mu
@@ -523,9 +906,75 @@ openfang start
 ### Frontend/Backend (Turbo Monorepo)
 
 ```bash
-pnpm install          # Install dep
+pnpm install          # Install dependencies
+pnpm build            # Build all apps (api, admin, chat)
+pnpm dev              # Development mode
+```
 
-[... truncated to 2500 bytes; full extract at sources/_raw/claw-mu.md ...]
+### Worker Docker Image (4-Layer Architecture)
+
+| Layer | Image | Content | Rebuild When |
+|-------|-------|---------|--------------|
+| base | `claw-base-latest` | Ubuntu + Node 22 + Bun | Toolchain update |
+| deps | `claw-deps-latest` | openclaw node_modules (1.9GB) | Dependencies change |
+| openclaw | `claw-openclaw-latest` | dist/ + assets (~50MB) | Code change |
+| worker | `claw-worker-latest` | worker-api | API change |
+
+**Quick Commands:**
+
+```bash
+# Most common: openclaw code changed
+./docker/build-worker.sh code
+
+# worker-api only
+./docker/build-worker.sh api
+
+# Dependencies changed (package.json)
+./docker/build-worker.sh deps
+
+# Full rebuild
+./docker/build-worker.sh base
+```
+
+**Manual Build (openclaw code change):**
+
+```bash
+cd openclaw && pnpm build
+docker build -f docker/Dockerfile.openclaw -t getuai/getu_ads:claw-openclaw-latest .
+docker build -f docker/Dockerfile.worker -t getuai/getu_ads:claw-worker-latest .
+```
+
+### OpenClaw CLI
+
+```bash
+cd openclaw
+pnpm install          # Install dependencies
+pnpm build            # Build (generates dist/)
+pnpm dev              # Development mode
+```
+
+### Chrome Extension
+
+```bash
+# Development: Load unpacked from apps/chat/public/extension/claw-extension/
+# Chrome: chrome://extensions -> Load unpacked
+
+# Production zip:
+cd apps/chat/public/extension/claw-extension
+zip -r ../claw-extension.zip .
+```
+
+### Staging Deployment
+
+```bash
+# On staging server (20.228.94.67)
+cd ~/projects/claw-mu
+docker compose up -d --build    # Rebuild and start
+docker compose logs -f          # View logs
+docker compose restart          # Restart all
+```
+
+```
 
 
 # Repo: cuilawgroup
@@ -568,9 +1017,25 @@ These defaults are optimized for AI coding agents (and humans) working on apps t
 
 - Treat Vercel Functions as stateless + ephemeral (no durable RAM/FS, no background daemons), use Blob or marketplace integrations for preserving state
 - Edge Functions (standalone) are deprecated; prefer Vercel Functions
-- Don't start new
+- Don't start new projects on Vercel KV/Postgres (both discontinued); use Marketplace Redis/Postgres instead
+- Store secrets in Vercel Env Variables; not in git or `NEXT_PUBLIC_*`
+- Provision Marketplace native integrations with `vercel integration add` (CI/agent-friendly)
+- Sync env + project settings with `vercel env pull` / `vercel pull` when you need local/offline parity
+- Use `waitUntil` for post-response work; avoid the deprecated Function `context` parameter
+- Set Function regions near your primary data source; avoid cross-region DB/service roundtrips
+- Tune Fluid Compute knobs (e.g., `maxDuration`, memory/CPU) for long I/O-heavy calls (LLMs, APIs)
+- Use Runtime Cache for fast **regional** caching + tag invalidation (don't treat it as global KV)
+- Use Cron Jobs for schedules; cron runs in UTC and triggers your production URL via HTTP GET
+- Use Vercel Blob for uploads/media; Use Edge Config for small, globally-read config
+- If Enable Deployment Protection is enabled, use a bypass secret to directly access them
+- Add OpenTelemetry via `@vercel/otel` on Node; don't expect OTEL support on the Edge runtime
+- Enable Web Analytics + Speed Insights early
+- Use AI Gateway for model routing, set AI_GATEWAY_API_KEY, using a model string (e.g. 'anthropic/claude-sonnet-4.6'), Gateway is already default in AI SDK
+  needed. Always curl https://ai-gateway.vercel.sh/v1/models first; never trust model IDs from memory
+- For durable agent loops or untrusted code: use Workflow (pause/resume/state) + Sandbox; use Vercel MCP for secure infra access
+<!-- VERCEL BEST PRACTICES END -->
 
-[... truncated to 2500 bytes; full extract at sources/_raw/cuilawgroup.md ...]
+```
 
 
 # Repo: lawyer_marketing
@@ -654,7 +1119,78 @@ Staging URL: `https://lawyer-marketing.previewapps.org`
 └── docs/              Documentation
 ```
 
-##
+## Environment Files
 
-[... truncated to 2500 bytes; full extract at sources/_raw/lawyer_marketing.md ...]
+| File | Purpose |
+|------|---------|
+| `backend-py/.env.staging` | Staging environment config |
+| `frontend/.env.staging` | Frontend staging build vars |
+| `*.env.production` | Reserved for future production deployment |
+
+## CLI Tools
+
+### Google Ads CLI
+
+Campaign management with 38 operations — campaigns, ad groups, keywords, RSA ads, budgets, criteria, reporting, and GAQL queries.
+
+### Keyword Planner CLI
+
+Keyword research via MCC service account — generate ideas and get historical metrics.
+
+### Law Data CLI
+
+Legal market intelligence with 10 commands — court opinions, demographics, traffic incidents, SEO keywords, and competitor analysis.
+
+```
+
+## CLAUDE.md
+```markdown
+# Lawyer Marketing Platform
+
+AI-powered legal marketing platform for Google Ads campaign management, keyword research, and market intelligence.
+
+## Architecture Overview
+
+```
+lawyer_marketing/
+├── frontend/          # React + Vite SPA
+├── backend-py/        # Python/FastAPI backend (PRIMARY)
+├── backend/           # Node.js/Express backend (LEGACY — retained, not updated)
+├── google-ads/        # Google Ads CLI tools (campaign management + keyword planner)
+├── law-data/          # Legal market intelligence CLI tools
+├── docker/            # Docker configs (Compose + Dockerfiles)
+├── scripts/           # Utility scripts
+└── docs/              # Documentation
+```
+
+## Backend Status
+
+| Backend | Path | Status | Notes |
+|---------|------|--------|-------|
+| **Python/FastAPI** | `backend-py/` | **Active** | Primary backend, all new development here |
+| Node.js/Express | `backend/` | Retained | No longer updated; kept for reference only |
+
+Both backends expose the same API surface (`/api/*`) and share the same PostgreSQL database. The frontend is backend-agnostic — Docker Compose file selection determines which backend runs.
+
+## Tech Stack
+
+### Frontend (`frontend/`)
+- **Framework**: React 19 + TypeScript
+- **Build**: Vite 8
+- **Styling**: Tailwind CSS 4
+- **State**: Zustand
+- **Auth**: Logto (`@logto/react`)
+- **Routing**: React Router DOM 7
+- **Notable**: Leaflet maps, React Markdown rendering
+
+### Backend — Python (`backend-py/`)
+- **Framework**: FastAPI
+- **Python**: 3.11+
+- **Database**: PostgreSQL via asyncpg + SQLAlchemy 2.0
+- **Migrations**: Alembic
+- **Auth**: Logto (JWT verification via python-jose)
+- **Scheduling**: APScheduler (Redis-backed, memory fallback)
+- **Agent**: claude-agent-sdk for AI chat ses
+
+[... truncated to 5000 bytes; full extract at sources/_raw/lawyer_marketing.md ...]
 

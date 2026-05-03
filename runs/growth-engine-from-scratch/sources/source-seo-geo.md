@@ -100,9 +100,86 @@ ssh getuai_dev@20.228.94.67 "cd ~/projects/geo-seo-v2 && docker compose -p geo-s
 
 ### Step 6: Caddy Reload
 
-Container IPs change after rebuild. Reload Caddy to 
+Container IPs change after rebuild. Reload Caddy to refresh upstream DNS:
 
-[... truncated to 2500 bytes; full extract at sources/_raw/geo-seo-v2.md ...]
+```bash
+ssh getuai_dev@20.228.94.67 "docker exec docker-caddy-1 caddy reload --config /etc/caddy/Caddyfile"
+```
+
+### Step 7: Verify
+
+Run these together:
+
+```bash
+# Backend logs
+ssh getuai_dev@20.228.94.67 "docker logs geo-seo-v2-backend-1 --tail 12"
+
+# SPA health
+curl -s -o /dev/null -w 'SPA: %{http_code}\n' http://20.228.94.67:8085
+```
+
+Expected:
+- Backend log contains `🚀 Backend started on port 3457`
+- SPA returns `200`
+
+### Step 8: Report
+
+Summarize in a table:
+
+| Item | Result |
+|------|--------|
+| Commit | `<hash>` — `<message>` |
+| Push | `origin/content` updated |
+| Server pull | Fast-forward to `<hash>` |
+| Docker build | Success / Fail |
+| Caddy reload | Done |
+| Backend | 🚀 Started |
+| SPA | 200 |
+
+Include the public URL: `https://geocontent.previewapps.org`
+
+## Error Recovery
+
+### TypeScript Build Failure
+
+If `docker compose ... --build` exits with code 1 and the frontend builder shows a TS error:
+
+1. Read the error message (file + line)
+2. Fix the issue locally
+3. `git add <file> && git commit -m "fix: <describe TS error>"`
+4. `git push origin content`
+5. `ssh ... "git pull origin content"`
+6. Retry `docker compose ... up -d --build`
+
+### .env.staging Changed But Containers Already Running
+
+If only `.env.staging` was updated (no code change), force-recreate backend without rebuilding:
+
+```bash
+scp d:/work-projects/geo-seo-v2/backend/.env.staging getuai_dev@20.228.94.67:~/projects/geo-seo-v2/backend/.env.staging
+ssh getuai_dev@20.228.94.67 "cd ~/projects/geo-seo-v2 && docker compose -p geo-seo-v2 -f docker/docker-compose.staging.yml up -d --no-build --force-recreate backend"
+ssh getuai_dev@20.228.94.67 "docker exec docker-caddy-1 caddy reload --config /etc/caddy/Caddyfile"
+```
+
+```
+
+## .cursor/skills/deploy-staging/SKILL.md
+```markdown
+---
+name: geo-seo-v2-deploy
+description: Deploy the geo-seo-v2 project to staging server (20.228.94.67:8085). Use when the user asks to "deploy", "deploy to staging", "publish to staging", "update staging", "release to staging", or mentions "geo-seo-v2 deployment". Handles git push, SSH into server, git pull, docker rebuild, and health verification.
+---
+
+# GEO SEO v2 — Staging Deployment
+
+## Infrastructure
+
+| Item          | Value                                                            |
+| ------------- | ---------------------------------------------------------------- |
+| Server IP     | `20.228.94.67`                                                   |
+| SSH User      | `getua
+
+[... truncated to 5000 bytes; full extract at sources/_raw/geo-seo-v2.md ...]
 
 
 # Repo: geowriter
@@ -218,9 +295,30 @@ This launches the AI backend with hot reload enabled, typically accessible at `h
 - SEO performance metrics and analysis
 - Keyword research and tracking
 - Content optimization recommendations
-- Backlink
+- Backlink analysis and management
+- Competitor analysis
+- AI-powered SEO strategy advisor
+- Support for file uploads for enhanced analysis
 
-[... truncated to 2500 bytes; full extract at sources/_raw/getuai-seo.md ...]
+## Troubleshooting
+
+- If you encounter issues with API access, check your credentials and API keys
+- For connection issues between layers, ensure all three components are running
+- Check the console logs of each component for specific error messages
+
+## Development
+
+The codebase is organized as follows:
+
+- `v2-ui`: Frontend code
+- `v2-mcp`: Google Ads API integration
+- `v2-ai`: FastAPI backend and AI processing
+  - `api/`: API endpoints and core functionality
+  - `features/`: Feature-specific modules, including SEO campaigns
+  - `agents/`: AI agent implementations
+
+
+```
 
 
 # Repo: rankgale
@@ -292,9 +390,81 @@ rankncompare/
 ├── package.json          # Project dependencies and scripts
 ├── start.sh              # Startup script
 ├── tailwind.config.ts    # Tailwind CSS configuration
-├── tsconfig.json         # TypeScript con
+├── tsconfig.json         # TypeScript configuration
+└── vite.config.ts        # Vite configuration
+```
 
-[... truncated to 2500 bytes; full extract at sources/_raw/rankncompare.md ...]
+## Google Analytics Integration
+
+The application is integrated with Google Analytics 4 (GA4) to track user interactions and gain insights into user behavior.
+
+### Implementation Details
+
+1. **GA4 Configuration**
+   - The Google Analytics tracking ID (`G-RF6K20FCM8`) is configured in two places:
+     - In `client/index.html` via the standard Google Analytics script
+     - In `client/src/App.tsx` via the `AnalyticsProvider` component
+
+2. **Analytics Architecture**
+   - `client/src/lib/analytics.ts`: Core analytics utility functions
+   - `client/src/lib/analytics-provider.tsx`: React context provider that initializes GA
+   - `client/src/hooks/useAnalytics.ts`: Custom hook for tracking events throughout the application
+
+3. **Tracked Events**
+   The application tracks the following events:
+   - Page views
+   - Navigation events
+   - Search queries and search result clicks
+   - Category clicks
+   - Product view events
+   - UI interactions (mobile menu toggle, etc.)
+
+4. **Testing Analytics Locally**
+   When testing locally:
+   - GA tracking code executes but data may not appear in your GA reports
+   - GA typically filters out localhost traffic
+   - Use Google Analytics Debugger extension or browser developer tools to verify tracking calls
+   - Check Network tab for requests to `www.google-analytics.com`
+
+5. **Customizing Analytics**
+   To modify the tracking ID:
+   - Update the `GA_MEASUREMENT_ID` constant in `client/src/App.tsx`
+   - Update the measurement ID in the script tags in `client/index.html`
+
+### Adding New Tracking Events
+
+To add tracking for new user interactions:
+
+1. Import the `useAnalytics` hook:
+   ```tsx
+   import { useAnalytics } from '@/hooks/useAnalytics';
+   ```
+
+2. Use the appropriate tracking method:
+   ```tsx
+   const { trackEvent, trackPageView } = useAnalytics();
+   
+   // Track a custom event
+   trackEvent('my_custom_event', {
+     event_category: 'User Engagement',
+     event_label: 'Custom Interaction'
+   });
+   ```
+
+## SEO Features
+
+The application includes built-in SEO features to improve search engine indexability and visibility.
+
+### Sitemap and Robots.txt
+
+The site automatically generates and serves a `sitemap.xml` and `robots.txt` file to help search engines discover and index all pages.
+
+1. **Implementation Details**
+   - Dynamic sitemap generation based on available categories
+   - Static routes (home, about, contact, trending) included in sitemap
+   - Catego
+
+[... truncated to 5000 bytes; full extract at sources/_raw/rankncompare.md ...]
 
 
 # Repo: rankncompare_v2
