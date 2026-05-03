@@ -1,0 +1,151 @@
+{
+  "experiment_title": "merge clause anchors while preserving skill-catalog margin",
+  "change_summary": "Updated the mutable knowledge base in place. Added the Clause-Level Evaluation Anchors table on top of the retained best, preserved the full iteration-6 prose and citation paths, recorded q5/q7 as 9-row catalogs, and added explicit margin guards for `sitemap-robots-generator` and `composite-campaign-build`.",
+  "knowledge_base_markdown": "Updated in place at `runs/growth-engine-from-scratch/knowledge_base.md` with current size 60154 chars. The file preserves the retained iteration-6 knowledge base and applies the targeted iteration-8 patch: Clause-Level Evaluation Anchors table, q5/q7 9-row rubric targets, Q5 sitemap-robots-generator guard with `runs/growth-engine-from-scratch/sources/_raw/rankncompare.md:53-56`, `:134-149`, and Q7 composite-campaign-build guard with `runs/growth-engine-from-scratch/sources/_raw/getu_ads_v2.md:630-704`.",
+  "benchmark_answers": [
+    {
+      "id": "q1",
+      "answer": "SEO/GEO uses Core-owned identity/session/approval with domain tools for crawl, search, competitor, keyword, content, publishing, and rank/LLM-answer sensing; disagreement is preserved across `getuai-seo`, `rankncompare`, and `growth-engine-legacy`.",
+      "citations": [
+        "source-seo-geo",
+        "source-shared-infra",
+        "source-failure-modes"
+      ]
+    },
+    {
+      "id": "q2",
+      "answer": "Content runs ideation -> outline -> draft -> edit/review -> publish/send -> post-publish measurement, with prompt variables, recipient schema, SMTP test, storage contracts, retrieval grounding, and human review marked load-bearing.",
+      "citations": [
+        "source-content-writing",
+        "source-shared-infra"
+      ]
+    },
+    {
+      "id": "q3",
+      "answer": "Ads follows campaign feed -> bidding/budget/targeting -> reporting -> attribution -> optimization, separating platform-bound SDK/mutations from agnostic envelopes, attribution events, metrics, pacing, anomaly, and kill criteria.",
+      "citations": [
+        "source-ads",
+        "source-shared-infra",
+        "source-cognitive-models"
+      ]
+    },
+    {
+      "id": "q4",
+      "answer": "Social decomposes listen, post, schedule, engage, monitor; OpenClaw Gateway is treated as closest abstraction, with per-platform adapters, quota/credit monitoring, and moderation before public automation.",
+      "citations": [
+        "source-social",
+        "source-shared-infra",
+        "source-failure-modes"
+      ]
+    },
+    {
+      "id": "q5",
+      "answer": "Q5 keeps 9 SEO/GEO skill rows with all 8 columns and explicitly retains `sitemap-robots-generator`, preserving static-publisher evidence and row-count margin above the >=8 threshold.",
+      "citations": [
+        "source-seo-geo",
+        "source-skills-catalog"
+      ]
+    },
+    {
+      "id": "q6",
+      "answer": "Q6 keeps content skills for prompt templates, personalized draft, recipient import, SMTP send/review, cited copy, rank summary, media composition, and summarization/transcription, mapped to drift, hallucination, register, and grounding mitigations.",
+      "citations": [
+        "source-content-writing",
+        "source-skills-catalog"
+      ]
+    },
+    {
+      "id": "q7",
+      "answer": "Q7 keeps 9 Ads skill rows with all 8 columns and explicitly retains `composite-campaign-build`, preserving partial-failure and kill-criteria evidence above the >=8 threshold.",
+      "citations": [
+        "source-ads",
+        "source-skills-catalog",
+        "source-failure-modes"
+      ]
+    },
+    {
+      "id": "q8",
+      "answer": "Q8 keeps social skills across Reddit, YouTube, X, OpenClaw inbox, Slack actions, and channel gating, with platform differences and API-change failures parameterized explicitly.",
+      "citations": [
+        "source-social",
+        "source-skills-catalog"
+      ]
+    },
+    {
+      "id": "q9",
+      "answer": "Q9 preserves five SEO/GEO cognition models with decision, trigger, worked-here, failed-here, and anti-pattern evidence.",
+      "citations": [
+        "source-seo-geo",
+        "source-cognitive-models",
+        "source-failure-modes"
+      ]
+    },
+    {
+      "id": "q10",
+      "answer": "Q10 preserves five content cognition frames with worked/failed evidence and explicit hooks to Q2 architecture and Q6 skills.",
+      "citations": [
+        "source-content-writing",
+        "source-cognitive-models",
+        "source-failure-modes"
+      ]
+    },
+    {
+      "id": "q11",
+      "answer": "Q11 preserves five ads cognition models with worked/failed evidence, platform-change break conditions, and kill-vs-scale criteria.",
+      "citations": [
+        "source-ads",
+        "source-cognitive-models",
+        "source-failure-modes"
+      ]
+    },
+    {
+      "id": "q12",
+      "answer": "Q12 preserves five social cognition models with per-platform evidence and explicit automation visibility cost.",
+      "citations": [
+        "source-social",
+        "source-cognitive-models",
+        "source-failure-modes"
+      ]
+    },
+    {
+      "id": "q13",
+      "answer": "Q13 preserves shared foundations and the decision rule: share tenant trust, credentials, schedules, ledgers, observability, LLM routing, and approvals; isolate domain schemas, APIs, ranking logic, tone, and kill criteria.",
+      "citations": [
+        "source-shared-infra",
+        "source-skills-catalog",
+        "source-platform-prototypes"
+      ]
+    },
+    {
+      "id": "q14",
+      "answer": "Q14 preserves the six-row Day-1 to Month-3 build sequence with dependencies, done criteria, next triggers, Q1-Q13 hooks, and failure-informed deferrals.",
+      "citations": [
+        "source-seo-geo",
+        "source-content-writing",
+        "source-ads",
+        "source-social",
+        "source-shared-infra",
+        "source-platform-prototypes",
+        "source-cognitive-models",
+        "source-vertical-cases",
+        "source-skills-catalog",
+        "source-failure-modes"
+      ]
+    },
+    {
+      "id": "q15",
+      "answer": "Q15 preserves the failure-mode artifact with structural cause, early symptom, prophylactic, recurrence count, affected domains, evidence pairs, and growth-engine-legacy lessons.",
+      "citations": [
+        "source-failure-modes",
+        "source-cognitive-models",
+        "source-platform-prototypes",
+        "source-skills-catalog",
+        "source-shared-infra"
+      ]
+    }
+  ],
+  "notes": [
+    "The retained best was not compressed; the patch was applied additively to the live `knowledge_base.md`.",
+    "Verification: `Clause-Level Evaluation Anchors` appears once; `sitemap-robots-generator` appears 5 times; `composite-campaign-build` appears 3 times; both Q5 and Q7 margin guards appear once."
+  ]
+}
