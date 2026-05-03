@@ -1,7 +1,7 @@
 {
-  "iteration": 15,
-  "best_score": 0.95,
-  "best_iteration": 15,
-  "current_knowledge_chars": 32508,
-  "last_kept_experiment": "restore benchmark file-line citations and merge Q1/Q4 disagreement gains"
+  "iteration": 17,
+  "best_score": 1.0,
+  "best_iteration": 17,
+  "current_knowledge_chars": 28911,
+  "last_kept_experiment": "split Q12 failed anchors and restore Q3/Q1 integration gains"
 }
