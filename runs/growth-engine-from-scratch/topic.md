@@ -109,3 +109,27 @@ threshold crossing, iters 5/15/30, and the final iteration.
     --max-total-iterations 40 \
     --dimension-threshold 0.80
   ```
+
+---
+
+## Run Outcome (v1.0, 2026-05-03)
+
+- ✅ **Iteration 6 is the kept best at score 0.98** — `last_kept_experiment: embed evaluation rubric and upgrade cognition pair clauses`
+- ✅ KB at 51,533 chars (309 lines): all 15 questions answered with structured artifacts (32-row skill-catalog across Q5-Q8, 6-row build-sequence in Q14, 9-row failure-modes table in Q15) and tier:file:line citations throughout
+- ✅ Embedded **Evaluation Rubric Contract** (KB §"Evaluation Rubric Contract") — producer engineered cross-model evaluability per §6.2 directly into the KB so different judges compare at the same clause level
+- ✅ 10 iterations attempted; framework kept iters 1 (0.85), 2 (0.90), 6 (0.98) and discarded 3-5, 7-10 — cybernetic keep/discard gate worked as designed
+- ✅ Judge invariant guard caught real regressions: iter-2 `unacknowledged_regressions`, iter-9 `verdict_score_mismatch` (auto-demoted to tie)
+- ✅ Source payload trimmed from 1.9 MB to 176 KB via `--max-bytes-per-repo 2500` (PR #6); fits codex's 1 MB input cap with margin
+
+### Known v2 candidates (carried forward from iter-2 judge feedback, not fully closed at iter-6)
+
+- **Vertical-case repos under-represented**: `lawyer_finder`, `cuilawgroup`, `law-intake` are listed in `source-vertical-cases.md` but rarely cited in the KB body (only `lawyer_marketing` is). A v2 run could pull these in for richer industry-pack evidence.
+- **Citation reuse**: a few line ranges (e.g., `getuai-seo.md:101-106`) are cited multiple times across questions. Deeper sections of the raw extracts could be mined.
+- **Per-criterion stable-ID rubric**: spec §6.2 introduced `q<N>.r<M>` IDs in `benchmark.json`, but the KB's Q1-Q4 architecture answers don't carry inline rubric anchor IDs the way the embedded Evaluation Rubric Contract table does. Cleanup opportunity for v2.
+- **Loop convergence at iter-6**: producer plateaued; iters 7-10 all regressed below the 0.98 baseline. Increasing source diversity (e.g., adding a small LLM-driven re-composition pass on top of the digests) could unstick the producer.
+
+### Status
+
+- Tag: `growth-v1.0` on branch `autoresearch/growth-v1-dryrun`
+- Stop reason: `max_total_iterations` cap (10); `dimension_threshold` 0.95 was not fully met across all dimensions despite best_score 0.98
+- Total cost: ~10-11 codex producer calls + ~10 claude judge calls; ~4 hours wall clock
