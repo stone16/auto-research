@@ -133,3 +133,40 @@ threshold crossing, iters 5/15/30, and the final iteration.
 - Tag: `growth-v1.0` on branch `autoresearch/growth-v1-dryrun`
 - Stop reason: `max_total_iterations` cap (10); `dimension_threshold` 0.95 was not fully met across all dimensions despite best_score 0.98
 - Total cost: ~10-11 codex producer calls + ~10 claude judge calls; ~4 hours wall clock
+
+---
+
+## Run Outcome (v2.0, 2026-05-03)
+
+- ✅ **Iteration 19 is the kept best at score 1.0000** — `last_kept_experiment: shorten Q12 failed-anchor lock`
+- ✅ **Broke past v1's 0.98 plateau**: trajectory 0.485 → 0.87 → 0.88 → 0.92 → 0.93 → discards → 0.95 (iter-11) → discards → 0.95 (iter-15) → discards → **1.0000 (iter-17, 18, 19)**
+- ✅ **9 of 19 post-iter-1 iterations kept** (~47% keep rate vs v1's 37%); 10 discarded by the cybernetic gate
+- ✅ KB consolidated, didn't bloat: v1 iter-6 = 51 KB → v2 iter-19 = 28 KB. Producer found an information-density optimum.
+- ✅ Judge invariant guard caught 3 `verdict_score_mismatch` violations (auto-demoted to ties); 3 judge fallbacks to deterministic scoring (judge CLI exited code 1 on those iters)
+
+### How v2 fixed v1's documented gaps
+
+- ✅ **Per-criterion stable IDs in body**: q9.cog1..q12.cog5 (cognition rows), q13.f1..q13.f8 (foundations), q14.m1..q14.m6 (milestones), q15.fm1..q15.fm9 (failure modes), plus per-skill IDs in Q5-Q8. The spec §6.2 stable-ID vision is now baked into the KB body, not just the embedded Evaluation Rubric Contract.
+- ✅ **Vertical-case coverage**: `lawyer_finder` cited 2x (was 0 in v1), `cuilawgroup` cited 1x (was 0), `lawyer_marketing` 7x (anchor case). `law-intake` still uncited (small repo, thin even at 5K budget).
+- ✅ **Citation depth**: iters 13/14/18 narrowed file:line ranges to specific worked-vs-failed contrasts on independent code regions (e.g., q12.cog2 worked-here at `reddit-scount.md:124-181` vs failed-here narrowed from `:141-181` to `:145-162`).
+- ✅ **Q1/Q4 architecture asymmetry**: explicit component-by-component trace tables added in iters 2/6/16; Q3 also got a 9-row order/component/state/output/citation table.
+
+### v2 setup that enabled the breakthrough
+
+- Source budget bumped 2500 → 5000 bytes/repo (`scripts/compose_sources.py --max-bytes-per-repo 5000`); total source payload 176 KB → 300 KB, well under codex's 1 MB cap.
+- State.json reset to `iteration=0, best_score=0.0` to let producer climb from a fresh score gate.
+- Live KB started at v1's iter-6 content (51 KB) as producer's baseline; v2 builds on v1, doesn't restart.
+- Mid-run framework patch landed (PR #8): `models.py` now accepts `experiment` as alias for `experiment_title` (codex returned shorthand on iters 2-4 of v2's first attempt, halting the loop after 3 consecutive crashes).
+
+### Known v3 candidates (carried forward from v2 judge feedback)
+
+- **`law-intake` still uncited**: small repo, 5K budget didn't help. Either drop from source-vertical-cases or pull a different excerpt that's substantive.
+- **`growth-engine` cited 30+ times in cognition; some other repos under 3 citations**: distribution skew. Could be a feature (rich repo gets more attention) or bug (other repos under-mined).
+- **Iter-20 attempted compression and was rejected**: producer was probing an information-density limit. A v3 with a higher iteration budget AND tighter rubrics might find further compression without losing structure.
+- **3 `judge_review.md` fallbacks to deterministic scoring**: Claude CLI exited code 1 on iters 12 (post-discard), 13, 14. Investigate whether claude is hitting timeout/rate-limit, or whether the judge prompt got too large.
+
+### Status
+
+- Tag: `growth-v2.0` on branch `autoresearch/growth-v2`
+- Stop reason: `max_total_iterations` cap (20); 3 consecutive iterations at 1.0000 (iters 17/18/19) effectively saturated the producer-judge agreement
+- Total cost: ~20 codex producer calls + ~20 claude judge calls + 3 deterministic judge fallbacks; ~3.5 hours wall clock for the resumed run + ~12 minutes for v2's first crashed attempt
