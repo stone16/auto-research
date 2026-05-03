@@ -1,7 +1,7 @@
 {
-  "iteration": 11,
+  "iteration": 15,
   "best_score": 0.95,
-  "best_iteration": 11,
-  "current_knowledge_chars": 37172,
-  "last_kept_experiment": "merge q13 foundation table while preserving rendered skill cognition and trace artifacts"
+  "best_iteration": 15,
+  "current_knowledge_chars": 32508,
+  "last_kept_experiment": "restore benchmark file-line citations and merge Q1/Q4 disagreement gains"
 }
