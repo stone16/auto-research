@@ -1,0 +1,9 @@
+{
+  "iteration": 1,
+  "violations": [
+    {
+      "code": "unacknowledged_regressions",
+      "message": "verdict=candidate_better with 3 regressions but pairwise_summary does not acknowledge any tradeoff"
+    }
+  ]
+}
