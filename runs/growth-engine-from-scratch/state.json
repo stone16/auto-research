@@ -1,7 +1,7 @@
 {
-  "iteration": 4,
-  "best_score": 0.9167,
-  "best_iteration": 4,
-  "current_knowledge_chars": 30185,
-  "last_kept_experiment": "add stable cognition row IDs and widen thin citation ranges"
+  "iteration": 5,
+  "best_score": 0.9333,
+  "best_iteration": 5,
+  "current_knowledge_chars": 31997,
+  "last_kept_experiment": "extend stable artifact IDs across skill build and failure tables"
 }
