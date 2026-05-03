@@ -2,7 +2,7 @@
 
 Topic: Growth Engine From Scratch - architecture, reusable skills, and practitioner cognition from the getuai corpus.
 
-Iteration: 18 Q12 independent failed-anchor lock.
+Iteration: 19 Q12 anchor lock.
 
 ## Evidence Policy
 Direct citations use `repo.md:line-line` from `runs/growth-engine-from-scratch/sources/_raw/`. Stable IDs are part of the artifact contract: `q1.trace*`-`q4.trace*`, `seo.skill*`, `content.skill*`, `ads.skill*`, `social.skill*`, `q9.cog*`-`q12.cog*`, `q13.f*`, `q14.m*`, and `q15.fm*`.
@@ -135,7 +135,7 @@ Margin audit: Q5 has 9 rows, Q6 has 8, Q7 has 9, Q8 has 8.
 | q12.cog4 | Social | viral mechanics | Post/reply/media affordances require monitor loop | `openclaw-marketing.md:7392-7422` | `youtube-api-demo.md:48-54` | Video search result treated as viral loop | Q4 post/monitor split; `q14.m5` |
 | q12.cog5 | Social | automation visibility cost | Automation touches public/private channels | `openclaw-marketing.md:122-126`, `x-api-credit-monitor.md:7-17` | `openclaw-marketing.md:132-158` | Always-on assistant without visible guards | `social.skill8`/`social.skill4`; `q15.fm4`, `q15.fm6` |
 
-Q12 independence lock: `q12.cog2` failed-here is only Reddit discovery calls (`reddit-scount.md:145-162`) after analysis already produced keywords, so it does not overlap the community-fit analysis worked range (`reddit-scount.md:108-139`). `q12.cog3` failed-here is only raw X command shortcuts (`openclaw-marketing.md:7500-7507`), distinct from X skill metadata/search (`openclaw-marketing.md:7392-7422`) and Gateway policy controls (`openclaw-marketing.md:122-158`).
+Q12 lock: `q12.cog2` failed-here is Reddit discovery-only (`reddit-scount.md:145-162`), disjoint from analysis/community fit (`reddit-scount.md:108-139`). `q12.cog3` failed-here is raw X shortcuts (`openclaw-marketing.md:7500-7507`), disjoint from X skill metadata (`openclaw-marketing.md:7392-7422`) and Gateway policy (`openclaw-marketing.md:122-158`).
 
 ## Q13 - Shared Foundations
 Decision rule: share tenant trust, credentials, schedules, ledgers, observability, LLM routing, approval, and governance when the component crosses tenant, money, secret, queue, audit, or operator-control boundaries. Keep domain-isolated when it encodes ranking logic, creative/tone judgment, platform API semantics, industry facts, content schema, or channel-specific kill criteria.

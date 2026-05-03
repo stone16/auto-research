@@ -1,7 +1,7 @@
 {
-  "iteration": 18,
+  "iteration": 19,
   "best_score": 1.0,
-  "best_iteration": 18,
-  "current_knowledge_chars": 28889,
-  "last_kept_experiment": "tighten Q12 failed-anchor independence"
+  "best_iteration": 19,
+  "current_knowledge_chars": 28755,
+  "last_kept_experiment": "shorten Q12 failed-anchor lock"
 }
