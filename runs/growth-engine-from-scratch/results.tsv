@@ -1,1 +1,2 @@
 iteration	timestamp	score	prev_best	status	knowledge_chars	provider	experiment	change_summary
+1	2026-05-03T03:11:55+00:00	0.4850	0.0000	keep	20775	codex	architecture trace tables plus skill-catalog margin audit	Added explicit input -> component -> state -> output traces for Q1-Q4, absorbed the Skill-Catalog Margin Audit, and preserved the embedded 32+ skill rows, six build-sequence rows, and nine failure-mode rows in a compact full KB.

@@ -186,8 +186,14 @@ class ResearchResponse:
                 f"Research response must be an object, got {type(data).__name__}"
             )
 
+        # Accept "experiment" as a shorthand alias for "experiment_title".
+        # Codex sometimes shortens the field name across iterations, which would
+        # otherwise crash the parser and halt the loop after 3 consecutive failures.
+        title_raw = data.get("experiment_title", data.get("experiment"))
+        if title_raw is None:
+            raise KeyError("experiment_title")
         return cls(
-            experiment_title=str(data["experiment_title"]),
+            experiment_title=str(title_raw),
             change_summary=_coerce_text_block(data.get("change_summary", "")),
             knowledge_base_markdown=str(data["knowledge_base_markdown"]),
             benchmark_answers=[
