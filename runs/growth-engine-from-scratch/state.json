@@ -1,7 +1,7 @@
 {
-  "iteration": 3,
-  "best_score": 0.8833,
-  "best_iteration": 3,
-  "current_knowledge_chars": 29741,
-  "last_kept_experiment": "structured cognition evidence table"
+  "iteration": 4,
+  "best_score": 0.9167,
+  "best_iteration": 4,
+  "current_knowledge_chars": 30185,
+  "last_kept_experiment": "add stable cognition row IDs and widen thin citation ranges"
 }
