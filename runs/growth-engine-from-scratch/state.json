@@ -1,7 +1,7 @@
 {
-  "iteration": 17,
+  "iteration": 18,
   "best_score": 1.0,
-  "best_iteration": 17,
-  "current_knowledge_chars": 28911,
-  "last_kept_experiment": "split Q12 failed anchors and restore Q3/Q1 integration gains"
+  "best_iteration": 18,
+  "current_knowledge_chars": 28889,
+  "last_kept_experiment": "tighten Q12 failed-anchor independence"
 }

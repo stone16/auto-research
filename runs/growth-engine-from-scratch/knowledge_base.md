@@ -2,7 +2,7 @@
 
 Topic: Growth Engine From Scratch - architecture, reusable skills, and practitioner cognition from the getuai corpus.
 
-Iteration: 17 Q12 cognition anchor split plus Q3/Q1 integration gains.
+Iteration: 18 Q12 independent failed-anchor lock.
 
 ## Evidence Policy
 Direct citations use `repo.md:line-line` from `runs/growth-engine-from-scratch/sources/_raw/`. Stable IDs are part of the artifact contract: `q1.trace*`-`q4.trace*`, `seo.skill*`, `content.skill*`, `ads.skill*`, `social.skill*`, `q9.cog*`-`q12.cog*`, `q13.f*`, `q14.m*`, and `q15.fm*`.
@@ -130,12 +130,12 @@ Margin audit: Q5 has 9 rows, Q6 has 8, Q7 has 9, Q8 has 8.
 | q11.cog4 | Ads | attribution paradox | Better measurement raises session fragility | `attribution_v2.md:13-23` | `attribution_v2.md:151-186` | SDK install treated as solved attribution | Q3 attribution; `ads.skill8`; `q15.fm5` |
 | q11.cog5 | Ads | kill-vs-scale criteria | Recommendation crosses into spend/write action | `lawyer_marketing.md:248-269` | `growth-engine-legacy.md:83-88` | Engines own writes or restart after stop | Q3 approval/kill-switch; `ads.skill2`/`ads.skill5`; `q15.fm6` |
 | q12.cog1 | Social | platform-as-game-theory | Engagement depends on native community rules | `reddit-scount.md:108-139` | `openclaw-marketing.md:122-158` | Universal social adapter bypasses policy | Q4 Reddit/Gateway; `social.skill1`/`social.skill8`; `q15.fm6` |
-| q12.cog2 | Social | algorithm preference modeling | Distribution is search/feed/reply/video result | `youtube-api-demo.md:48-54`, `openclaw-marketing.md:7392-7422` | `reddit-scount.md:141-162` | Search-only monitor treated as engagement engine | Q4 adapters; `social.skill3`/`social.skill5` |
-| q12.cog3 | Social | community fit before brand voice | Reply voice needs topic/community context | `reddit-scount.md:108-139` | `openclaw-marketing.md:7498-7568` | Raw post before community-fit analysis | Q4 listen before post; `social.skill2`/`social.skill5`; `q15.fm6` |
+| q12.cog2 | Social | algorithm preference modeling | Distribution is search/feed/reply/video result | `youtube-api-demo.md:48-54`, `openclaw-marketing.md:7392-7422` | `reddit-scount.md:145-162` | Search-only monitor treated as engagement engine | Q4 adapters; `social.skill3`/`social.skill5` |
+| q12.cog3 | Social | community fit before brand voice | Reply voice needs topic/community context | `reddit-scount.md:108-139` | `openclaw-marketing.md:7500-7507` | Raw post before community-fit analysis | Q4 listen before post; `social.skill2`/`social.skill5`; `q15.fm6` |
 | q12.cog4 | Social | viral mechanics | Post/reply/media affordances require monitor loop | `openclaw-marketing.md:7392-7422` | `youtube-api-demo.md:48-54` | Video search result treated as viral loop | Q4 post/monitor split; `q14.m5` |
 | q12.cog5 | Social | automation visibility cost | Automation touches public/private channels | `openclaw-marketing.md:122-126`, `x-api-credit-monitor.md:7-17` | `openclaw-marketing.md:132-158` | Always-on assistant without visible guards | `social.skill8`/`social.skill4`; `q15.fm4`, `q15.fm6` |
 
-Q12 anchor split: `q12.cog2` failed-here now uses the narrow Reddit discovery-only range (`reddit-scount.md:141-162`) for the search-only-monitor-as-engagement-engine anti-pattern. `q12.cog3` failed-here uses X quick-reference/posting commands (`openclaw-marketing.md:7498-7568`) for raw-post-before-community-fit-analysis. These are distinct from worked-here Reddit analysis (`reddit-scount.md:108-139`) and X skill metadata/search (`openclaw-marketing.md:7392-7422`).
+Q12 independence lock: `q12.cog2` failed-here is only Reddit discovery calls (`reddit-scount.md:145-162`) after analysis already produced keywords, so it does not overlap the community-fit analysis worked range (`reddit-scount.md:108-139`). `q12.cog3` failed-here is only raw X command shortcuts (`openclaw-marketing.md:7500-7507`), distinct from X skill metadata/search (`openclaw-marketing.md:7392-7422`) and Gateway policy controls (`openclaw-marketing.md:122-158`).
 
 ## Q13 - Shared Foundations
 Decision rule: share tenant trust, credentials, schedules, ledgers, observability, LLM routing, approval, and governance when the component crosses tenant, money, secret, queue, audit, or operator-control boundaries. Keep domain-isolated when it encodes ranking logic, creative/tone judgment, platform API semantics, industry facts, content schema, or channel-specific kill criteria.
