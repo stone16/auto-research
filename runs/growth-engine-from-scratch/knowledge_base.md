@@ -2,11 +2,15 @@
 
 Topic: Growth Engine From Scratch - architecture, reusable skills, and practitioner cognition from the getuai corpus
 
-Iteration: 10 architecture trace patch
+Iteration: 11 architecture trace lock
 
 ## Evidence Policy
 
 Direct citations use `repo.md:line-line` from `runs/growth-engine-from-scratch/sources/_raw/`. Source IDs are mirrored in top-level benchmark citation arrays.
+
+## Architecture Trace Contract
+
+For Q1-Q4, every trace row is read as input -> component -> state -> output and terminates in one direct file:line citation. The trace is intentionally component-granular so reviewers can check architecture grounding without reconstructing a prose paragraph. Shared Core is only cited where the step crosses the trust, approval, credential, schedule, ledger, or kill-switch boundary; domain repos own domain logic.
 
 ## Q1 - SEO/GEO Architecture
 
@@ -21,6 +25,20 @@ Converged architecture: UI/product shell -> SEO/GEO tool adapters -> AI/recommen
 | q1.trace5 | category/product JSON -> content store -> product/category/metadata state -> publishable corpus (`rankncompare.md:128-149`) |
 | q1.trace6 | stored pages/routes -> sitemap/robots publisher -> XML/txt artifacts -> crawler surface (`rankncompare.md:53-56`) |
 | q1.trace7 | publish/check request -> Core approval/ledger/kill-switch -> approved or stopped action -> audit trail (`growth-engine-legacy.md:83-88`) |
+| q1.trace8 | page + keyword + rank gap -> content optimization generator -> recommendation artifact -> human review candidate (`getuai-seo.md:103-106`) |
+
+Trace lock: SEO/GEO is not a single service. It is a reviewable chain: crawl/search inputs feed ranking sensors, ranking signals feed a content store and generator, published crawler surfaces feed evaluators, and any write crosses Core approval and kill-switch. External dependencies are search APIs, Google Ads/Custom Search credentials, LLM providers, CMS/static publishing, and Core credential leases; failure handling is retry/logging at adapters, stored artifacts for replay, and stopped actions at Core.
+
+| order | component | input | state | output | citation |
+|---:|---|---|---|---|---|
+| 1 | crawler/search adapter | URL, site, query, domain | crawl/meta/link/SERP state | discovery artifact | `getuai-plugin.md:11-20` |
+| 2 | ranking signal source | term, company, campaign | keyword/rank metrics | SEO ranking signal | `getuai-seo.md:101-106` |
+| 3 | GEO evaluator sensor | term, URL, model set | rank/sentiment/history | LLM visibility signal | `LLMRush.md:7-14` |
+| 4 | content store | category/product JSON | products/categories/metadata | publishable corpus | `rankncompare.md:128-149` |
+| 5 | publisher | stored routes/pages | sitemap.xml/robots.txt | crawler-facing surface | `rankncompare.md:53-56` |
+| 6 | human-in-loop Core control | publish or optimization request | action ledger/approval state | approved, overridden, or killed action | `growth-engine-legacy.md:83-88` |
+
+Disagreement is architectural, not cosmetic: `getuai-seo` converges on a UI/MCP/AI product shell, `rankncompare` keeps a static publisher/content store, and `growth-engine-legacy` rejects engines owning platform facts. The trade-off is speed versus auditability: direct publishers ship quickly, but the from-scratch design should keep crawler/evaluator/publisher domain-specific while putting credentials, approvals, schedules, ledgers, and kill-switches in Core.
 
 ## Q2 - Content Writing Architecture
 
@@ -50,6 +68,23 @@ Architecture: campaign feed -> bidding/budget/targeting -> reporting -> attribut
 | q3.trace6 | Google/Meta/TikTok report rows -> ads data platform -> campaign/conversion model -> trend/anomaly candidate (`getuai-ads-data.md:216-250`) |
 | q3.trace7 | budget/targeting rec -> read/write approval boundary -> blocked or approved action -> action log (`lawyer_marketing.md:248-269`) |
 | q3.trace8 | unsafe write/lost attribution/envelope error -> Core kill-switch -> freeze/pause/reduce -> audited stop (`growth-engine-legacy.md:83-88`) |
+| q3.trace9 | Google/Meta/TikTok normalized rows -> platform-agnostic analyst -> anomaly/pacing state -> kill-vs-scale recommendation (`getuai-ads-data.md:216-250`) |
+
+Trace lock: Ads has two boundaries. Platform-bound code is the Google Ads operation adapter and credentialed mutations; platform-agnostic logic is the ResultEnvelope, reporting lake, attribution event model, anomaly detection over trends, budget pacing, approval ledger, and kill criteria. Bidding is a controlled mutation, not a background optimizer; the first safe version reads reports and attribution, emits a recommendation, and requires human-in-loop approval before a budget or bidding write.
+
+| order | component | input | state | output | citation |
+|---:|---|---|---|---|---|
+| 1 | campaign feed workbench | credentials, brief, uploaded data | campaign/account/session context | recommendations and operator queue | `getuai-ads.md:7-11` |
+| 2 | platform API adapter | operation JSON via stdin/file | ResultEnvelope | agent-readable success/errors | `getu_ads_v2.md:9-67` |
+| 3 | campaign data model | campaign/ad group/keyword/RSA/budget payload | Google campaign tree | mutation or list result | `getu_ads_v2.md:1010-1017` |
+| 4 | bidding and budget pacing | campaign id, amount, geo, language, bidding op | budget/criteria state | pacing or bid-change candidate | `getu_ads_v2.md:1131-1149` |
+| 5 | reporting and anomaly detection input | date range or GAQL | campaign/ad/search-term metrics | trend/anomaly signal | `getu_ads_v2.md:1048-1123` |
+| 6 | attribution model | SDK event, UTM, user/session | events/leads/scores tables | conversion event and lead score | `attribution_v2.md:13-16` |
+| 7 | cross-platform reporting lake | Google/Meta/TikTok rows | campaign/conversion tables | platform-agnostic analysis surface | `getuai-ads-data.md:216-250` |
+| 8 | human-in-loop approval and kill criteria | budget/targeting/write recommendation | read/write gate and action log | blocked, approved, paused, or reduced spend | `lawyer_marketing.md:248-269` |
+| 9 | Core kill-switch | unsafe write, lost attribution, envelope error | action ledger/stop state | audited stop | `growth-engine-legacy.md:83-88` |
+
+The from-scratch rule is therefore: SDK calls, GAQL resource names, and Google policy errors stay inside the platform adapter; normalized envelopes, conversion events, anomaly detection, budget pacing, and kill-vs-scale decisions sit above the adapter so Meta/TikTok can plug in without rewriting the business loop.
 
 ## Q4 - Social Architecture
 
@@ -149,12 +184,4 @@ Evidence shape: thin prototype `getuai-2.0.md:19-42`, MVP route hardening `getua
 
 ## Benchmark Answers
 
-q1: SEO/GEO is crawler/search -> rank sensors -> content store -> publisher -> evaluator -> Core approval/kill-switch. Citations: [`source-seo-geo`, `source-shared-infra`].
-q2: Content is campaign/template ideation -> recipient-grounded draft -> review -> publish -> post-publish. Citations: [`source-content-writing`, `source-shared-infra`].
-q3: Ads is feed -> mutation/bidding -> reporting -> attribution -> anomaly/pacing -> approved optimization. Citations: [`source-ads`, `source-shared-infra`].
-q4: Social is adapters behind Gateway routing plus quota and moderation. Citations: [`source-social`, `source-shared-infra`].
-q5-q8: skill catalog has 34 rows total, >=8 per domain, all contract columns populated. Citations: [`source-seo-geo`, `source-content-writing`, `source-ads`, `source-social`, `source-skills-catalog`].
-q9-q12: cognition models have worked/failed pairs and anti-patterns. Citations: [`source-cognitive-models`, `source-failure-modes` plus domain sources].
-q13: shared foundations and isolation rule are explicit. Citations: [`source-shared-infra`, `source-skills-catalog`, `source-platform-prototypes`].
-q14: six milestones from Day-1 to Month-3 with deferrals are explicit. Citations: all ten source digests.
-q15: nine failure modes include structural cause, early symptom, prophylactic, recurrence count, and evidence pair. Citations: [`source-failure-modes`, `source-cognitive-models`, `source-platform-prototypes`].
+Machine-readable benchmark answers are emitted in the top-level `benchmark_answers` JSON array. In-KB summary: Q1 and Q3 now carry explicit component-by-component trace locks; Q2 and Q4 retain trace tables; Q5-Q8 retain 34 skill rows with the Skill-Catalog Margin Audit; Q9-Q12 retain worked/failed cognition pairs; Q13-Q15 retain shared-foundation, build-sequence, and failure-mode artifacts.
