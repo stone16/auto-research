@@ -117,9 +117,153 @@ Headers: X-Session-Id: uuid-v4
 3. Session Cleanup:
    - Automatic cleanup of expired sessions
    - Removal of associated storage data
-   - Configurabl
+   - Configurable retention period
 
-[... truncated to 2500 bytes; full extract at sources/_raw/getuai-api.md ...]
+## Storage System
+
+### Image Storage
+
+#### Upload Image
+```http
+POST /api/v1/images/upload
+Headers: 
+  X-Session-Id: uuid-v4
+Form Data:
+  file: image_file
+  name: image_name
+  form_name: string (optional, defaults to "default")
+Response: {
+    "filename": "stored_image_name.ext"
+}
+```
+
+#### List Session Images
+```http
+GET /api/v1/images
+Headers: X-Session-Id: uuid-v4
+Query Parameters:
+  form_name: string (optional)
+Response: {
+    "images": [
+        "image1.jpg",
+        "image2.png"
+    ]
+}
+```
+
+#### Get Image
+```http
+GET /api/v1/images/{filename}
+Headers: X-Session-Id: uuid-v4
+Response: Image file
+```
+
+#### Delete Image
+```http
+DELETE /api/v1/images/{filename}
+Headers: X-Session-Id: uuid-v4
+```
+
+#### Cleanup Form Images
+```http
+DELETE /api/v1/images
+Headers: X-Session-Id: uuid-v4
+Query Parameters:
+  form_name: string (required)
+```
+
+### Text Storage
+
+#### Save Company Info
+```http
+POST /api/v1/texts/save/companyInfo
+Headers: 
+  X-Session-Id: uuid-v4
+Body: {
+    "company_name": string,
+    "company_description": string,
+    "company_logo": string,
+    "product_images": [
+        {
+            "title": string,
+            "description": string,
+            "filename": string
+        }
+    ],
+    "promotional_images": [
+        {
+            "title": string,
+            "description": string,
+            "filename": string
+        }
+    ]
+}
+Response: {
+    "status": "success"
+}
+```
+
+#### List Session Texts
+```http
+GET /api/v1/texts
+Headers: X-Session-Id: uuid-v4
+Response: {
+    "texts": [
+        {
+            "id": string,
+            "content": string,
+            "created_at": string
+        }
+    ]
+}
+```
+
+#### Delete Session Texts
+```http
+DELETE /api/v1/texts
+Headers: X-Session-Id: uuid-v4
+```
+
+All endpoints return appropriate HTTP status codes:
+- 200: Success
+- 400: Bad Request (invalid parameters)
+- 401: Unauthorized (missing session ID)
+- 404: Not Found (resource doesn't exist)
+- 413: Payload Too Large (file size exceeds limit)
+- 500: Internal Server Error
+
+## Configuration
+
+Required environment variables:
+```bash
+# Server Configuration
+PORT=8000
+API_V1_STR=/api/v1
+
+# Storage Configuration
+TEMP_IMAGE_STORAGE_DIR=storage
+MAX_IMAGE_SIZE_MB=5
+IMAGE_RETENTION_MINUTES=60
+
+# Session Configuration
+SESSION_RETENTION_MINUTES=30
+```
+
+## Development
+
+1. Create virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Unix
+# or
+.\venv\Scripts\activate  # On Windows
+```
+
+2. Install dependencies:
+```bash
+pip install -r re
+
+[... truncated to 5000 bytes; full extract at sources/_raw/getuai-api.md ...]
 
 
 # Repo: getuai-console
@@ -242,9 +386,51 @@ getuai-console/
 │   │   ├── api/         # API endpoints
 │   │   ├── core/        # Core configuration
 │   │   ├── models/      # Database models
-│   │   └── schemas/     # Pydan
+│   │   └── schemas/     # Pydantic schemas
+│   └── requirements.txt
+├── frontend/            # Next.js frontend application
+│   ├── app/            # Next.js app router pages
+│   ├── components/     # React components
+│   ├── lib/           # Utilities and API client
+│   └── package.json
+└── docker-compose.yml  # Docker configuration
+```
 
-[... truncated to 2500 bytes; full extract at sources/_raw/getuai-console.md ...]
+## Development
+
+### Backend Development
+
+- FastAPI auto-reloads on file changes
+- Async SQLAlchemy ORM with AsyncMy MySQL driver
+- Environment-based configuration (.env.development)
+- JWT authentication with configurable security
+- Connection pooling optimized for performance
+- CORS configured for frontend access
+
+### Frontend Development
+
+- Next.js with App Router
+- TypeScript for type safety
+- TanStack Query for data fetching
+- Tailwind CSS for styling
+- Recharts for data visualization
+
+## Deployment
+
+For production deployment:
+
+1. Update environment variables in `.env` files
+2. Build Docker images: `docker-compose build`
+3. Run with Docker: `docker-compose up -d`
+4. Configure reverse proxy (nginx/caddy) for production domains
+
+## Security Notes
+
+- Backend requires JWT authentication for all endpoints
+- Database connection is read-only for user data
+- CORS is configured to only allow specific origins
+- Sensitive data (Stripe IDs, etc.) are masked in UI
+```
 
 
 # Repo: getuai-ui
@@ -364,9 +550,78 @@ yarn start
 - `npm build`: Build production version
 - `npm test`: Run tests
 - `npm lint`: Run linter
-- `npm format`: Format c
+- `npm format`: Format code
 
-[... truncated to 2500 bytes; full extract at sources/_raw/getuai-ui.md ...]
+## Application Routes
+
+### /chat
+Chat interface for AI interactions:
+- Initializes session if none exists
+- Connects to AI service for message streaming
+- Displays message history
+- Handles errors and reconnection
+
+### /company-info
+Company information form:
+- Collects company details
+- Handles image uploads
+- Validates form data
+- Submits to API layer
+- Redirects to chat on success
+
+## Session Management
+
+The session service (`src/services/session.ts`) handles:
+- Session initialization
+- Session ID storage
+- Adding session headers to requests
+- Session validation and retry logic
+- Session expiration handling
+
+### Session Flow
+
+1. Initial Access:
+   - Session service checks for existing session
+   - If none exists, requests new session from API
+   - Stores session ID for future requests
+
+2. API Requests:
+   - Session ID added to request headers
+   - Automatic retry on session expiration
+   - New session creation if needed
+
+3. AI Service Requests:
+   - Same session ID used for AI requests
+   - Handles session validation failures
+   - Maintains session consistency
+
+## API Integration
+
+### API Service (`src/services/api.ts`)
+- Base URL: http://localhost:8000
+- Handles form submissions
+- Manages image uploads
+- Stores company information
+
+### AI Service (`src/services/ai.ts`)
+- Base URL: http://localhost:8001
+- Manages chat messages
+- Handles streaming responses
+- Maintains chat context
+
+## Contributing
+
+1. Fork the repository
+2. Create feature branch
+3. Commit changes
+4. Push to branch
+5. Create pull request
+
+## License
+
+MIT License - see LICENSE file for details
+
+```
 
 
 # Repo: getuai-auth-center
@@ -477,8 +732,20 @@ location / {
    npm run dev
    ```
 
+## Troubleshooting
 
-[... truncated to 2500 bytes; full extract at sources/_raw/getuai-mvp.md ...]
+### API Routing Issues
+
+If you're experiencing API routing issues:
+
+1. Check the environment setting - `process.env.NODE_ENV` should be `development` for local development
+2. Verify your `API_PREFIX` environment variable is correctly set
+3. For production, ensure your proxy server is properly configured to route `/api/*` requests to the backend
+
+### Session Storage
+
+Session IDs are stored in localStorage. If you experience session issues, try clearing localStorage in your browser. 
+```
 
 
 # Repo: getuai-plugin
@@ -570,9 +837,96 @@ pip install -r requirements.txt
 cat .env.example
 ```
 
-**Required for full 
+**Required for full functionality:**
+- Azure OpenAI credentials for AI-powered analysis
+- Google Ads Customer ID for keyword research  
+- Google Search API key for search analysis
+- All configuration files: `google_ads1.yml`, `service_account_credentials.json`
 
-[... truncated to 2500 bytes; full extract at sources/_raw/getuai-plugin.md ...]
+### 3. Run Development Server
+
+```bash
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8010
+```
+
+### 4. Test the API
+
+```bash
+# Test health endpoint
+curl http://localhost:8010/health
+
+# View all available endpoints
+curl http://localhost:8010/
+
+# Run test suite
+python tests/test_basic_api.py
+```
+
+## API Endpoints
+
+### SEO Analysis Tools
+- `POST /api/v1/site-structure/analyze` - Website structure and link analysis
+- `POST /api/v1/meta-tags/analyze` - Meta tags and social media optimization
+
+### Competitor Analysis & Keyword Research Tools
+- `POST /api/v1/google-search/analyze` - Google search results analysis
+- `POST /api/v1/competitor-discovery/analyze` - AI-powered competitor identification
+- `POST /api/v1/keyword-ideas/generate` - Keyword research with Google Ads API
+- `POST /api/v1/url-content/analyze` - Content extraction and keyword analysis
+- `POST /api/v1/keyword-clustering/analyze` - Semantic keyword clustering
+
+### API Documentation
+Complete OpenAPI 3.0.3 schemas available in `docs/schemas/`:
+- `site_structure.analyze.schema.json`
+- `meta_tags.analyze.schema.json`
+- `google_search.analyze.schema.json`
+- `competitor_discovery.analyze.schema.json`
+- `keyword_ideas.generate.schema.json`
+- `url_content.analyze.schema.json`
+- `keyword_clustering.analyze.schema.json`
+
+## Configuration
+
+### Environment Variables
+
+All configuration is managed through environment variables. See `.env.example` for complete configuration options.
+
+#### Required API Keys
+```bash
+AZURE_OPENAI_API_KEY=your-azure-openai-api-key
+AZURE_OPENAI_ENDPOINT=your-azure-openai-endpoint
+AZURE_OPENAI_API_VERSION=2025-03-01-preview
+COMPETITOR_DISCOVERY_MODEL=gpt-5
+URL_CONTENT_ANALYSIS_MODEL=gpt-4.1
+KEYWORD_CLUSTERING_MODEL=gpt-4.1-mini
+KEYWORD_EXTRACTION_MODEL=gpt-4o
+GOOGLE_ADS_CUSTOMER_ID=your-customer-id
+GOOGLE_SEARCH_API_KEY=your-search-api-key
+GOOGLE_SEARCH_CX=your-search-engine-id
+```
+
+#### Optional Configuration
+```bash
+LOG_LEVEL=INFO
+REQUEST_TIMEOUT_SECONDS=30
+DEBUG_MODE=false
+```
+
+### Google Ads API Setup
+
+1. Create `google_ads.yml` configuration file:
+```yaml
+developer_token: "your-developer-token"
+client_id: "your-client-id"
+client_secret: "your-client-secret"
+refresh_token: "your-refresh-token"
+```
+
+2. Set the config path:
+```bash
+GOOGLE_AD
+
+[... truncated to 5000 bytes; full extract at sources/_raw/getuai-plugin.md ...]
 
 
 # Repo: Pi
@@ -647,9 +1001,48 @@ Applies to UI copy, comments, commit messages, and chat replies alike.
 
 This is a foundation page, not a feed.
 
-- Focus: connections + the firm's core info. No activity items, no "fir
+- Focus: connections + the firm's core info. No activity items, no "first N articles published"-style milestones, no shipped-work history. Activity belongs on the agent pages.
+- Pi-managed vs user-editable must be visible at a glance. Pi-managed = set during onboarding, locked in the dashboard, "message your partner to change". User-editable = anything the user should be able to update without us.
+- User data fields default to **read-only**. An explicit `Edit` button unlocks them; `Save` commits, `Cancel` reverts. Never leave editable inputs always-hot — it invites accidental edits.
 
-[... truncated to 2500 bytes; full extract at sources/_raw/Pi.md ...]
+# Always read CLAUDE.md first
+
+Every task: read `CLAUDE.md` and any files it imports (e.g. this `AGENTS.md`) before writing or editing code. The harness auto-loads them, but read them anyway — the principles override defaults.
+
+```
+
+## agents.md
+```markdown
+<!-- BEGIN:nextjs-agent-rules -->
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+<!-- END:nextjs-agent-rules -->
+
+# Writing — 惜字如金
+
+Every word must earn its place.
+
+- No filler taglines, no marketing fluff, no sentences that restate the section title.
+- Skip "uses these everywhere it works"-style copy. Cut the half of a sentence that adds nothing.
+- A subtitle that doesn't tell the user *what to do* or *what just happened* doesn't ship.
+- Only express the core product value. If you can't, say nothing.
+
+Applies to UI copy, comments, commit messages, and chat replies alike.
+
+# Setup / settings page
+
+This is a foundation page, not a feed.
+
+- Focus: connections + the firm's core info. No activity items, no "first N articles published"-style milestones, no shipped-work history. Activity belongs on the agent pages.
+- Pi-managed vs user-editable must be visible at a glance. Pi-managed = set during onboarding, locked in the dashboard, "message your partner to change". User-editable = anything the user should be able to update without us.
+- User data fields default to **read-only**. An explicit `Edit` button unlocks them; `Save` commits, `Cancel` reverts. Never leave editable inputs always-hot — it invites accidental edits.
+
+# Always read CLAUDE.md first
+
+Every task: read `CLAUDE.md` and any files it imports (e.g. this `AGENTS.md`) before writing or editing code. The harness auto-loads them, but read them anyway — the principles override defaults.
+
+```
 
 
 # Repo: Visionary
@@ -713,9 +1106,67 @@ The quickest way to get started is using GitHub Codespaces, a hosted environment
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=Azure-Samples/visionary-lab)
 
-Wait for the Codespace to initiali
+Wait for the Codespace to initialize. Python 3.12, Node.js 19, and dependencies will be automatically installed.
 
-[... truncated to 2500 bytes; full extract at sources/_raw/Visionary.md ...]
+Now you can continue with [Step 2: Configure Resources.](#step-2-configure-resources)
+
+### Option B: Local Installation on your device
+
+#### 1. Clone the Repository
+
+```bash
+git clone https://github.com/Azure-Samples/visionary-lab
+```
+
+#### 2. Backend Setup
+
+##### 2.1 Install UV Package Manager
+
+UV is a fast Python package installer and resolver that we use for managing dependencies.
+
+Mac/Linux:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Windows (using PowerShell):
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+##### 2.2 Copy environment file template
+
+```bash
+cp .env.example .env
+```
+
+The environment variables will be defined below.
+
+#### 3. Frontend Setup
+
+```bash
+cd frontend
+npm install --legacy-peer-deps
+```
+
+## Step 2: Configure Resources
+
+1. Configure Azure credentials using a code or text editor:
+
+   ```bash
+   code .env
+   ```
+
+   Replace the placeholders with your actual Azure values:
+
+   | Service / Model   | Variables                                                                                                                                                                                                                                                                                                                                                                      |
+   | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+   | **Sora 2**        | - `SORA_AOAI_RESOURCE`: name of the Azure OpenAI resource used for Sora 2 <br> - `SORA_DEPLOYMENT`: deployment name for the Sora 2 model (typically `sora-2`) <br> - `SORA_AOAI_API_KEY`: API key for the Azure OpenAI Sora 2 resource                                                                  |
+   | **GPT-Image-1**   | - `IMAGEGEN_AOAI_RESOURCE`: name of the Azure OpenAI resource used for gpt-image-1 <br> - `IMAGEGEN_DEPLOYMENT`: deployment name for the gpt-image-1 model <br> - `IMAGEGEN_AOAI_API_KEY`: API key for the gpt-image-1 resource                                                                              
+
+[... truncated to 5000 bytes; full extract at sources/_raw/Visionary.md ...]
 
 
 # Repo: clawcloud
@@ -784,9 +1235,61 @@ description: Deploy and troubleshoot the ClawCloud Azure desktop runtime built o
 
 - Prefer project scripts over ad hoc Azure commands.
 - Reuse the project NSG instead of letting Azure auto-create NIC NSGs.
-- Resolve gallery image version `latest` to the actual latest version name before VM or VMSS cr
+- Resolve gallery image version `latest` to the actual latest version name before VM or VMSS creation.
+- Keep the builder VM separate from the image-build VM lifecycle.
+- Use LF line endings for scripts uploaded to Linux.
+- Treat `8444` and `18789` as first-class deployment ports, not optional debug ports.
 
-[... truncated to 2500 bytes; full extract at sources/_raw/clawcloud.md ...]
+## Windows Execution Guidance
+
+- On Windows, prefer `powershell.exe -NoProfile -Command "& 'C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin\az.cmd' ..."` for Azure CLI automation.
+- Avoid mixing Git Bash quoting rules with long `az.cmd` command lines.
+- If a backend or script needs Azure CLI from Python, call the executable directly with argument arrays instead of shell-joined strings.
+- For SSH and SCP on Windows, rely on executable argument arrays and explicit key paths.
+
+## KasmVNC Rules
+
+- `claw-kasmvnc.service` must start KasmVNC with `-disableBasicAuth` for iframe embedding in the workbench.
+- A `401 Unauthorized` on `8444` means basic auth is still enabled and the right-side desktop pane will not embed cleanly.
+- After patching the service unit, run:
+  - `systemctl daemon-reload`
+  - `systemctl restart claw-kasmvnc.service`
+- For quick verification, external reachability matters more than local process state.
+
+## OpenClaw Rules
+
+- Gateway default port is `18789`.
+- Remote runtime config must enable HTTP responses and chat completions endpoints.
+- Backend startup should inject runtime config and env files into `/home/claw/.openclaw/`.
+- Backend task dispatch should use the remote gateway only after `/health` is reachable.
+- If the desktop is ready but the gateway is not, machine state should not become fully ready.
+
+## Troubleshooting Checklist
+
+- Gallery version stuck in `Creating`:
+  - Check Azure activity log.
+  - Confirm source managed image succeeded.
+  - Continue with the managed image if gallery replication is the only blocker.
+- VM or VMSS has public IP but `8444` times out:
+  - Check subnet NSG.
+  - Check NIC-level auto-created NSG.
+  - Confirm the instance inherited or attached the intended NSG.
+- `8444` returns `401`:
+  - KasmVNC basic auth is still active.
+- `18789` is unreachable:
+  - NSG rule is missing, or OpenClaw gateway is not healthy.
+- Backend can start the machine but chat still behaves like mock:
+  - Confirm `CLOUD_MACHINE_PROVIDER=azure_vmss`.
+  - Confirm the remote runtime config was pushed successfully.
+  - Confirm `/v1/responses` is enabled on the gateway.
+- Bash command works badly with Azure CLI on Windows:
+  - Move the command to PowerShell or Python subprocess arrays.
+
+## Known Pitfalls To Remember
+
+- CRLF line
+
+[... truncated to 5000 bytes; full extract at sources/_raw/clawcloud.md ...]
 
 
 # Repo: cloud-claw-k
@@ -855,8 +1358,80 @@ It provides a team of TOP investment Agents to help manage your portfolio.
 - **Trading Agents**: Agents work for market analysis, sentiment analysis, news analysis, and fundamentals analysis 
 - **AI-Hedge-Fund**: Agents collaborate to provide comprehensive financial insights
 - **SEC Agent**: Provides real-time updates from SEC 
+- **Others**: More agents are in planning...
 
-[... truncated to 2500 bytes; full extract at sources/_raw/valuecell.md ...]
+## Flexible Integrations
+- **Multiple LLM Providers**: Support OpenRouter, OpenAI, Anthropic, Google and Ollama 
+- **Popular Market Data**: Cover US market, Crypto market, Hong Kong market, China market and more
+- **Multi-Agent Framework Compatible**: Support Langchain, Agno by A2A Protocol
+
+# Quick Start
+
+ValueCell is a Python-based application featuring a comprehensive web interface. Follow this guide to set up and run the application efficiently.
+
+## Prerequisites
+
+For optimal performance and streamlined development, we recommend installing the following tools:
+
+**[uv](https://docs.astral.sh/uv/getting-started/installation/)** - Ultra-fast Python package and project manager built in Rust  
+**[bun](https://github.com/oven-sh/bun#install)** - High-performance JavaScript/TypeScript toolkit with runtime, bundler, test runner, and package manager
+
+## Installation
+
+1. **Clone the repository**
+
+   ```bash
+   git clone https://github.com/ValueCell-ai/valuecell.git
+   cd valuecell
+   ```
+
+2. **Configure environment variables**
+
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Edit the `.env` file with your API keys and preferences. This configuration file is shared across all agents.
+
+## Configuration
+
+### Model Providers
+Configure your preferred model providers by editing the ⁠`.env` file:
+
+- **Primary Support**: [OpenRouter](https://openrouter.ai) - Currently the main supported provider for most agents
+- **TradingAgents** requires the use of Memory. If you use OpenRouter as API key, configuring the Embedding model parameters will be needed (since OpenRouter does not support Embedding models). Please refer to the TradingAgents/.env.example file and copy its configuration into the .env file located in the root directory.
+  
+
+Choose your preferred models and providers based on your requirements and preferences.
+
+## Running the Application
+
+Launch the complete application stack (frontend, backend, and agents):
+
+### Linux / Macos
+```bash
+bash start.sh
+```
+
+### Windows (PowerShell)
+```powershell
+.\start.ps1
+```
+
+## Accessing the Interface
+
+- **Web UI**: Navigate to [http://localhost:1420](http://localhost:1420) in your browser
+- **Logs**: Monitor application logs at `logs/{timestamp}/*.log` for detailed runtime information of backend services and individual agents
+
+## Next Steps
+
+Once the application is running, you can explore the web interface to interact with ValueCell's features and capabilities.
+
+---
+
+**Note**: E
+
+[... truncated to 5000 bytes; full extract at sources/_raw/valuecell.md ...]
 
 
 # Repo: project-base
@@ -949,9 +1524,85 @@ docker build --platform linux/amd64 -t gcr.io/<PROJECT_ID>/openbox-backend:lates
 docker build --platform linux/amd64 -t gcr.io/<PROJECT_ID>/openbox-frontend:latest ./frontend
 
 # 推送
-docker push gcr.io/<PROJECT_ID>
+docker push gcr.io/<PROJECT_ID>/openbox-sandbox:latest
+docker push gcr.io/<PROJECT_ID>/openbox-backend:latest
+docker push gcr.io/<PROJECT_ID>/openbox-frontend:latest
+```
 
-[... truncated to 2500 bytes; full extract at sources/_raw/project-base.md ...]
+### Step 5: 创建 K8s Secret
+
+**重要**：Redis 密码中的特殊字符 `!@#$%` 等必须 URL 编码。
+
+```bash
+kubectl create secret generic openbox-secrets -n openbox \
+  --from-literal=DATABASE_URL='<ASYNCPG_URL>' \
+  --from-literal=REDIS_URL='<REDIS_URL_ENCODED>' \
+  --from-literal=JWT_SECRET='<JWT_SECRET>' \
+  --from-literal=SANDBOX_IMAGE='gcr.io/<PROJECT_ID>/openbox-sandbox:latest' \
+  --from-literal=OPENBOX_API_KEY='<API_KEY>' \
+  --from-literal=BLOB_AZURE_CONNECTION_STRING='<BLOB_CONN>' \
+  --from-literal=BLOB_AZURE_CONTAINER='<CONTAINER_NAME>' \
+  --from-literal=TAVILY_API_KEY='<TAVILY_KEY>' \
+  --from-literal=OPENAI_API_KEY='<OPENAI_KEY>'
+```
+
+### Step 6: 创建镜像拉取凭证
+
+```bash
+ACCESS_TOKEN=$(gcloud auth print-access-token)
+for NS in openbox openbox-sandbox; do
+  kubectl create secret docker-registry gcr-pull-secret -n $NS \
+    --docker-server=gcr.io --docker-username=oauth2accesstoken \
+    --docker-password="$ACCESS_TOKEN" --docker-email=<EMAIL>
+done
+
+# 绑定到 ServiceAccount
+kubectl patch serviceaccount default -n openbox \
+  -p '{"imagePullSecrets": [{"name": "gcr-pull-secret"}]}'
+```
+
+### Step 7: 部署 K8s 资源
+
+`k8s/base.yaml` 包含所有资源定义。部署前需：
+
+1. 确认 `BLOB_PROVIDER` 值（azure 或 gcs）
+2. 确认环境变量与 Secret key 匹配
+
+```bash
+sed "s/PROJECT_ID/<PROJECT_ID>/g" k8s/base.yaml | kubectl apply -f -
+```
+
+部署后绑定 imagePullSecret 到创建的 ServiceAccount：
+
+```bash
+kubectl patch serviceaccount openbox-backend -n openbox \
+  -p '{"imagePullSecrets": [{"name": "gcr-pull-secret"}]}'
+kubectl patch serviceaccount sandbox-pods -n openbox-sandbox \
+  -p '{"imagePullSecrets": [{"name": "gcr-pull-secret"}]}'
+```
+
+### Step 8: 运行数据库 Migration
+
+```bash
+kubectl exec -n openbox deployment/openbox-backend -- uv run alembic upgrade head
+```
+
+**注意**：检查 migration 中的列长度是否与 ORM 模型一致（常见问题：`VARCHAR(26)` vs `String(64)`）。如不一致需手动 ALTER。
+
+### Step 9: 配置外部访问（Ingress + HTTPS）
+
+#### 预留静态 IP
+
+```bash
+gcloud compute addresses create <APP>-static-ip --global --project=<PROJECT_ID>
+gcloud compute addresses describe <APP>-static-ip --global --format='get(address)'
+```
+
+#### 创建 ManagedCertificate + Ingress
+
+参考 `.claude/gke-ingress-setup/SKILL.md` 中的完整流�
+
+[... truncated to 5000 bytes; full extract at sources/_raw/project-base.md ...]
 
 
 # Repo: optiminds-org-config
@@ -1020,9 +1671,25 @@ cd worker && npm install && npx wrangler login && \
   npm run deploy
 
 # Then apply the org webhook
-expor
+export WORKER_URL="https://github-pr-to-lark.<your-subdomain>.workers.dev"
+export GITHUB_WEBHOOK_SECRET="<same value you set on the Worker>"
+scripts/apply-webhook.sh webhooks/pr-to-lark.json
+```
 
-[... truncated to 2500 bytes; full extract at sources/_raw/optiminds-org-config.md ...]
+## Workflow
+
+1. Edit the JSON file (e.g. `rulesets/main-protection.json`)
+2. Open a PR against this repo so the change gets reviewed
+3. After merge, run `scripts/apply-ruleset.sh <file>` to push the change to GitHub
+4. Verify in the GitHub UI: `Organization settings → Repository rulesets`
+
+## Future additions
+
+- `settings/` — org-level settings snapshots (via `gh api /orgs/{org}`)
+- `.github/workflows/apply.yml` — auto-apply on merge to `main`
+- Terraform migration if ruleset count exceeds ~5 or we expand to multiple orgs
+
+```
 
 
 # Repo: optiminds-repo-template
@@ -1094,7 +1761,78 @@ so it works against private repos without `gh` or a PAT.
 Default (pull-mode) usage:
 
 ```bash
-~/.optiminds/scripts
+~/.optiminds/scripts/apply.sh --check ~/dev/my-repo
+```
 
-[... truncated to 2500 bytes; full extract at sources/_raw/optiminds-repo-template.md ...]
+Sample up-to-date output:
+
+```
+==> Fetching latest template version...
+==> Current applied:  0.4.1
+==> Template latest:  0.4.1  (up-to-date)
+```
+
+Strict mode for CI exits non-zero when the consumer is behind, so a
+pipeline step can surface the drift:
+
+```bash
+~/.optiminds/scripts/apply.sh --check --strict ~/dev/my-repo
+```
+
+Sample behind output:
+
+```
+==> Fetching latest template version...
+==> Current applied:  0.3.0
+==> Template latest:  0.4.1  (behind 1 minor, 1 patch)
+
+Files that would change if you re-apply:
+  M  .github/workflows/codex-review.yml         (template updated)
+  !  AGENTS.md                                   (consumer modified — would skip without --force)
+  +  docs/runbooks/cost-monitoring.template.md   (new in template)
+
+Run: ~/.optiminds/scripts/apply.sh ~/dev/my-repo
+```
+
+Exit codes follow the `grep`/`diff` convention: `0` for up-to-date,
+`2` for behind (under `--strict` only; default always exits 0), `1` for
+real errors (missing metadata, malformed JSON, target not a git repo).
+
+A compact push-mode banner fires automatically on `apply.sh <target>`
+when the consumer's `template_version` is behind the template's current
+version — no separate command needed. Sample banner when the consumer is
+one minor + one patch behind:
+
+```
+==> Template metadata upgrade: 0.3.0 → 0.4.1 (1 minor + 1 patch)
+==>   Run `apply.sh --check ~/dev/my-repo` for file-level diff before re-applying.
+```
+
+Set `OPTIMINDS_QUIET_VERSION=1` to silence the push-mode banner for
+CI/scripted consumers that have already acknowledged the drift and don't
+want log noise:
+
+```bash
+OPTIMINDS_QUIET_VERSION=1 ~/.optiminds/scripts/apply.sh ~/dev/my-repo
+```
+
+- Suppresses the minor / patch / ahead / first-tracking banners.
+- Does **not** suppress the BREAKING banner for major version jumps — by
+  design. Silently crossing a major boundary is the exact failure mode
+  SemVer's major signal exists to prevent, so the BREAKING line is the
+  one guard rail you cannot disable.
+
+**Known limitation** — `--check` relies on the template clone's local
+`origin/main` ref. A stale clone (corporate proxy that caches DNS, an
+offline laptop, or a long-lived checkout) can report a false "up-to-date".
+Run `git -C ~/.optiminds pull` periodically — or before a `--check` run
+you care about — to refresh the local ref.
+
+## What's in Layer 0 (the always-applies set)
+
+| File | Purpose |
+|---|---|
+| `.github/workflows/codex-review.yml` | 3-pass Codex AI review
+
+[... truncated to 5000 bytes; full extract at sources/_raw/optiminds-repo-template.md ...]
 

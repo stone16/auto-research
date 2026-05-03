@@ -171,8 +171,20 @@ location / {
    npm run dev
    ```
 
+## Troubleshooting
 
-[... truncated to 2500 bytes; full extract at sources/_raw/getuai-mvp.md ...]
+### API Routing Issues
+
+If you're experiencing API routing issues:
+
+1. Check the environment setting - `process.env.NODE_ENV` should be `development` for local development
+2. Verify your `API_PREFIX` environment variable is correctly set
+3. For production, ensure your proxy server is properly configured to route `/api/*` requests to the backend
+
+### Session Storage
+
+Session IDs are stored in localStorage. If you experience session issues, try clearing localStorage in your browser. 
+```
 
 
 # Repo: gmi-prototype
@@ -279,9 +291,40 @@ Your prompt: A cat playing in a sunny garden
 gmi-prototype/
 ├── generate_videos.py              # 🎬 Main interactive script
 ├── README.md                       # 📖 This file
-├── requirements.txt            
+├── requirements.txt                # 📦 Dependencies
+├── config/
+│   ├── config.example.yaml         # 📝 Configuration template
+│   └── config.yaml                 # 🔑 Your credentials
+└── src/
+    ├── core/config_manager.py      # ⚙️ Configuration management
+    ├── services/videogen_service.py # 🎥 GMI Cloud API integration
+    └── utils/exceptions.py         # ❌ Error handling
+```
 
-[... truncated to 2500 bytes; full extract at sources/_raw/gmi-prototype.md ...]
+## 🔧 Technical Details
+
+- **API Endpoints**: Uses official GMI Cloud documented endpoints
+- **Model Support**: All 18+ current GMI video generation models
+- **Async Architecture**: Efficient handling of long-running video generation
+- **Error Handling**: Comprehensive error management and user feedback
+- **Type Safety**: Full type hints throughout codebase
+
+## 📋 Requirements
+
+- Python 3.8+
+- GMI Cloud account with credits
+- Valid GMI Cloud API key
+
+## 💡 Next Steps
+
+1. **Add Credits**: Log into https://console.gmicloud.ai and add credits
+2. **Run Generation**: Execute `python generate_videos.py`
+3. **Enjoy Videos**: Find your generated videos in `./generated_videos/`
+
+---
+
+Built with ❤️ for GMI Cloud VideoGen API
+```
 
 
 # Repo: getuai-comp-analysis-demo
@@ -413,7 +456,38 @@ uvicorn main:app --host 127.0.0.1 --port 8006 --reload
 uvicorn main:app --host 127.0.0.1 --port 8006 --workers 4
 ```
 
-3. Access the web interface at: http://127.0.0.1:800
+3. Access the web interface at: http://127.0.0.1:8006/ui/index.html
 
-[... truncated to 2500 bytes; full extract at sources/_raw/getuai-competitor-analysis.md ...]
+## Project Structure
+
+```
+keyword-research/
+├── api/
+│   ├── google_ads1.yml              # Google Ads API configuration
+│   ├── service_account_credentials.json
+│   ├── generate_keyword_ideas.py    # Keyword generation logic
+│   └── utils/
+│       ├── google_search.py         # Google Search API integration
+│       └── keyword_ideas.py         # Keyword processing utilities
+├── mcp_server/
+│   ├── competitor_analysis/         # Competitor analysis MCP service
+│   └── keyword_research/           # Keyword research MCP service
+├── ui/
+│   └── index.html                  # Web interface
+├── ai/
+│   └── routers/                    # AI analysis endpoints
+├── main.py                         # Main application entry
+├── requirements.txt                # Project dependencies
+├── .env                           # Environment variables
+└── README.md                      # Project documentation
+```
+
+## Key Components
+
+- `api/`: Google Ads and Search API integrations
+- `mcp_server/`: MCP services for keyword research and competitor analysis
+- `ui/`: Web interface for interacting with the services
+- `ai/`: AI-powered analysis components
+
+```
 

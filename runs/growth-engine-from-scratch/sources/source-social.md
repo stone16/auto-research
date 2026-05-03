@@ -119,9 +119,92 @@ python scripts/init_db.py
 ### Core Endpoints
 - `GET /api/opportunities` - Get initial opportunities (mock data)
 - `GET /api/opportunities/extra` - Get extra opportunities (mock data)
-- `POS
+- `POST /api/analyze` - Analyze a URL with web search + generate search keywords
+- `GET /api/health` - Health check
 
-[... truncated to 2500 bytes; full extract at sources/_raw/reddit-scount.md ...]
+### Discovery Endpoints (Find Real Reddit Opportunities)
+- `POST /api/discover` - Find Reddit posts using one keyword from analysis
+- `POST /api/discover/batch` - Run multiple keyword searches, get aggregated posts
+- `POST /api/discover/competitors` - Find discussions about competitors
+- `POST /api/discover/keywords` - Get info about available keywords
+
+### Reddit Endpoints (Low-level)
+- `POST /api/reddit/search` - Direct Reddit search
+- `POST /api/reddit/post` - Get post with comments
+- `GET /api/reddit/health` - Reddit service health check
+
+## Complete Workflow: Find Reddit Opportunities
+
+### Step 1: Analyze Company URL
+
+```bash
+curl -X POST http://localhost:8000/api/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://linear.app"}'
+```
+
+Response includes:
+- Company info (name, description, target audience)
+- **search_keywords**: 15-20 search terms for finding relevant posts
+- **pain_points**: User frustrations to look for
+- **competitor_names**: Competitors for comparison searches
+- **target_subreddits**: Where target users hang out
+
+### Step 2: Discover Reddit Opportunities
+
+Use the analysis to find real Reddit posts:
+
+```bash
+# Single keyword search (use keyword_index to rotate through keywords)
+curl -X POST http://localhost:8000/api/discover \
+  -H "Content-Type: application/json" \
+  -d '{
+    "analysis": { ... response from /api/analyze ... },
+    "keyword_index": 0,
+    "limit": 10
+  }'
+
+# Batch search (multiple keywords, deduplicated results)
+curl -X POST http://localhost:8000/api/discover/batch \
+  -H "Content-Type: application/json" \
+  -d '{
+    "analysis": { ... },
+    "num_keywords": 3,
+    "posts_per_keyword": 5
+  }'
+
+# Find competitor discussions
+curl -X POST http://localhost:8000/api/discover/competitors \
+  -H "Content-Type: application/json" \
+  -d '{
+    "analysis": { ... },
+    "competitor_index": 0,
+    "limit": 10
+  }'
+```
+
+### Step 3: Get Post Details with Comments
+
+```bash
+curl -X POST http://localhost:8000/api/reddit/post \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://www.reddit.com/r/SaaS/comments/xxxxx/title/",
+    "sort": "top",
+    "limit": 50
+  }'
+```
+
+### Keyword Rotation
+
+Each call to `/api/discover` uses one keyword. Increment `keyword_index` to use different keywords:
+
+```python
+# Frontend can track current index and rotate
+for i in range(total_keywords):
+    results = 
+
+[... truncated to 5000 bytes; full extract at sources/_raw/reddit-scount.md ...]
 
 
 # Repo: x-api-credit-monitor
@@ -177,9 +260,58 @@ variables are:
 
 | Variable                      | Purpose                                                                                                                                       | Example                                              |
 | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| `X_ACCOUNT_ID`                | X Developer Console account id — visible in the `console.x.com` URL once you are logged in.                                                   | `1234567890`                                  
+| `X_ACCOUNT_ID`                | X Developer Console account id — visible in the `console.x.com` URL once you are logged in.                                                   | `1234567890`                                         |
+| `LARK_WEBHOOK_URL`            | Full custom-bot webhook URL (from step 4 above).                                                                                              | `https://open.larksuite.com/open-apis/bot/v2/hook/...` |
+| `LARK_SIGN_SECRET`            | Sign secret for the bot (from step 5 above). Never logged at any level.                                                                       | `abcdef0123...`                                      |
+| `LOW_BALANCE_THRESHOLD`       | Dollar threshold below which an extra 🚨 alert fires alongside the heartbeat. Default 10 if unset.                                             | `10`                                                 |
+| `CHROME_PROFILE_DIR` **or** `CHROME_PROFILE_DISPLAY_NAME` | Which Chrome profile to read cookies from. See "Switching profiles" below. | `Profile 3` or `dev (getu.ai)`                       |
 
-[... truncated to 2500 bytes; full extract at sources/_raw/x-api-credit-monitor.md ...]
+**Chrome profile precedence rule:** if both `CHROME_PROFILE_DIR` and
+`CHROME_PROFILE_DISPLAY_NAME` are set, `CHROME_PROFILE_DIR` wins and the
+display-name lookup is skipped entirely. If neither is set, the tool
+falls back to the `Default` profile with a WARNING. This dual-mode
+configuration is the escape hatch if the display-name-based lookup
+silently breaks (see "Switching profiles" for details).
+
+## Install
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+# Install the `x_credit_monitor` package itself so `python -m x_credit_monitor`
+# (and the plist's ProgramArguments) can find it.
+.venv/bin/pip install -e .
+cp .env.example .env
+# edit .env and fill in the 5 variables above
+
+# Manual smoke test — runs the monitor once, immediately, against the
+# current configuration. Should post exactly one heartbeat to Lark.
+.venv/bin/python -m x_credit_monitor
+
+# Wire it into launchd so it fires daily at 09:00.
+bash install.sh
+
+# Confirm the launchd job is registered.
+launchctl list | grep com.stometa.xcredit
+```
+
+`install.sh` renders the plist template into
+`~/Library/LaunchAgents/com.stometa.xcredit.plist` (substituting the
+absolute path to this repo) and calls `launchctl bootstrap`. It is
+idempotent — running it again after a pull is the supported upgrade path;
+it boots out the old incarnation and bootstraps the new one.
+
+**Smoke-fire check after install (optional, posts to Lark):**
+
+```bash
+launchctl kickstart -k gui/$(id -u)/com.stometa.xcredit
+# wait ~30 seconds, then:
+tail ~/Library/Logs/x-credit-monitor.err.log
+```
+
+A successful kickstart le
+
+[... truncated to 5000 bytes; full extract at sources/_raw/x-api-credit-monitor.md ...]
 
 
 # Repo: youtube-api-demo
@@ -274,7 +406,56 @@ If you want a personal, single-user assistant that feels local, fast, and always
 
 [Website](https://openclaw.ai) · [Docs](https://docs.openclaw.ai) · [Vision](VISION.md) · [DeepWiki](https://deepwiki.com/openclaw/openclaw) · [Getting Started](https://docs.openclaw.ai/start/getting-started) · [Updating](https://docs.openclaw.ai/install/updating) · [Showcase](https://docs.openclaw.ai/start/showcase) · [FAQ](https://docs.openclaw.ai/help/faq) · [Wizard](https://docs.openclaw.ai/start/wizard) · [Nix](https://github.com/openclaw/nix-openclaw) · [Docker](https://docs.openclaw.ai/install/docker) · [Discord](https://discord.gg/clawd)
 
-Preferred setup: run the onboarding wizard (`openclaw onbo
+Preferred setup: run the onboarding wizard (`openclaw onboard`) in your terminal.
+The wizard guides you step by step through setting up the gateway, workspace, channels, and skills. The CLI wizard is the recommended path and works on **macOS, Linux, and Windows (via WSL2; strongly recommended)**.
+Works with npm, pnpm, or bun.
+New install? Start here: [Getting started](https://docs.openclaw.ai/start/getting-started)
 
-[... truncated to 2500 bytes; full extract at sources/_raw/openclaw-marketing.md ...]
+## Sponsors
+
+| OpenAI                                                            | Vercel                                                            | Blacksmith                                                                   | Convex                                                                |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| [![OpenAI](docs/assets/sponsors/openai.svg)](https://openai.com/) | [![Vercel](docs/assets/sponsors/vercel.svg)](https://vercel.com/) | [![Blacksmith](docs/assets/sponsors/blacksmith.svg)](https://blacksmith.sh/) | [![Convex](docs/assets/sponsors/convex.svg)](https://www.convex.dev/) |
+
+**Subscriptions (OAuth):**
+
+- **[OpenAI](https://openai.com/)** (ChatGPT/Codex)
+
+Model note: while many providers/models are supported, for the best experience and lower prompt-injection risk use the strongest latest-generation model available to you. See [Onboarding](https://docs.openclaw.ai/start/onboarding).
+
+## Models (selection + auth)
+
+- Models config + CLI: [Models](https://docs.openclaw.ai/concepts/models)
+- Auth profile rotation (OAuth vs API keys) + fallbacks: [Model failover](https://docs.openclaw.ai/concepts/model-failover)
+
+## Install (recommended)
+
+Runtime: **Node ≥22**.
+
+```bash
+npm install -g openclaw@latest
+# or: pnpm add -g openclaw@latest
+
+openclaw onboard --install-daemon
+```
+
+The wizard installs the Gateway daemon (launchd/systemd user service) so it stays running.
+
+## Quick start (TL;DR)
+
+Runtime: **Node ≥22**.
+
+Full beginner guide (auth, pairing, channels): [Getting started](https://docs.openclaw.ai/start/getting-started)
+
+```bash
+openclaw onboard --install-daemon
+
+openclaw gateway --port 18789 --verbose
+
+# Send a message
+openclaw message send --to +1234567890 --message "Hello from OpenClaw"
+
+# Talk to the assistant (optionally deliver back to any connected channel: WhatsApp/Telegram/Slack/Discord/Google Chat/S
+
+[... truncated to 5000 bytes; full extract at sources/_raw/openclaw-marketing.md ...]
 

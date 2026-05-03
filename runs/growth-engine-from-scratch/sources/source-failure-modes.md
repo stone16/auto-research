@@ -72,9 +72,41 @@ yet and should be introduced only through the migration plan.
 growth-engine/
 ├── core/                        Core platform service (single deployable)
 │   ├── identity/                Logto verify, user/org sync, role/flag evaluator
-│   ├── runs
+│   ├── runs/                    workflow_runs, engine_runs, run_events ledgers
+│   ├── credentials/             credential records and lease issuer
+│   ├── schedules/               workflow_schedules and poller
+│   ├── observability/           Sentry/Langfuse helpers, run-event redactor
+│   ├── core_sdk/                transport abstraction (in-process + signed-http)
+│   └── engines/<name>/          in-process engine modules (default for new engines)
+├── engines/<name>/              remote engine services (existing SEO/GEO; new engines that opt remote)
+└── docs/                        specs, ADRs, runbooks, FUTURE_SCOPE
+```
 
-[... truncated to 2500 bytes; full extract at sources/_raw/growth-engine-legacy.md ...]
+The `core/engines/` and `engines/` split encodes the deployment-mode choice from
+ADR-0001: `core/engines/<name>/` is in-process under Core, `engines/<name>/` is a
+separate deployable.
+
+## Moat-binding rules
+
+| # | Rule | Source | Breaks if violated |
+|---|---|---|---|
+| 1 | Core is the only browser-facing surface; engines never receive raw Logto tokens. The trust boundary is logical — applies to in-process modules and remote services equally | series/11 §6, series/12 §2; ADR-0001 | identity stitching |
+| 2 | Platform facts written through `core_sdk` (`workflow_runs`, `engine_runs`, `run_events`, `growth_artifacts`, `action_ledger`) | series/11 §2 | attribution graph; audit trail |
+| 3 | Credentials never leave Core; engines get scoped, time-bound leases | series/11 §7, series/12 §4.1 | credential rotation |
+| 4 | Sentry + Langfuse + run-event log via `core/observability` only | series/11 §11 | trace correlation |
+| 5 | Industry adaptation = domain packs, not `if industry == "..."`; generic labels (`SaaS`, `legal`, `e-commerce`) forbidden — require product-vertical specificity | series/12 §1; Stometa 2026-04-28 | scaling to N industries |
+| 6 | Schedules registered in Core in Phase 1; engines do NOT run own cron loops | series/11 §4.1, series/12 §2 | Phase 2 Temporal migration |
+
+## Established rules
+
+- Branches: `feat/`, `fix/`, `docs/`, `refactor/` — never push to `main`
+- Commits: Conventional Commits; no `Co-Authored-By`; atomic (one concern per commit)
+- No secrets in git; if leaked, rotate FIRST then clean history
+- No `--no-verify`, no force-push to shared branches, no `--amend` on pushed commits without permission
+- No PII in logs; observability helpers must redact before write
+- Doc-first for non-trivial changes — needs `docs/series/` or `docs/adr/` paper trail before co
+
+[... truncated to 5000 bytes; full extract at sources/_raw/growth-engine-legacy.md ...]
 
 
 # Repo: growth-engine
@@ -125,7 +157,80 @@ references/   # Read-only git submodules — concept reference only, DO NOT impo
 ```
 
 Production directory boundaries are deliberately **not** locked yet — see `CLAUDE.md`:
-"Str
+"Structure first, naming later."
 
-[... truncated to 2500 bytes; full extract at sources/_raw/growth-engine.md ...]
+---
+
+## References Submodules
+
+`references/` carries three concept-reference repos pinned as submodules:
+
+- `lawyer_marketing/` — ads management reference
+- `cloud-claw-k/` — social media management reference
+- `geo-seo-v2/` — SEO/GEO reference
+
+Initialize / refresh:
+
+```bash
+git submodule update --init --recursive   # after fresh clone
+git submodule update --remote             # pull upstream (explicit opt-in only)
+```
+
+Their toolchains are isolated; `cd` into one before running its commands. The
+previous Growth Engine attempt is preserved at `Optiminds-Inc/growth-engine-legacy`
+for concept reference only — not imported here.
+
+---
+
+## Local Dev (After GE-01)
+
+The skeleton runs; full feature set requires GE-02 onwards. Local test paths
+(hermetic testcontainers, existing-Postgres reuse, `.env.example`) live in
+[`backend/README.md`](backend/README.md). `docker-compose.yml` at the repo root
+brings up Postgres; `scripts/run-backend-tests.sh` is the canonical test runner.
+
+Cloud runtime (Azure / AKS / Terraform / CI-CD) is owned by **GE-09a → GE-09b → GE-27** —
+not present until those lanes land.
+
+```
+
+## CLAUDE.md
+```markdown
+# Identity & Context Awareness
+
+**CRITICAL**: Address the user as "stometa" at the start of EVERY response.
+
+This serves as a context-awareness signal — if missing, indicates context drift.
+
+---
+
+# Growth Engine
+
+@AGENTS.md
+
+**Status**: Greenfield rewrite. Previous attempt is preserved at `Optiminds-Inc/growth-engine-legacy` for concept reference only — do not import its scaffolding wholesale.
+
+## Architecture Map
+
+```
+growth-engine/
+├── AGENTS.md              # Cross-tool rules (loaded above via @AGENTS.md)
+├── CLAUDE.md              # This file — Claude Code overlay
+├── references/            # Read-only git submodules (concept references)
+│   ├── lawyer_marketing/      # Ads management reference
+│   ├── cloud-claw-k/          # Social media management reference
+│   └── geo-seo-v2/            # SEO/GEO reference
+└── .harness/              # Harness orchestration scaffolding
+```
+
+Production directory layout is deliberately deferred. **Structure first, naming later** — do not lock module names or boundaries until the rewrite scope is defined.
+
+## Commands
+
+No build commands yet — repo is pre-implementation. Reference repos under `references/` carry their own toolchains; `cd` into one before running its commands.
+
+```bash
+git submodule upd
+
+[... truncated to 5000 bytes; full extract at sources/_raw/growth-engine.md ...]
 

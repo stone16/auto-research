@@ -65,9 +65,51 @@ OpenClawMU extends OpenClaw with complete tenant isolation, allowing multiple us
 openclaw tenants create demo
 
 # Connect as tenant
-OPENCLA
+OPENCLAW_GATEWAY_TOKEN="tenant:demo:xxxxx" openclaw chat
+```
 
-[... truncated to 2500 bytes; full extract at sources/_raw/openclaw-mu.md ...]
+Full documentation: [docs/multi-tenancy/README.md](docs/multi-tenancy/README.md)
+
+---
+
+**OpenClaw** is a _personal AI assistant_ you run on your own devices.
+It answers you on the channels you already use (WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, iMessage, Microsoft Teams, WebChat), plus extension channels like BlueBubbles, Matrix, Zalo, and Zalo Personal. It can speak and listen on macOS/iOS/Android, and can render a live Canvas you control. The Gateway is just the control plane — the product is the assistant.
+
+If you want a personal, single-user assistant that feels local, fast, and always-on, this is it.
+
+[Website](https://openclaw.ai) · [Docs](https://docs.openclaw.ai) · [DeepWiki](https://deepwiki.com/openclaw/openclaw) · [Getting Started](https://docs.openclaw.ai/start/getting-started) · [Updating](https://docs.openclaw.ai/install/updating) · [Showcase](https://docs.openclaw.ai/start/showcase) · [FAQ](https://docs.openclaw.ai/start/faq) · [Wizard](https://docs.openclaw.ai/start/wizard) · [Nix](https://github.com/openclaw/nix-openclaw) · [Docker](https://docs.openclaw.ai/install/docker) · [Discord](https://discord.gg/clawd)
+
+Preferred setup: run the onboarding wizard (`openclaw onboard`) in your terminal.
+The wizard guides you step by step through setting up the gateway, workspace, channels, and skills. The CLI wizard is the recommended path and works on **macOS, Linux, and Windows (via WSL2; strongly recommended)**.
+Works with npm, pnpm, or bun.
+New install? Start here: [Getting started](https://docs.openclaw.ai/start/getting-started)
+
+**Subscriptions (OAuth):**
+
+- **[Anthropic](https://www.anthropic.com/)** (Claude Pro/Max)
+- **[OpenAI](https://openai.com/)** (ChatGPT/Codex)
+
+Model note: while any model is supported, I strongly recommend **Anthropic Pro/Max (100/200) + Opus 4.6** for long‑context strength and better prompt‑injection resistance. See [Onboarding](https://docs.openclaw.ai/start/onboarding).
+
+## Models (selection + auth)
+
+- Models config + CLI: [Models](https://docs.openclaw.ai/concepts/models)
+- Auth profile rotation (OAuth vs API keys) + fallbacks: [Model failover](https://docs.openclaw.ai/concepts/model-failover)
+
+## Install (recommended)
+
+Runtime: **Node ≥22**.
+
+```bash
+npm install -g openclaw@latest
+# or: pnpm add -g openclaw@latest
+
+openclaw onboard --install-daemon
+```
+
+The wizard installs the Gateway daemon (launchd/systemd user service) so 
+
+[... truncated to 5000 bytes; full extract at sources/_raw/openclaw-mu.md ...]
 
 
 # Repo: lawyer_finder
@@ -152,9 +194,46 @@ Coordinate specialized agents, tools, and skills so work is completed accurately
 - Delegate specialized work to the most appropriate agent.
 - Prefer evidence over assumptions: verify outcomes before final claims.
 - Choose the lightest-weight path that preserves quality.
-- Consult official docs before i
+- Consult official docs before implementing with SDKs/frameworks/APIs.
+</operating_principles>
 
-[... truncated to 2500 bytes; full extract at sources/_raw/lawyer_finder.md ...]
+<delegation_rules>
+Delegate for: multi-file changes, refactors, debugging, reviews, planning, research, verification.
+Work directly for: trivial ops, small clarifications, single commands.
+Route code to `executor` (use `model=opus` for complex work). Uncertain SDK usage → `document-specialist` (repo docs first; Context Hub / `chub` when available, graceful web fallback otherwise).
+</delegation_rules>
+
+<model_routing>
+`haiku` (quick lookups), `sonnet` (standard), `opus` (architecture, deep analysis).
+Direct writes OK for: `~/.Codex/**`, `.omc/**`, `.Codex/**`, `AGENTS.md`, `AGENTS.md`.
+</model_routing>
+
+<skills>
+Invoke via `/oh-my-Codex:<name>`. Trigger patterns auto-detect keywords.
+Tier-0 workflows include `autopilot`, `ultrawork`, `ralph`, `team`, and `ralplan`.
+Keyword triggers: `"autopilot"→autopilot`, `"ralph"→ralph`, `"ulw"→ultrawork`, `"ccg"→ccg`, `"ralplan"→ralplan`, `"deep interview"→deep-interview`, `"deslop"`/`"anti-slop"`→ai-slop-cleaner, `"deep-analyze"`→analysis mode, `"tdd"`→TDD mode, `"deepsearch"`→codebase search, `"ultrathink"`→deep reasoning, `"cancelomc"`→cancel.
+Team orchestration is explicit via `/team`.
+Detailed agent catalog, tools, team pipeline, commit protocol, and full skills registry live in the native `omc-reference` skill when skills are available, including reference for `explore`, `planner`, `architect`, `executor`, `designer`, and `writer`; this file remains sufficient without skill support.
+</skills>
+
+<verification>
+Verify before claiming completion. Size appropriately: small→haiku, standard→sonnet, large/security→opus.
+If verification fails, keep iterating.
+</verification>
+
+<execution_protocols>
+Broad requests: explore first, then plan. 2+ independent tasks in parallel. `run_in_background` for builds/tests.
+Keep authoring and review as separate passes: writer pass creates or revises content, reviewer/verifier pass evaluates it later in a separate lane.
+Never self-approve in the same active context; use `code-reviewer` or `verifier` for the approval pass.
+Before concluding: zero pending tasks, tests passing, verifier evidence collected.
+</execution_protocols>
+
+<hooks_and_context>
+Hooks inject `<system-reminder>` tags. Key patterns: `hook success: Success` (proceed), `[MAGIC KEYWORD: ...]` (invoke skill), `The boulder never stops` (ralph/ultrawork active).
+Persistence: `<remember>` (7 days), `<remember priority>` (permanent).
+Ki
+
+[... truncated to 5000 bytes; full extract at sources/_raw/lawyer_finder.md ...]
 
 
 # Repo: lawyer_marketing
@@ -238,9 +317,80 @@ Staging URL: `https://lawyer-marketing.previewapps.org`
 └── docs/              Documentation
 ```
 
-##
+## Environment Files
 
-[... truncated to 2500 bytes; full extract at sources/_raw/lawyer_marketing.md ...]
+| File | Purpose |
+|------|---------|
+| `backend-py/.env.staging` | Staging environment config |
+| `frontend/.env.staging` | Frontend staging build vars |
+| `*.env.production` | Reserved for future production deployment |
+
+## CLI Tools
+
+### Google Ads CLI
+
+Campaign management with 38 operations — campaigns, ad groups, keywords, RSA ads, budgets, criteria, reporting, and GAQL queries.
+
+### Keyword Planner CLI
+
+Keyword research via MCC service account — generate ideas and get historical metrics.
+
+### Law Data CLI
+
+Legal market intelligence with 10 commands — court opinions, demographics, traffic incidents, SEO keywords, and competitor analysis.
+
+```
+
+## CLAUDE.md
+```markdown
+# Lawyer Marketing Platform
+
+AI-powered legal marketing platform for Google Ads campaign management, keyword research, and market intelligence.
+
+## Architecture Overview
+
+```
+lawyer_marketing/
+├── frontend/          # React + Vite SPA
+├── backend-py/        # Python/FastAPI backend (PRIMARY)
+├── backend/           # Node.js/Express backend (LEGACY — retained, not updated)
+├── google-ads/        # Google Ads CLI tools (campaign management + keyword planner)
+├── law-data/          # Legal market intelligence CLI tools
+├── docker/            # Docker configs (Compose + Dockerfiles)
+├── scripts/           # Utility scripts
+└── docs/              # Documentation
+```
+
+## Backend Status
+
+| Backend | Path | Status | Notes |
+|---------|------|--------|-------|
+| **Python/FastAPI** | `backend-py/` | **Active** | Primary backend, all new development here |
+| Node.js/Express | `backend/` | Retained | No longer updated; kept for reference only |
+
+Both backends expose the same API surface (`/api/*`) and share the same PostgreSQL database. The frontend is backend-agnostic — Docker Compose file selection determines which backend runs.
+
+## Tech Stack
+
+### Frontend (`frontend/`)
+- **Framework**: React 19 + TypeScript
+- **Build**: Vite 8
+- **Styling**: Tailwind CSS 4
+- **State**: Zustand
+- **Auth**: Logto (`@logto/react`)
+- **Routing**: React Router DOM 7
+- **Notable**: Leaflet maps, React Markdown rendering
+
+### Backend — Python (`backend-py/`)
+- **Framework**: FastAPI
+- **Python**: 3.11+
+- **Database**: PostgreSQL via asyncpg + SQLAlchemy 2.0
+- **Migrations**: Alembic
+- **Auth**: Logto (JWT verification via python-jose)
+- **Scheduling**: APScheduler (Redis-backed, memory fallback)
+- **Agent**: claude-agent-sdk for AI chat ses
+
+[... truncated to 5000 bytes; full extract at sources/_raw/lawyer_marketing.md ...]
 
 
 # Repo: getu_ads_v2
@@ -327,9 +477,62 @@ echo '{}' | python -m google_ads_cli exec run --operation help --stdin --compact
 ## Available Operations (38)
 
 | Scenario | Ops | Detail | Key operations |
-|----------|-----|--------|-
+|----------|-----|--------|----------------|
+| Campaign Management | 6 | [campaign.md](references/campaign.md) | `search.campaign.create`, `list`, `find`, `update`, `update_bidding`, `copy` |
+| Ad Group Management | 5 | [ad_group.md](references/ad_group.md) | `search.ad_group.create`, `list`, `find`, `update_status`, `remove` |
+| Keyword Management | 3 | [keyword.md](references/keyword.md) | `search.keyword.add`, `list`, `remove` |
+| Ad / RSA Creative | 7 | [ad.md](references/ad.md) | `search.ad.create_rsa`, `get_rsa`, `update_rsa`, `update_status`, `list`, `remove`, `copy_rsa` |
+| Targeting & Budget | 5 | [targeting.md](references/targeting.md) | `search.budget.update`, `search.criteria.add`, `list`, `remove`, `add_negatives` |
+| Composite Build | 2 | [composite.md](references/composite.md) | `search.composite.create_full`, `create_groups` |
+| Reporting | 4 | [report.md](references/report.md) | `report.campaign`, `ad`, `search_terms`, `gaql` |
+| GAQL Builder | 6 | [gaql.md](references/gaql.md) | `gaql.resources`, `fields`, `field`, `build`, `validate`, `run` |
 
-[... truncated to 2500 bytes; full extract at sources/_raw/getu_ads_v2.md ...]
+Click the **Detail** link for payload schemas and examples of each operation.
+For a quick decision guide, see [references/operations.md](references/operations.md).
+
+## Quick Examples
+
+### List enabled campaigns
+
+```bash
+echo '{"campaign_type":"SEARCH","status_filter":"ENABLED"}' | \
+  python -m google_ads_cli exec run --operation search.campaign.list --stdin --compact -c config.yaml
+```
+
+### Create a full campaign structure in one shot
+
+```bash
+python -m google_ads_cli exec run \
+  --operation search.composite.create_full -f full_campaign.json --compact -c config.yaml
+```
+
+### Get campaign performance report
+
+```bash
+echo '{"date_range":"LAST_7_DAYS"}' | \
+  python -m google_ads_cli exec run --operation report.campaign --stdin --compact -c config.yaml
+```
+
+### Run custom GAQL query
+
+```bash
+echo '{"query":"SELECT campaign.id, campaign.name FROM campaign WHERE campaign.status = '\''ENABLED'\'' LIMIT 10"}' | \
+  python -m google_ads_cli exec run --operation report.gaql --stdin --compact -c config.yaml
+```
+
+### Build and execute GAQL programmatically
+
+```bash
+echo '{"resource":"campaign","fields":["campaign.id","campaign.name","metrics.clicks"],"conditions":["campaign.status = '\''ENABLED'\''"],"order_by":"metrics.clicks DESC","limit":10,"date_range":"LAST_30_DAYS"}' | \
+  python -m google_ads_cli exec run --operation gaql.build --stdin --compact -c config.yaml
+```
+
+### Discover available fields for a resource
+
+```bash
+echo '{"r
+
+[... truncated to 5000 bytes; full extract at sources/_raw/getu_ads_v2.md ...]
 
 
 # Repo: optiminds-repo-template
@@ -401,9 +604,80 @@ so it works against private repos without `gh` or a PAT.
 Default (pull-mode) usage:
 
 ```bash
-~/.optiminds/scripts
+~/.optiminds/scripts/apply.sh --check ~/dev/my-repo
+```
 
-[... truncated to 2500 bytes; full extract at sources/_raw/optiminds-repo-template.md ...]
+Sample up-to-date output:
+
+```
+==> Fetching latest template version...
+==> Current applied:  0.4.1
+==> Template latest:  0.4.1  (up-to-date)
+```
+
+Strict mode for CI exits non-zero when the consumer is behind, so a
+pipeline step can surface the drift:
+
+```bash
+~/.optiminds/scripts/apply.sh --check --strict ~/dev/my-repo
+```
+
+Sample behind output:
+
+```
+==> Fetching latest template version...
+==> Current applied:  0.3.0
+==> Template latest:  0.4.1  (behind 1 minor, 1 patch)
+
+Files that would change if you re-apply:
+  M  .github/workflows/codex-review.yml         (template updated)
+  !  AGENTS.md                                   (consumer modified — would skip without --force)
+  +  docs/runbooks/cost-monitoring.template.md   (new in template)
+
+Run: ~/.optiminds/scripts/apply.sh ~/dev/my-repo
+```
+
+Exit codes follow the `grep`/`diff` convention: `0` for up-to-date,
+`2` for behind (under `--strict` only; default always exits 0), `1` for
+real errors (missing metadata, malformed JSON, target not a git repo).
+
+A compact push-mode banner fires automatically on `apply.sh <target>`
+when the consumer's `template_version` is behind the template's current
+version — no separate command needed. Sample banner when the consumer is
+one minor + one patch behind:
+
+```
+==> Template metadata upgrade: 0.3.0 → 0.4.1 (1 minor + 1 patch)
+==>   Run `apply.sh --check ~/dev/my-repo` for file-level diff before re-applying.
+```
+
+Set `OPTIMINDS_QUIET_VERSION=1` to silence the push-mode banner for
+CI/scripted consumers that have already acknowledged the drift and don't
+want log noise:
+
+```bash
+OPTIMINDS_QUIET_VERSION=1 ~/.optiminds/scripts/apply.sh ~/dev/my-repo
+```
+
+- Suppresses the minor / patch / ahead / first-tracking banners.
+- Does **not** suppress the BREAKING banner for major version jumps — by
+  design. Silently crossing a major boundary is the exact failure mode
+  SemVer's major signal exists to prevent, so the BREAKING line is the
+  one guard rail you cannot disable.
+
+**Known limitation** — `--check` relies on the template clone's local
+`origin/main` ref. A stale clone (corporate proxy that caches DNS, an
+offline laptop, or a long-lived checkout) can report a false "up-to-date".
+Run `git -C ~/.optiminds pull` periodically — or before a `--check` run
+you care about — to refresh the local ref.
+
+## What's in Layer 0 (the always-applies set)
+
+| File | Purpose |
+|---|---|
+| `.github/workflows/codex-review.yml` | 3-pass Codex AI review
+
+[... truncated to 5000 bytes; full extract at sources/_raw/optiminds-repo-template.md ...]
 
 
 # Repo: attribution_v2
@@ -448,9 +722,76 @@ The active refactor goals are tracked in [`target.md`](target.md): reshape backe
    └──────────────────┬────────────────┬──────────┘
                       │                │
                ┌──────▼──────┐   ┌─────▼─────┐
-               │ M
+               │ MySQL         │   │ MySQL      │
+               │ DATA_DB       │   │ ADS_DB     │
+               │ (events, leads)│   │ (attribution)
+               └───────────────┘   └────────────┘
+                      ▲
+                      │
+               ┌──────┴──────────┐
+               │ GCP Pub/Sub     │
+               │ (event queue +  │
+               │  dead-letter)   │
+               └─────────────────┘
+```
 
-[... truncated to 2500 bytes; full extract at sources/_raw/attribution_v2.md ...]
+Full architectural landmines (dual-DB routing, cross-subdomain session, SDK dispatch bifurcation, user-id rotation semantics) live in [CLAUDE.md](CLAUDE.md). Read it before writing non-trivial code.
+
+## Run Locally
+
+### Prerequisites
+
+- **Node 20+** (SDK, frontend)
+- **Python 3.12+** (server), **3.11+** (events-track-server)
+- **uv** (Python package manager) — `brew install uv`
+- **MySQL** running locally (or access to a dev instance)
+- **Docker** (optional, for supporting services)
+- Access to shared secrets (GCP Pub/Sub credentials, DB credentials)
+
+### Setup
+
+```bash
+# 1. SDK
+cd sdk && npm install && npm run build
+
+# 2. Dashboard API (server/)
+cd ../server
+uv sync
+cp env.example .env                 # fill DB_HOST / ADS_DB_NAME / DATA_DB_NAME
+alembic upgrade head
+python start.py                     # :8000
+
+# 3. Event ingress + consumer (events-track-server/)
+cd ../events-track-server
+uv sync
+cp configs/env.example .env         # DB, Redis, Pub/Sub credentials
+python -m api.main                  # :8019
+
+# 4. Frontend v2 (current UI)
+cd ../frontend-v2
+npm install
+npm run dev                         # http://localhost:3103
+```
+
+### Expected
+
+`curl http://localhost:8000/dashboard/api/health` → 200. `curl http://localhost:8019/tracker/api/health` → 200. The Next.js dev server at :3103 renders without API errors in the browser console.
+
+## Run Tests
+
+- **SDK**: `cd sdk && npm test` / `npm run test:regression` (cross-subdomain + session rotation).
+- **Server / events-track-server**: `pytest tests/` (per-sub-package; coverage wiring still evolving).
+
+## Deploy
+
+`cd deploy && ./deploy.sh -b main -e production -y`. Full rollout procedure, branches-to-env mapping, and rollback steps are in [`deploy/DEPLOYMENT.md`](deploy/DEPLOYMENT.md) and [`docs/runbooks/deploy.md`](docs/runbooks/deploy.md).
+
+## Observability
+
+- **Logs**: <!-- TODO: paste production log aggregator link -->
+- **Met
+
+[... truncated to 5000 bytes; full extract at sources/_raw/attribution_v2.md ...]
 
 
 # Repo: openfang
@@ -504,9 +845,47 @@ The entire system compiles to a **single ~32MB binary**. One install, one comman
 curl -fsSL https://openfang.sh/install | sh
 openfang init
 openfang start
-# Dashboard l
+# Dashboard live at http://localhost:4200
+```
 
-[... truncated to 2500 bytes; full extract at sources/_raw/openfang.md ...]
+<details>
+<summary><strong>Windows</strong></summary>
+
+```powershell
+irm https://openfang.sh/install.ps1 | iex
+openfang init
+openfang start
+```
+
+</details>
+
+---
+
+## Hands: Agents That Actually Do Things
+
+<p align="center"><em>"Traditional agents wait for you to type. Hands work <strong>for</strong> you."</em></p>
+
+**Hands** are OpenFang's core innovation — pre-built autonomous capability packages that run independently, on schedules, without you having to prompt them. This is not a chatbot. This is an agent that wakes up at 6 AM, researches your competitors, builds a knowledge graph, scores the findings, and delivers a report to your Telegram before you've had coffee.
+
+Each Hand bundles:
+- **HAND.toml** — Manifest declaring tools, settings, requirements, and dashboard metrics
+- **System Prompt** — Multi-phase operational playbook (not a one-liner — these are 500+ word expert procedures)
+- **SKILL.md** — Domain expertise reference injected into context at runtime
+- **Guardrails** — Approval gates for sensitive actions (e.g. Browser Hand requires approval before any purchase)
+
+All compiled into the binary. No downloading, no pip install, no Docker pull.
+
+### The 7 Bundled Hands
+
+| Hand | What It Actually Does |
+|------|----------------------|
+| **Clip** | Takes a YouTube URL, downloads it, identifies the best moments, cuts them into vertical shorts with captions and thumbnails, optionally adds AI voice-over, and publishes to Telegram and WhatsApp. 8-phase pipeline. FFmpeg + yt-dlp + 5 STT backends. |
+| **Lead** | Runs daily. Discovers prospects matching your ICP, enriches them with web research, scores 0-100, deduplicates against your existing database, and delivers qualified leads in CSV/JSON/Markdown. Builds ICP profiles over time. |
+| **Collector** | OSINT-grade intelligence. You give it a target (company, person, topic). It monitors continuously — change detection, sentiment tracking, knowledge graph construction, and critical alerts when something important shifts. |
+| **Predictor** | Superforecasting engine. Collects signals from multiple sources, builds calibrated reasoning chains, makes predictions with confidence intervals, and tracks its own accuracy using Brier scores. Has a contrarian mode that deliberately argues against consensus. |
+| **Researcher** | Deep autonomous researcher. Cross-references multiple sources, evaluates credibility using CRAAP criteria (Currency, Relevance, Authority, Accuracy,
+
+[... truncated to 5000 bytes; full extract at sources/_raw/openfang.md ...]
 
 
 # Repo: geo-seo-v2
@@ -592,9 +971,86 @@ ssh getuai_dev@20.228.94.67 "cd ~/projects/geo-seo-v2 && docker compose -p geo-s
 
 ### Step 6: Caddy Reload
 
-Container IPs change after rebuild. Reload Caddy to 
+Container IPs change after rebuild. Reload Caddy to refresh upstream DNS:
 
-[... truncated to 2500 bytes; full extract at sources/_raw/geo-seo-v2.md ...]
+```bash
+ssh getuai_dev@20.228.94.67 "docker exec docker-caddy-1 caddy reload --config /etc/caddy/Caddyfile"
+```
+
+### Step 7: Verify
+
+Run these together:
+
+```bash
+# Backend logs
+ssh getuai_dev@20.228.94.67 "docker logs geo-seo-v2-backend-1 --tail 12"
+
+# SPA health
+curl -s -o /dev/null -w 'SPA: %{http_code}\n' http://20.228.94.67:8085
+```
+
+Expected:
+- Backend log contains `🚀 Backend started on port 3457`
+- SPA returns `200`
+
+### Step 8: Report
+
+Summarize in a table:
+
+| Item | Result |
+|------|--------|
+| Commit | `<hash>` — `<message>` |
+| Push | `origin/content` updated |
+| Server pull | Fast-forward to `<hash>` |
+| Docker build | Success / Fail |
+| Caddy reload | Done |
+| Backend | 🚀 Started |
+| SPA | 200 |
+
+Include the public URL: `https://geocontent.previewapps.org`
+
+## Error Recovery
+
+### TypeScript Build Failure
+
+If `docker compose ... --build` exits with code 1 and the frontend builder shows a TS error:
+
+1. Read the error message (file + line)
+2. Fix the issue locally
+3. `git add <file> && git commit -m "fix: <describe TS error>"`
+4. `git push origin content`
+5. `ssh ... "git pull origin content"`
+6. Retry `docker compose ... up -d --build`
+
+### .env.staging Changed But Containers Already Running
+
+If only `.env.staging` was updated (no code change), force-recreate backend without rebuilding:
+
+```bash
+scp d:/work-projects/geo-seo-v2/backend/.env.staging getuai_dev@20.228.94.67:~/projects/geo-seo-v2/backend/.env.staging
+ssh getuai_dev@20.228.94.67 "cd ~/projects/geo-seo-v2 && docker compose -p geo-seo-v2 -f docker/docker-compose.staging.yml up -d --no-build --force-recreate backend"
+ssh getuai_dev@20.228.94.67 "docker exec docker-caddy-1 caddy reload --config /etc/caddy/Caddyfile"
+```
+
+```
+
+## .cursor/skills/deploy-staging/SKILL.md
+```markdown
+---
+name: geo-seo-v2-deploy
+description: Deploy the geo-seo-v2 project to staging server (20.228.94.67:8085). Use when the user asks to "deploy", "deploy to staging", "publish to staging", "update staging", "release to staging", or mentions "geo-seo-v2 deployment". Handles git push, SSH into server, git pull, docker rebuild, and health verification.
+---
+
+# GEO SEO v2 — Staging Deployment
+
+## Infrastructure
+
+| Item          | Value                                                            |
+| ------------- | ---------------------------------------------------------------- |
+| Server IP     | `20.228.94.67`                                                   |
+| SSH User      | `getua
+
+[... truncated to 5000 bytes; full extract at sources/_raw/geo-seo-v2.md ...]
 
 
 # Repo: OpenBox
@@ -687,9 +1143,85 @@ docker build --platform linux/amd64 -t gcr.io/<PROJECT_ID>/openbox-backend:lates
 docker build --platform linux/amd64 -t gcr.io/<PROJECT_ID>/openbox-frontend:latest ./frontend
 
 # 推送
-docker push gcr.io/<PROJECT_ID>/open
+docker push gcr.io/<PROJECT_ID>/openbox-sandbox:latest
+docker push gcr.io/<PROJECT_ID>/openbox-backend:latest
+docker push gcr.io/<PROJECT_ID>/openbox-frontend:latest
+```
 
-[... truncated to 2500 bytes; full extract at sources/_raw/OpenBox.md ...]
+### Step 5: 创建 K8s Secret
+
+**重要**：Redis 密码中的特殊字符 `!@#$%` 等必须 URL 编码。
+
+```bash
+kubectl create secret generic openbox-secrets -n openbox \
+  --from-literal=DATABASE_URL='<ASYNCPG_URL>' \
+  --from-literal=REDIS_URL='<REDIS_URL_ENCODED>' \
+  --from-literal=JWT_SECRET='<JWT_SECRET>' \
+  --from-literal=SANDBOX_IMAGE='gcr.io/<PROJECT_ID>/openbox-sandbox:latest' \
+  --from-literal=OPENBOX_API_KEY='<API_KEY>' \
+  --from-literal=BLOB_AZURE_CONNECTION_STRING='<BLOB_CONN>' \
+  --from-literal=BLOB_AZURE_CONTAINER='<CONTAINER_NAME>' \
+  --from-literal=TAVILY_API_KEY='<TAVILY_KEY>' \
+  --from-literal=OPENAI_API_KEY='<OPENAI_KEY>'
+```
+
+### Step 6: 创建镜像拉取凭证
+
+```bash
+ACCESS_TOKEN=$(gcloud auth print-access-token)
+for NS in openbox openbox-sandbox; do
+  kubectl create secret docker-registry gcr-pull-secret -n $NS \
+    --docker-server=gcr.io --docker-username=oauth2accesstoken \
+    --docker-password="$ACCESS_TOKEN" --docker-email=<EMAIL>
+done
+
+# 绑定到 ServiceAccount
+kubectl patch serviceaccount default -n openbox \
+  -p '{"imagePullSecrets": [{"name": "gcr-pull-secret"}]}'
+```
+
+### Step 7: 部署 K8s 资源
+
+`k8s/base.yaml` 包含所有资源定义。部署前需：
+
+1. 确认 `BLOB_PROVIDER` 值（azure 或 gcs）
+2. 确认环境变量与 Secret key 匹配
+
+```bash
+sed "s/PROJECT_ID/<PROJECT_ID>/g" k8s/base.yaml | kubectl apply -f -
+```
+
+部署后绑定 imagePullSecret 到创建的 ServiceAccount：
+
+```bash
+kubectl patch serviceaccount openbox-backend -n openbox \
+  -p '{"imagePullSecrets": [{"name": "gcr-pull-secret"}]}'
+kubectl patch serviceaccount sandbox-pods -n openbox-sandbox \
+  -p '{"imagePullSecrets": [{"name": "gcr-pull-secret"}]}'
+```
+
+### Step 8: 运行数据库 Migration
+
+```bash
+kubectl exec -n openbox deployment/openbox-backend -- uv run alembic upgrade head
+```
+
+**注意**：检查 migration 中的列长度是否与 ORM 模型一致（常见问题：`VARCHAR(26)` vs `String(64)`）。如不一致需手动 ALTER。
+
+### Step 9: 配置外部访问（Ingress + HTTPS）
+
+#### 预留静态 IP
+
+```bash
+gcloud compute addresses create <APP>-static-ip --global --project=<PROJECT_ID>
+gcloud compute addresses describe <APP>-static-ip --global --format='get(address)'
+```
+
+#### 创建 ManagedCertificate + Ingress
+
+参考 `.claude/gke-ingress-setup/SKILL.md` 中的完整流程。
+
+[... truncated to 5000 bytes; full extract at sources/_raw/OpenBox.md ...]
 
 
 # Repo: clawcloud
@@ -758,7 +1290,59 @@ description: Deploy and troubleshoot the ClawCloud Azure desktop runtime built o
 
 - Prefer project scripts over ad hoc Azure commands.
 - Reuse the project NSG instead of letting Azure auto-create NIC NSGs.
-- Resolve gallery image version `latest` to the actual latest version name before VM or VMSS cr
+- Resolve gallery image version `latest` to the actual latest version name before VM or VMSS creation.
+- Keep the builder VM separate from the image-build VM lifecycle.
+- Use LF line endings for scripts uploaded to Linux.
+- Treat `8444` and `18789` as first-class deployment ports, not optional debug ports.
 
-[... truncated to 2500 bytes; full extract at sources/_raw/clawcloud.md ...]
+## Windows Execution Guidance
+
+- On Windows, prefer `powershell.exe -NoProfile -Command "& 'C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin\az.cmd' ..."` for Azure CLI automation.
+- Avoid mixing Git Bash quoting rules with long `az.cmd` command lines.
+- If a backend or script needs Azure CLI from Python, call the executable directly with argument arrays instead of shell-joined strings.
+- For SSH and SCP on Windows, rely on executable argument arrays and explicit key paths.
+
+## KasmVNC Rules
+
+- `claw-kasmvnc.service` must start KasmVNC with `-disableBasicAuth` for iframe embedding in the workbench.
+- A `401 Unauthorized` on `8444` means basic auth is still enabled and the right-side desktop pane will not embed cleanly.
+- After patching the service unit, run:
+  - `systemctl daemon-reload`
+  - `systemctl restart claw-kasmvnc.service`
+- For quick verification, external reachability matters more than local process state.
+
+## OpenClaw Rules
+
+- Gateway default port is `18789`.
+- Remote runtime config must enable HTTP responses and chat completions endpoints.
+- Backend startup should inject runtime config and env files into `/home/claw/.openclaw/`.
+- Backend task dispatch should use the remote gateway only after `/health` is reachable.
+- If the desktop is ready but the gateway is not, machine state should not become fully ready.
+
+## Troubleshooting Checklist
+
+- Gallery version stuck in `Creating`:
+  - Check Azure activity log.
+  - Confirm source managed image succeeded.
+  - Continue with the managed image if gallery replication is the only blocker.
+- VM or VMSS has public IP but `8444` times out:
+  - Check subnet NSG.
+  - Check NIC-level auto-created NSG.
+  - Confirm the instance inherited or attached the intended NSG.
+- `8444` returns `401`:
+  - KasmVNC basic auth is still active.
+- `18789` is unreachable:
+  - NSG rule is missing, or OpenClaw gateway is not healthy.
+- Backend can start the machine but chat still behaves like mock:
+  - Confirm `CLOUD_MACHINE_PROVIDER=azure_vmss`.
+  - Confirm the remote runtime config was pushed successfully.
+  - Confirm `/v1/responses` is enabled on the gateway.
+- Bash command works badly with Azure CLI on Windows:
+  - Move the command to PowerShell or Python subprocess arrays.
+
+## Known Pitfalls To Remember
+
+- CRLF line
+
+[... truncated to 5000 bytes; full extract at sources/_raw/clawcloud.md ...]
 
