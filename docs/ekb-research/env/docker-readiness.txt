@@ -1,0 +1,114 @@
+Enterprise KB benchmark environment readiness
+Status: captured
+Date: 2026-06-27
+
+$ docker info
+exit_code=0
+Client:
+ Version:    25.0.3
+ Context:    desktop-linux
+ Debug Mode: false
+ Plugins:
+  buildx: Docker Buildx (Docker Inc.)
+    Version:  v0.12.1-desktop.4
+    Path:     /Users/stometa/.docker/cli-plugins/docker-buildx
+  compose: Docker Compose (Docker Inc.)
+    Version:  v2.24.5-desktop.1
+    Path:     /Users/stometa/.docker/cli-plugins/docker-compose
+  debug: Get a shell into any image or container. (Docker Inc.)
+    Version:  0.0.24
+    Path:     /Users/stometa/.docker/cli-plugins/docker-debug
+  dev: Docker Dev Environments (Docker Inc.)
+    Version:  v0.1.0
+    Path:     /Users/stometa/.docker/cli-plugins/docker-dev
+  extension: Manages Docker extensions (Docker Inc.)
+    Version:  v0.2.21
+    Path:     /Users/stometa/.docker/cli-plugins/docker-extension
+  feedback: Provide feedback, right in your terminal! (Docker Inc.)
+    Version:  v1.0.4
+    Path:     /Users/stometa/.docker/cli-plugins/docker-feedback
+  init: Creates Docker-related starter files for your project (Docker Inc.)
+    Version:  v1.0.0
+    Path:     /Users/stometa/.docker/cli-plugins/docker-init
+  sbom: View the packaged-based Software Bill Of Materials (SBOM) for an image (Anchore Inc.)
+    Version:  0.6.0
+    Path:     /Users/stometa/.docker/cli-plugins/docker-sbom
+  scout: Docker Scout (Docker Inc.)
+    Version:  v1.4.1
+    Path:     /Users/stometa/.docker/cli-plugins/docker-scout
+
+Server:
+ Containers: 6
+  Running: 2
+  Paused: 0
+  Stopped: 4
+ Images: 60
+ Server Version: 25.0.3
+ Storage Driver: overlay2
+  Backing Filesystem: extfs
+  Supports d_type: true
+  Using metacopy: false
+  Native Overlay Diff: true
+  userxattr: false
+ Logging Driver: json-file
+ Cgroup Driver: cgroupfs
+ Cgroup Version: 2
+ Plugins:
+  Volume: local
+  Network: bridge host ipvlan macvlan null overlay
+  Log: awslogs fluentd gcplogs gelf journald json-file local splunk syslog
+ Swarm: inactive
+ Runtimes: io.containerd.runc.v2 runc
+ Default Runtime: runc
+ Init Binary: docker-init
+ containerd version: ae07eda36dd25f8a1b98dfbf587313b99c0190bb
+ runc version: v1.1.12-0-g51d5e94
+ init version: de40ad0
+ Security Options:
+  seccomp
+   Profile: unconfined
+  cgroupns
+ Kernel Version: 6.6.12-linuxkit
+ Operating System: Docker Desktop
+ OSType: linux
+ Architecture: aarch64
+ CPUs: 12
+ Total Memory: 7.657GiB
+ Name: docker-desktop
+ ID: 2860cc9e-cd6e-4844-83c2-15048ce25602
+ Docker Root Dir: /var/lib/docker
+ Debug Mode: false
+ HTTP Proxy: http.docker.internal:3128
+ HTTPS Proxy: http.docker.internal:3128
+ No Proxy: hubproxy.docker.internal
+ Experimental: false
+ Insecure Registries:
+  hubproxy.docker.internal:5555
+  127.0.0.0/8
+ Live Restore Enabled: false
+
+WARNING: daemon is not using the default seccomp profile
+
+$ docker info --format {{.DockerRootDir}}
+exit_code=0
+/var/lib/docker
+
+$ df -Pk /var/lib/docker
+exit_code=1
+df: /var/lib/docker: No such file or directory
+
+$ df -Pk /  # host backing volume for Docker Desktop
+exit_code=0
+Filesystem     1024-blocks      Used Available Capacity  Mounted on
+/dev/disk3s1s1   971350180  15587172  91220128    15%    /
+
+$ docker run --rm -v /var/lib/docker:/docker-root:ro ubuntu:22.04 df -Pk /docker-root
+exit_code=0
+Filesystem     1024-blocks     Used Available Capacity Mounted on
+/dev/vda1         61202244 57878588    182332     100% /docker-root
+
+Threshold assessment:
+- Required available space on Docker root volume: >= 58 GB.
+- Observed available space inside Docker root mount: 182332 KiB, about 178 MB.
+- Result: FAIL. Docker daemon is reachable, but the Docker root volume does not
+  have enough free space for the framework boot checkpoints.
