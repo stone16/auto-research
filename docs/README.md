@@ -98,4 +98,5 @@ Do not start with a giant open-ended domain. Start with a topic that can converg
 - Then read [goal-managed-agent-framework-v2-additions.md](goal-managed-agent-framework-v2-additions.md) for the critique-to-spec patch history around measurement, budget, and judge calibration
 - Then read [goal-managed-agent-protocol-spec.md](goal-managed-agent-protocol-spec.md) for the implementation-facing protocol draft
 - Then read [goal-managed-agent-testing-strategy.md](goal-managed-agent-testing-strategy.md) for the layered testing and eval strategy
+- Then read [enterprise-knowledge-base-design.md](enterprise-knowledge-base-design.md) for the enterprise RAG knowledge-base design covering multi-tenancy, authorization, APIs, CLI, MCP, and metrics loops
 - Then adapt the example run into your own topic
