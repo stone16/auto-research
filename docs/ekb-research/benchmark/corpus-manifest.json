@@ -187,8 +187,8 @@
     {
       "document_id": "D13",
       "title": "Renewal Playbook Long Form",
-      "path": "docs/ekb-research/benchmark/corpus/D13_acme_sales_renewal_playbook_long.md",
-      "file_format": "markdown",
+      "path": "docs/ekb-research/benchmark/corpus/D13_acme_sales_renewal_playbook_long.pdf",
+      "file_format": "pdf",
       "tenant_id": "acme",
       "workspace_id": "sales",
       "sensitivity": "internal",
@@ -196,7 +196,7 @@
       "status": "active",
       "shared": false,
       "shared_grant_id": "",
-      "sha256": "d21ce92fdfc94b73e27e04926394accecea8bbc0a8e6e518daf28e683221e359"
+      "sha256": "206fc0ce3e1f4ab081ba2fc1a466a6f9daf972f836d449b14d93641f06ddadbf"
     },
     {
       "document_id": "D14",
@@ -210,7 +210,7 @@
       "status": "active",
       "shared": false,
       "shared_grant_id": "",
-      "sha256": "c49cf8b55c6c2869380fac8d54c2feb4ee0f17e818e889e0e39c403336bcdbe0"
+      "sha256": "64009e6221df534f2157d67d68500f3b5f60054c25c3ac492022701fcdae8ab8"
     },
     {
       "document_id": "D15",
