@@ -421,7 +421,7 @@ CREATE TABLE eval_scores (
   UNIQUE (tenant_id, eval_run_id, case_id, metric)
 );
 
-CREATE VIEW eval_score_facts AS
+CREATE VIEW eval_score_facts WITH (security_invoker = true) AS
 SELECT
   r.tenant_id,
   r.id AS eval_run_id,
@@ -440,7 +440,8 @@ LEFT JOIN eval_scores s
   ON s.tenant_id = r.tenant_id
  AND s.eval_run_id = r.id
  AND s.case_id = c.id
- AND s.metric = expected.metric;
+ AND s.metric = expected.metric
+WHERE r.tenant_id = ekb.current_tenant_id();
 
 CREATE INDEX workspaces_tenant_parent_idx ON workspaces (tenant_id, parent_id);
 CREATE INDEX users_tenant_status_idx ON users (tenant_id, status);

@@ -17,13 +17,15 @@
 # - workspace:sales#acme_member@tenant:acme
 # - workspace:sales#manager@user:bob
 # - knowledge_base:sales-playbook#owner@workspace:sales
+# - knowledge_base:sales-playbook#workspace_visible@workspace:sales
 # - knowledge_base:sales-playbook#reader@group:sales-se#member
 # - document:pricing-faq#parent@knowledge_base:sales-playbook
 # - tool:crm_lookup#invoker@group:sales-se
 #
 # Example derivations:
-# - user:alice can read document:pricing-faq through tenant owner -> workspace
-#   acme_member -> knowledge_base owner -> document parent.
+# - user:alice can read document:pricing-faq only when an explicit visibility
+#   tuple such as knowledge_base:sales-playbook#workspace_visible@workspace:sales
+#   is present; tenant owner -> workspace member alone does not imply KB read.
 # - service_account:mcp-sales can invoke tool:crm_lookup when it is a member
 #   of group:sales-se and the tool invoker is group:sales-se.
 # - user:bob can grant knowledge_base:sales-playbook through workspace manager
