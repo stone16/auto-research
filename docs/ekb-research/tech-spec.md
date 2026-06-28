@@ -54,6 +54,25 @@ running API service, MCP server, retriever, UI, or deployment.
 | Observability, prompts, and eval datasets | Extract Langfuse-compatible traces, observations, prompt versions, scores, datasets, and trace-to-dataset linkage; keep final scoring first-party. | `docs/ekb-research/extraction-map.md:24` | `docs/ekb-research/contracts/schema.sql`, `docs/ekb-research/contracts/openapi.yaml`. |
 | Evaluation and release scoring | Use DeepEval for span-level CI metrics and Ragas only as raw metric producers; wrap both with an EKB zero-fill normalizer. | `docs/ekb-research/extraction-map.md:25` | `docs/ekb-research/contracts/schema.sql` for eval datasets, cases, runs, and scores. |
 
+## Canonical Subsystem Crosswalk
+
+The approved spec names nine canonical target subsystems: tenant, knowledge,
+ingestion, retrieval, generation, tool-mcp, observability, authz, and eval. The
+Subsystem Plan above re-decomposes those concerns into implementation rows, but
+the canonical ownership remains:
+
+| Canonical subsystem | Carrying plan row(s) | Verdict |
+| --- | --- | --- |
+| tenant | Relationship authorization (ReBAC); Contextual policy and obligations; Public API and OpenAI-compatible surface | Build first-party tenant propagation, RLS context, and tenant-scoped APIs; extract OpenFGA and OPA only as decision-plane donors. |
+| knowledge | Corpus ingestion and source registry | Build first-party knowledge-base, source, document, chunk, hash, and index-version registry; lift only AnythingLLM raw-text/API ergonomics. |
+| ingestion | Corpus ingestion and source registry | Build first-party parser completion, chunk accounting, and source-id registry; reuse AnythingLLM API shape where it fits. |
+| retrieval | Retrieval, ranking, and citation assembly | Build first-party retrieval with pre-rank and post-rank policy checks; no framework retrieval ACL is a donor. |
+| generation | Retrieval, ranking, and citation assembly; Public API and OpenAI-compatible surface | Build first-party answer assembly, refusal behavior, confidence, citations, and trace_id response semantics. |
+| tool-mcp | MCP and tool gateway | Extract Flowise and AnythingLLM MCP hardening patterns, but keep source constraints and tool-permission checks first-party. |
+| observability | Observability, prompts, and eval datasets | Extract Langfuse-compatible traces, observations, prompt versions, scores, datasets, and trace-to-dataset linkage. |
+| authz | Relationship authorization (ReBAC); Contextual policy and obligations | Extract OpenFGA for relationship tuples and OPA-style policy obligations; wire both through first-party retrieval/API/tool paths. |
+| eval | Evaluation and release scoring | Extract DeepEval span metrics and use Ragas only as raw metric producer behind a first-party zero-fill normalizer. |
+
 ## Donor Decisions
 
 | Donor | Use | Evidence link |
