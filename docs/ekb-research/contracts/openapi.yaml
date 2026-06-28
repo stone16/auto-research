@@ -48,6 +48,7 @@ paths:
       tags: [Tenants]
       operationId: createTenant
       summary: Create a tenant.
+      description: The request `id` must match `X-Tenant-Id`; tenant creation is an explicit bootstrap operation for that tenant context.
       parameters:
         - $ref: '#/components/parameters/TenantHeader'
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -418,8 +419,12 @@ components:
   schemas:
     TenantCreateRequest:
       type: object
-      required: [name, plan, region]
+      required: [id, name, plan, region]
       properties:
+        id:
+          type: string
+          format: uuid
+          description: Tenant identifier; must equal the `X-Tenant-Id` header.
         name:
           type: string
         plan:
@@ -428,10 +433,14 @@ components:
           type: string
     Tenant:
       type: object
-      required: [id, name, status, plan, region, created_at]
+      required: [id, tenant_id, name, status, plan, region, created_at]
       properties:
         id:
           type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
         name:
           type: string
         status:
@@ -583,7 +592,9 @@ components:
           description: Request a streaming response when true.
         require_citations:
           type: boolean
-          description: Require structured citations in the final answer.
+          enum: [true]
+          default: true
+          description: Structured citations are mandatory for final answers.
     StreamResponseOptions:
       allOf:
         - $ref: '#/components/schemas/ResponseOptions'
@@ -601,6 +612,7 @@ components:
           type: string
         citations:
           type: array
+          minItems: 1
           items:
             $ref: '#/components/schemas/Citation'
         confidence:

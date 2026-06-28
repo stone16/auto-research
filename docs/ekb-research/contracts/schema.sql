@@ -42,7 +42,9 @@ Table map:
 - eval_scores: design 338-352; extraction F-OBS-002, F-OBS-003, F-OBS-004.
 
 All tables are tenant-owned. The tenants table carries tenant_id as a generated
-alias of id so the RLS pattern is mechanically consistent everywhere.
+alias of id so the RLS pattern is mechanically consistent everywhere. Tenant
+creation is a bootstrap operation: the caller supplies id equal to
+ekb.current_tenant_id(), after which normal tenant RLS applies.
 */
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -57,7 +59,7 @@ AS $$
 $$;
 
 CREATE TABLE tenants (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id uuid PRIMARY KEY,
   tenant_id uuid GENERATED ALWAYS AS (id) STORED UNIQUE,
   name text NOT NULL,
   status text NOT NULL CHECK (status IN ('active', 'suspended', 'deleted')),
@@ -398,6 +400,7 @@ CREATE TABLE eval_runs (
   tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   dataset_id uuid NOT NULL REFERENCES eval_datasets(id) ON DELETE CASCADE,
   candidate_config jsonb NOT NULL DEFAULT '{}'::jsonb,
+  expected_metrics text[] NOT NULL CHECK (COALESCE(array_length(expected_metrics, 1), 0) > 0),
   status text NOT NULL CHECK (status IN ('queued', 'running', 'passed', 'failed', 'error')),
   started_at timestamptz NOT NULL DEFAULT now(),
   completed_at timestamptz
@@ -409,12 +412,35 @@ CREATE TABLE eval_scores (
   eval_run_id uuid NOT NULL REFERENCES eval_runs(id) ON DELETE CASCADE,
   case_id uuid NOT NULL REFERENCES eval_cases(id) ON DELETE CASCADE,
   metric text NOT NULL,
+  metric_status text NOT NULL DEFAULT 'scored' CHECK (metric_status IN ('scored', 'missing', 'skipped', 'error', 'absent')),
   score numeric(6, 5) NOT NULL CHECK (score >= 0 AND score <= 1),
   reason text NOT NULL,
   evidence jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now(),
+  CHECK (metric_status = 'scored' OR score = 0),
   UNIQUE (tenant_id, eval_run_id, case_id, metric)
 );
+
+CREATE VIEW eval_score_facts AS
+SELECT
+  r.tenant_id,
+  r.id AS eval_run_id,
+  c.id AS case_id,
+  expected.metric,
+  COALESCE(s.score, 0.0::numeric(6, 5)) AS score,
+  COALESCE(s.metric_status, 'absent') AS metric_status,
+  COALESCE(s.reason, 'metric absent from producer output; zero-filled by contract') AS reason,
+  COALESCE(s.evidence, '{}'::jsonb) AS evidence
+FROM eval_runs r
+JOIN eval_cases c
+  ON c.tenant_id = r.tenant_id
+ AND c.dataset_id = r.dataset_id
+CROSS JOIN LATERAL unnest(r.expected_metrics) AS expected(metric)
+LEFT JOIN eval_scores s
+  ON s.tenant_id = r.tenant_id
+ AND s.eval_run_id = r.id
+ AND s.case_id = c.id
+ AND s.metric = expected.metric;
 
 CREATE INDEX workspaces_tenant_parent_idx ON workspaces (tenant_id, parent_id);
 CREATE INDEX users_tenant_status_idx ON users (tenant_id, status);

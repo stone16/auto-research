@@ -32,14 +32,17 @@ Recommended base strategy:
 3. Use a dedicated authorization layer, observability layer, and evaluation
    layer even when the UI/product shell is adopted from another project.
 
-If speed matters most:
+If speed matters most for a prototype:
 
-- Primary product shell: Dify Enterprise or MaxKB X-Pack.
-- Retrieval/document subsystem: RAGFlow patterns, or RAGFlow as an external
-  retrieval service when document parsing quality dominates.
-- Observability and evaluation: Langfuse plus Ragas or DeepEval.
-- Authorization model: OpenFGA-style relationship authorization plus OPA-style
-  policy checks for contextual rules.
+- Treat Dify Enterprise, MaxKB X-Pack, RAGFlow, WeKnora, Open WebUI, Flowise,
+  and AnythingLLM as guarded reference implementations, not as the primary
+  enterprise product shell unless the CP21 contracts below are implemented.
+- Keep retrieval, tenant enforcement, citation assembly, tool authorization,
+  and release scoring in the first-party control plane.
+- Observability and evaluation may reuse Langfuse, Ragas, or DeepEval only
+  behind the first-party trace schema and zero-fill scoring contract.
+- Authorization remains OpenFGA-style relationship checks plus OPA-style policy
+  obligations wired through retrieval, API, and MCP execution paths.
 
 If building a defensible enterprise platform from scratch:
 
