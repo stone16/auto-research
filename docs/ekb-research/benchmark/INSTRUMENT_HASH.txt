@@ -1,0 +1,22 @@
+# EKB Research Instrument Hash
+
+Status: frozen-input
+Date: 2026-06-28
+
+INSTRUMENT_HASH=1a2434beba68e3381d07a34c81babcc12e2b02caac4a56b58203fc55cc899f19
+
+Algorithm:
+
+sha256(concat(sort([
+  sha256(corpus-manifest.json),
+  sha256(grants.json),
+  sha256(queries.json),
+  sha256(query-suite.md)
+])))
+
+Inputs:
+
+- 3032ae481c8bc54355b14db66185064aef70e01b914168f15539b836ca5cf4c6  docs/ekb-research/benchmark/corpus-manifest.json
+- 3a741c235f2ec175072f94b2565b45357823eb185eb0b8f029815401e4705b60  docs/ekb-research/benchmark/grants.json
+- 64e6502a3eff3b60f28094f3149bf4cf1a97900de5091589d2abde4ce020a38a  docs/ekb-research/benchmark/queries.json
+- 0f346a63c67f9b27af5c4cbf805b54295efe47392c59f6e192e66a12fd462708  docs/ekb-research/benchmark/query-suite.md

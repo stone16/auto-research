@@ -1,0 +1,135 @@
+{
+  "status": "frozen-input",
+  "date": "2026-06-28",
+  "principals": [
+    {
+      "principal_id": "rep@acme/sales",
+      "tenant_id": "acme",
+      "workspace_id": "sales",
+      "role": "end_user",
+      "groups": [
+        "acme-sales-readers"
+      ],
+      "clearances": [],
+      "tool_grants": [],
+      "description": "Baseline Acme sales reader."
+    },
+    {
+      "principal_id": "mgr@acme/sales",
+      "tenant_id": "acme",
+      "workspace_id": "sales",
+      "role": "workspace_owner",
+      "groups": [
+        "acme-sales-readers",
+        "acme-sales-managers"
+      ],
+      "clearances": [],
+      "tool_grants": [
+        "kb.search",
+        "kb.ask"
+      ],
+      "description": "Acme sales manager; receives grant-01 to D17."
+    },
+    {
+      "principal_id": "hradmin@acme/hr",
+      "tenant_id": "acme",
+      "workspace_id": "hr",
+      "role": "knowledge_manager",
+      "groups": [
+        "acme-hr-readers",
+        "acme-hr-restricted"
+      ],
+      "clearances": [
+        "restricted_hr"
+      ],
+      "tool_grants": [],
+      "description": "Only principal cleared for D11 restricted severance."
+    },
+    {
+      "principal_id": "analyst@acme/hr",
+      "tenant_id": "acme",
+      "workspace_id": "hr",
+      "role": "analyst",
+      "groups": [
+        "acme-hr-readers"
+      ],
+      "clearances": [],
+      "tool_grants": [],
+      "description": "HR reader without D11 restricted clearance."
+    },
+    {
+      "principal_id": "rep@globex/sales",
+      "tenant_id": "globex",
+      "workspace_id": "sales",
+      "role": "end_user",
+      "groups": [
+        "globex-sales-readers"
+      ],
+      "clearances": [],
+      "tool_grants": [],
+      "description": "Other-tenant reader for isolation and P5 negative controls."
+    },
+    {
+      "principal_id": "svc-mcp@acme/sales",
+      "tenant_id": "acme",
+      "workspace_id": "sales",
+      "role": "service_account",
+      "groups": [
+        "acme-sales-readers"
+      ],
+      "clearances": [],
+      "tool_grants": [
+        "kb.search",
+        "kb.ask",
+        "tool.invoke"
+      ],
+      "description": "MCP service account with scoped knowledge tool grants."
+    }
+  ],
+  "resource_grants": [
+    {
+      "grant_id": "grant-01",
+      "resource_type": "document",
+      "resource_id": "D17",
+      "resource_title": "Vendor SOC 2 Shared Review",
+      "source_tenant_id": "acme",
+      "source_workspace_id": "ops",
+      "granted_to": "group:acme-sales-readers",
+      "permission": "kb:read",
+      "expires_at": null,
+      "purpose": "Allow Acme sales to answer vendor-PII review questions from the Acme ops SOC 2 review."
+    }
+  ],
+  "tool_fixtures": [
+    {
+      "tool_id": "kb.search",
+      "required_scope": "kb:read",
+      "risk_level": "low",
+      "side_effect": "read-only",
+      "authorized_principals": [
+        "svc-mcp@acme/sales"
+      ],
+      "fixture_outputs": {
+        "vendor_pii_review": {
+          "answer_hint": "SOC 2 Type II report, named security owner, and high-finding remediation plan are required.",
+          "source_document_id": "D17"
+        }
+      }
+    },
+    {
+      "tool_id": "tool.invoke",
+      "required_scope": "tool:invoke",
+      "risk_level": "medium",
+      "side_effect": "tool-dependent",
+      "authorized_principals": [
+        "svc-mcp@acme/sales"
+      ],
+      "fixture_outputs": {
+        "release_lookup": {
+          "answer_hint": "Release 2026.06 adds citation previews, trace_id export, workspace query limits, and a beta MCP search tool.",
+          "source_document_id": "D18"
+        }
+      }
+    }
+  ]
+}
