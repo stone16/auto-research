@@ -364,7 +364,11 @@ components:
       name: X-Tenant-Id
       in: header
       required: true
-      description: Tenant context for authorization, RLS, traces, and audit.
+      description: >
+        Tenant context for authorization, RLS, traces, and audit. The server
+        MUST verify this value against the authenticated principal's tenant
+        membership, or derive tenant context from the bearer principal, and
+        reject mismatches with 403 before setting Postgres app.tenant_id.
       schema:
         type: string
     IdempotencyKey:
@@ -507,6 +511,7 @@ components:
           type: string
         content:
           type: string
+          maxLength: 1048576
         acl_hash:
           type: string
         metadata:
@@ -562,6 +567,7 @@ components:
           type: string
         query:
           type: string
+          maxLength: 4096
         knowledge_base_ids:
           type: array
           items:
@@ -610,6 +616,7 @@ components:
       properties:
         answer:
           type: string
+          maxLength: 16384
         citations:
           type: array
           minItems: 1

@@ -152,6 +152,7 @@ CREATE TABLE api_keys (
   last_used_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+COMMENT ON COLUMN api_keys.key_hash IS 'Keyed HMAC-SHA256 over the API key using a server-side pepper; never store plaintext API keys.';
 
 CREATE TABLE knowledge_bases (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -448,6 +449,7 @@ CREATE INDEX users_tenant_status_idx ON users (tenant_id, status);
 CREATE INDEX groups_tenant_workspace_idx ON groups (tenant_id, workspace_id);
 CREATE INDEX documents_tenant_kb_status_idx ON documents (tenant_id, kb_id, status);
 CREATE INDEX chunks_tenant_acl_hash_idx ON chunks (tenant_id, acl_hash);
+CREATE INDEX messages_tenant_trace_idx ON messages (tenant_id, trace_id);
 CREATE INDEX retrieval_events_tenant_trace_idx ON retrieval_events (tenant_id, trace_id);
 CREATE INDEX answer_events_tenant_trace_idx ON answer_events (tenant_id, trace_id);
 CREATE INDEX tool_calls_tenant_trace_idx ON tool_calls (tenant_id, trace_id);

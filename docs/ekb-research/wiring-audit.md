@@ -97,7 +97,7 @@ benchmark dimension appears in at least one row: R, I, P, N, M, A, and F.
 | `authz.fga` tuple model | Real-traced | CP17 validated the model and this audit cites line-level grant/tool relations. |
 | `openapi.yaml` response and tenant contract | Real-traced | CP18 validated the OpenAPI document and this audit cites line-level response/tenant fields. |
 | `mcp-tools.md` tool surface | Real-traced | CP19 validated 9 design tools, zero missing, and this audit cites line-level A1/A2 tool rules. |
-| HTTP `X-Tenant-Id` to Postgres `app.tenant_id` | Assumed | No service implementation exists in this harness scope. |
+| HTTP `X-Tenant-Id` to Postgres `app.tenant_id` | Assumed | No service implementation exists in this harness scope; the contract requires the server to verify `X-Tenant-Id` against the authenticated principal's tenant membership, or derive tenant context from the bearer principal, and reject mismatches with 403 before setting `app.tenant_id`. |
 | Retrieval pre-rank and post-rank authz calls | Assumed | Contracts require the boundary, but no retriever implementation exists. |
 | Restricted clearance evaluation | Assumed gap | Delegated to OPA/policy bindings, but no executable policy artifact exists. |
 | Language handling for multilingual answers | Assumed gap | Contracts allow strings/metadata, but no language field or policy exists. |

@@ -11,31 +11,31 @@ Client:
  Plugins:
   buildx: Docker Buildx (Docker Inc.)
     Version:  v0.12.1-desktop.4
-    Path:     /Users/stometa/.docker/cli-plugins/docker-buildx
+    Path:     /home/user/.docker/cli-plugins/docker-buildx
   compose: Docker Compose (Docker Inc.)
     Version:  v2.24.5-desktop.1
-    Path:     /Users/stometa/.docker/cli-plugins/docker-compose
+    Path:     /home/user/.docker/cli-plugins/docker-compose
   debug: Get a shell into any image or container. (Docker Inc.)
     Version:  0.0.24
-    Path:     /Users/stometa/.docker/cli-plugins/docker-debug
+    Path:     /home/user/.docker/cli-plugins/docker-debug
   dev: Docker Dev Environments (Docker Inc.)
     Version:  v0.1.0
-    Path:     /Users/stometa/.docker/cli-plugins/docker-dev
+    Path:     /home/user/.docker/cli-plugins/docker-dev
   extension: Manages Docker extensions (Docker Inc.)
     Version:  v0.2.21
-    Path:     /Users/stometa/.docker/cli-plugins/docker-extension
+    Path:     /home/user/.docker/cli-plugins/docker-extension
   feedback: Provide feedback, right in your terminal! (Docker Inc.)
     Version:  v1.0.4
-    Path:     /Users/stometa/.docker/cli-plugins/docker-feedback
+    Path:     /home/user/.docker/cli-plugins/docker-feedback
   init: Creates Docker-related starter files for your project (Docker Inc.)
     Version:  v1.0.0
-    Path:     /Users/stometa/.docker/cli-plugins/docker-init
+    Path:     /home/user/.docker/cli-plugins/docker-init
   sbom: View the packaged-based Software Bill Of Materials (SBOM) for an image (Anchore Inc.)
     Version:  0.6.0
-    Path:     /Users/stometa/.docker/cli-plugins/docker-sbom
+    Path:     /home/user/.docker/cli-plugins/docker-sbom
   scout: Docker Scout (Docker Inc.)
     Version:  v1.4.1
-    Path:     /Users/stometa/.docker/cli-plugins/docker-scout
+    Path:     /home/user/.docker/cli-plugins/docker-scout
 
 Server:
  Containers: 6
