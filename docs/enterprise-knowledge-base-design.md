@@ -1,7 +1,7 @@
 # Enterprise Knowledge Base Design
 
-Status: draft
-Date: 2026-06-27
+Status: evidence-grounded
+Date: 2026-06-28
 
 ## Purpose
 
@@ -77,6 +77,24 @@ The comparison used current GitHub metadata and official docs as of
 | Authorization | https://github.com/openfga/openfga, https://github.com/open-policy-agent/opa, https://github.com/apache/casbin |
 | MCP | https://github.com/modelcontextprotocol/modelcontextprotocol |
 | Vector/search | https://github.com/qdrant/qdrant, https://github.com/milvus-io/milvus, https://github.com/weaviate/weaviate, https://github.com/pgvector/pgvector |
+
+## Evidence-Grounded Donor Cross-Links
+
+The original desk research was validated and narrowed by the CP15-CP21 harness
+run. The final recommendation is the assembled first-party plan in
+`docs/ekb-research/tech-spec.md`, backed by `docs/ekb-research/extraction-map.md`
+and `docs/ekb-research/wiring-audit.md`.
+
+| Donor or reference | Evidence-grounded use |
+| --- | --- |
+| Flowise | CLI/route packaging and MCP hardening patterns: `docs/ekb-research/dossiers/flowise.md`, F-FLOWISE-004 in `docs/ekb-research/findings/ledger.md`. |
+| AnythingLLM | Developer API, OpenAI-compatible, raw-text ingestion, and MCP-to-agent adapter patterns: `docs/ekb-research/dossiers/anythingllm.md`, F-ANYTHINGLLM-004 in `docs/ekb-research/findings/ledger.md`. |
+| OpenFGA | Relationship authorization decision plane: `docs/ekb-research/subsystems/authz.md`, F-AUTHZ-001 in `docs/ekb-research/findings/ledger.md`, and `docs/ekb-research/contracts/authz.fga`. |
+| OPA | Contextual ABAC/deny/obligation policy pattern: `docs/ekb-research/subsystems/authz.md`, F-AUTHZ-002 in `docs/ekb-research/findings/ledger.md`. |
+| Langfuse | Trace, prompt, score, and dataset plumbing: `docs/ekb-research/subsystems/obs-eval.md`, F-OBS-001 in `docs/ekb-research/findings/ledger.md`. |
+| DeepEval | Span-level retriever/generator metrics: `docs/ekb-research/subsystems/obs-eval.md`, F-OBS-003 in `docs/ekb-research/findings/ledger.md`. |
+| Ragas | Raw metric producer only, with first-party zero-fill aggregation: `docs/ekb-research/subsystems/obs-eval.md`, F-OBS-002 in `docs/ekb-research/findings/ledger.md`. |
+| RAGFlow, Dify, WeKnora, MaxKB, Open WebUI | Reference and guardrail evidence only; do not lift their retrieval ACL paths as benchmark-equivalent enterprise permission donors. See their dossiers under `docs/ekb-research/dossiers/`. |
 
 ## Product Requirements
 
