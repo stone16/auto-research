@@ -1,6 +1,6 @@
 Enterprise KB benchmark environment readiness
 Status: captured
-Date: 2026-06-27
+Date: 2026-06-28
 
 $ docker info
 exit_code=0
@@ -100,15 +100,15 @@ df: /var/lib/docker: No such file or directory
 $ df -Pk /  # host backing volume for Docker Desktop
 exit_code=0
 Filesystem     1024-blocks      Used Available Capacity  Mounted on
-/dev/disk3s1s1   971350180  15587172  91220128    15%    /
+/dev/disk3s1s1   971350180  15587172  89620824    15%    /
 
-$ docker run --rm -v /var/lib/docker:/docker-root:ro ubuntu:22.04 df -Pk /docker-root
+$ docker run --rm -v /var/lib/docker:/docker-root:ro ubuntu:22.04 df -Pk /docker-root  # in-daemon Docker root mount
 exit_code=0
 Filesystem     1024-blocks     Used Available Capacity Mounted on
-/dev/vda1         61202244 57878588    182332     100% /docker-root
+/dev/vda1        131787236 57878580  67181440      47% /docker-root
+WARNING: The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested
 
 Threshold assessment:
 - Required available space on Docker root volume: >= 58 GB.
-- Observed available space inside Docker root mount: 182332 KiB, about 178 MB.
-- Result: FAIL. Docker daemon is reachable, but the Docker root volume does not
-  have enough free space for the framework boot checkpoints.
+- Observed available space inside Docker root mount: 67181440 KiB, about 64.1 GiB.
+- Result: PASS. Docker daemon is reachable and Docker root has enough free space for framework boot checkpoints.
