@@ -1,0 +1,83 @@
+# EKB OpenFGA Contract Model
+# Status: CP17 contract artifact
+# Date: 2026-06-28
+#
+# Source map:
+# - Types tenant, workspace, group, knowledge_base, document, and tool map to
+#   docs/enterprise-knowledge-base-design.md:443-456.
+# - Example checks map to docs/enterprise-knowledge-base-design.md:458-464.
+# - Relationship-tuple and tuple-to-userset behavior is justified by
+#   F-AUTHZ-001 and docs/ekb-research/subsystems/authz.md:37-64.
+# - Contextual ABAC, DLP, region, MFA, provider, and redirect-origin policy
+#   remain outside this model and are delegated to OPA per F-AUTHZ-002.
+#
+# Required design tuples:
+# - tenant:acme#owner@user:alice
+# - tenant:acme#admin@group:platform
+# - workspace:sales#acme_member@tenant:acme
+# - workspace:sales#manager@user:bob
+# - knowledge_base:sales-playbook#owner@workspace:sales
+# - knowledge_base:sales-playbook#reader@group:sales-se#member
+# - document:pricing-faq#parent@knowledge_base:sales-playbook
+# - tool:crm_lookup#invoker@group:sales-se
+#
+# Example derivations:
+# - user:alice can read document:pricing-faq through tenant owner -> workspace
+#   acme_member -> knowledge_base owner -> document parent.
+# - service_account:mcp-sales can invoke tool:crm_lookup when it is a member
+#   of group:sales-se and the tool invoker is group:sales-se.
+# - user:bob can grant knowledge_base:sales-playbook through workspace manager
+#   inherited over knowledge_base owner.
+
+model
+  schema 1.1
+
+type user
+
+type service_account
+
+type group
+  relations
+    define member: [user, service_account, group#member]
+    define manager: [user, group#member]
+
+type tenant
+  relations
+    define owner: [user]
+    define admin: [user, group, group#member] or owner
+    define member: [user, service_account, group#member] or admin
+
+type workspace
+  relations
+    define parent: [tenant]
+    define acme_member: [tenant]
+    define manager: [user, group#member]
+    define admin: [user, group#member] or admin from parent or admin from acme_member
+    define member: [user, service_account, group#member] or manager or admin or member from parent or member from acme_member
+
+type knowledge_base
+  relations
+    define owner: [workspace]
+    define direct_owner: [user, group#member]
+    define reader: [user, service_account, group#member] or member from owner
+    define writer: [user, service_account, group#member] or direct_owner or manager from owner
+    define grant: [user, group#member] or direct_owner or manager from owner
+    define read: reader or writer or grant
+    define write: writer or grant
+
+type document
+  relations
+    define parent: [knowledge_base]
+    define reader: [user, service_account, group#member]
+    define writer: [user, service_account, group#member]
+    define grant: [user, group#member] or grant from parent
+    define read: reader or writer or reader from parent or writer from parent or grant from parent
+    define write: writer or writer from parent or grant
+
+type tool
+  relations
+    define parent: [workspace]
+    define invoker: [group]
+    define direct_invoker: [user, service_account, group#member]
+    define admin: [user, group#member] or manager from parent
+    define invoke: direct_invoker or member from invoker or admin
