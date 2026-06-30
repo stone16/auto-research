@@ -1,0 +1,801 @@
+openapi: 3.0.3
+info:
+  title: Enterprise Knowledge Base API
+  version: 0.1.0
+  license:
+    name: Internal Research Contract
+    url: https://ekb-api.internal/license
+  description: >
+    CP18 REST contract derived from docs/enterprise-knowledge-base-design.md
+    lines 584-605 and 637-670. Every operation requires tenant context through
+    X-Tenant-Id, and state-changing operations also carry scoped request
+    bodies.
+  x-design-source:
+    endpoints: docs/enterprise-knowledge-base-design.md:637-650
+    query_response: docs/enterprise-knowledge-base-design.md:584-605
+    query_request: docs/enterprise-knowledge-base-design.md:654-670
+  x-extraction-findings:
+    - F-ANYTHINGLLM-004
+    - F-FLOWISE-004
+    - F-AUTHZ-001
+    - F-AUTHZ-002
+    - F-OBS-001
+servers:
+  - url: https://ekb-api.internal
+    description: Production base URL placeholder
+security:
+  - bearerAuth: []
+tags:
+  - name: Tenants
+    description: Tenant lifecycle and administrative context.
+  - name: Workspaces
+    description: Workspace listing and scoping.
+  - name: Knowledge Bases
+    description: Knowledge-base, document, and sync operations.
+  - name: Query
+    description: Non-streaming and streaming answer APIs.
+  - name: Traces
+    description: Trace retrieval for observability and evaluation.
+  - name: Evaluations
+    description: Offline evaluation run management.
+  - name: Tools
+    description: Tool invocation through REST permissions.
+  - name: Audit
+    description: Tenant audit event retrieval.
+paths:
+  /v1/tenants:
+    post:
+      tags: [Tenants]
+      operationId: createTenant
+      summary: Create a tenant.
+      description: The request `id` must match `X-Tenant-Id`; tenant creation is an explicit bootstrap operation for that tenant context.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantCreateRequest'
+      responses:
+        '201':
+          description: Tenant created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '400':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/tenants/{tenant_id}/workspaces:
+    get:
+      tags: [Workspaces]
+      operationId: listWorkspaces
+      summary: List workspaces for a tenant.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/TenantIdPath'
+      responses:
+        '200':
+          description: Workspaces.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Workspace'
+        '400':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/workspaces/{workspace_id}/knowledge-bases:
+    post:
+      tags: [Knowledge Bases]
+      operationId: createKnowledgeBase
+      summary: Create a knowledge base in a workspace.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/WorkspaceIdPath'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KnowledgeBaseCreateRequest'
+      responses:
+        '201':
+          description: Knowledge base created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgeBase'
+        '400':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/knowledge-bases/{kb_id}/documents:
+    post:
+      tags: [Knowledge Bases]
+      operationId: createDocument
+      summary: Add a document to a knowledge base.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/KnowledgeBaseIdPath'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentCreateRequest'
+      responses:
+        '202':
+          description: Document accepted for ingestion.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        '400':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/knowledge-bases/{kb_id}/sync:
+    post:
+      tags: [Knowledge Bases]
+      operationId: syncKnowledgeBase
+      summary: Start connector sync for a knowledge base.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/KnowledgeBaseIdPath'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncRequest'
+      responses:
+        '202':
+          description: Sync started.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncJob'
+        '400':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/query:
+    post:
+      tags: [Query]
+      operationId: query
+      summary: Execute a retrieval-augmented query.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+      responses:
+        '200':
+          description: Answer with structured citations and trace id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryResponse'
+        '400':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/query/stream:
+    post:
+      tags: [Query]
+      operationId: queryStream
+      summary: Execute a streaming retrieval-augmented query.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/QueryRequest'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/StreamResponseOptions'
+      responses:
+        '200':
+          description: Server-sent event stream of answer deltas and final response.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: SSE frames ending with a QueryResponse payload.
+        '400':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/traces/{trace_id}:
+    get:
+      tags: [Traces]
+      operationId: getTrace
+      summary: Read a trace by trace id.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/TraceIdPath'
+      responses:
+        '200':
+          description: Trace.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trace'
+        '400':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/evals/runs:
+    post:
+      tags: [Evaluations]
+      operationId: createEvalRun
+      summary: Start an evaluation run.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvalRunCreateRequest'
+      responses:
+        '202':
+          description: Evaluation run accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvalRun'
+        '400':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/evals/runs/{run_id}:
+    get:
+      tags: [Evaluations]
+      operationId: getEvalRun
+      summary: Read an evaluation run.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/RunIdPath'
+      responses:
+        '200':
+          description: Evaluation run.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvalRun'
+        '400':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/tools/{tool_id}/invoke:
+    post:
+      tags: [Tools]
+      operationId: invokeTool
+      summary: Invoke a registered tool through the tenant permission boundary.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/ToolIdPath'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ToolInvokeRequest'
+      responses:
+        '200':
+          description: Tool invocation result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolInvokeResponse'
+        '400':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/audit-events:
+    get:
+      tags: [Audit]
+      operationId: listAuditEvents
+      summary: List tenant audit events.
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - name: trace_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        '200':
+          description: Audit events.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditEvent'
+        '400':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  parameters:
+    TenantHeader:
+      name: X-Tenant-Id
+      in: header
+      required: true
+      description: >
+        Tenant context for authorization, RLS, traces, and audit. The server
+        MUST verify this value against the authenticated principal's tenant
+        membership, or derive tenant context from the bearer principal, and
+        reject mismatches with 403 before setting Postgres app.tenant_id.
+      schema:
+        type: string
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      schema:
+        type: string
+    TenantIdPath:
+      name: tenant_id
+      in: path
+      required: true
+      schema:
+        type: string
+    WorkspaceIdPath:
+      name: workspace_id
+      in: path
+      required: true
+      schema:
+        type: string
+    KnowledgeBaseIdPath:
+      name: kb_id
+      in: path
+      required: true
+      schema:
+        type: string
+    TraceIdPath:
+      name: trace_id
+      in: path
+      required: true
+      schema:
+        type: string
+    RunIdPath:
+      name: run_id
+      in: path
+      required: true
+      schema:
+        type: string
+    ToolIdPath:
+      name: tool_id
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    Error:
+      description: Error response.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    TenantCreateRequest:
+      type: object
+      required: [id, name, plan, region]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Tenant identifier; must equal the `X-Tenant-Id` header.
+        name:
+          type: string
+        plan:
+          type: string
+        region:
+          type: string
+    Tenant:
+      type: object
+      required: [id, tenant_id, name, status, plan, region, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        status:
+          type: string
+          enum: [active, suspended, deleted]
+        plan:
+          type: string
+        region:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    Workspace:
+      type: object
+      required: [id, tenant_id, name, type, created_at]
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    KnowledgeBaseCreateRequest:
+      type: object
+      required: [tenant_id, workspace_id, name, visibility]
+      properties:
+        tenant_id:
+          type: string
+        workspace_id:
+          type: string
+        name:
+          type: string
+        visibility:
+          type: string
+          enum: [private, workspace, tenant]
+    KnowledgeBase:
+      type: object
+      required: [id, tenant_id, workspace_id, name, visibility]
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        workspace_id:
+          type: string
+        name:
+          type: string
+        visibility:
+          type: string
+    DocumentCreateRequest:
+      type: object
+      required: [tenant_id, uri, title, content, acl_hash]
+      properties:
+        tenant_id:
+          type: string
+        uri:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+          maxLength: 1048576
+        acl_hash:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+    Document:
+      type: object
+      required: [id, tenant_id, kb_id, uri, title, status]
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        kb_id:
+          type: string
+        uri:
+          type: string
+        title:
+          type: string
+        status:
+          type: string
+          enum: [active, revoked, deleted]
+    SyncRequest:
+      type: object
+      required: [tenant_id]
+      properties:
+        tenant_id:
+          type: string
+        connector_ids:
+          type: array
+          items:
+            type: string
+    SyncJob:
+      type: object
+      required: [id, tenant_id, kb_id, status]
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        kb_id:
+          type: string
+        status:
+          type: string
+          enum: [queued, running, completed, failed]
+    QueryRequest:
+      type: object
+      required: [tenant_id, workspace_id, query, knowledge_base_ids, retrieval, response]
+      properties:
+        tenant_id:
+          type: string
+        workspace_id:
+          type: string
+        query:
+          type: string
+          maxLength: 4096
+        knowledge_base_ids:
+          type: array
+          items:
+            type: string
+        retrieval:
+          $ref: '#/components/schemas/RetrievalRequest'
+        response:
+          $ref: '#/components/schemas/ResponseOptions'
+    RetrievalRequest:
+      type: object
+      required: [top_k, rerank]
+      properties:
+        top_k:
+          type: integer
+          minimum: 1
+          maximum: 100
+        rerank:
+          type: boolean
+        filters:
+          type: object
+          additionalProperties: true
+    ResponseOptions:
+      type: object
+      required: [stream, require_citations]
+      properties:
+        stream:
+          type: boolean
+          description: Request a streaming response when true.
+        require_citations:
+          type: boolean
+          enum: [true]
+          default: true
+          description: Structured citations are mandatory for final answers.
+    StreamResponseOptions:
+      allOf:
+        - $ref: '#/components/schemas/ResponseOptions'
+        - type: object
+          required: [stream]
+          properties:
+            stream:
+              type: boolean
+              enum: [true]
+    QueryResponse:
+      type: object
+      required: [answer, citations, confidence, retrieval, trace_id]
+      properties:
+        answer:
+          type: string
+          maxLength: 16384
+        citations:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/Citation'
+        confidence:
+          type: string
+          enum: [high, medium, low]
+        retrieval:
+          $ref: '#/components/schemas/RetrievalResult'
+        trace_id:
+          type: string
+    Citation:
+      type: object
+      required: [document_id, chunk_id, source_uri, title, span, quote]
+      properties:
+        document_id:
+          type: string
+        chunk_id:
+          type: string
+        source_uri:
+          type: string
+        title:
+          type: string
+        span:
+          $ref: '#/components/schemas/Span'
+        quote:
+          type: string
+          maxLength: 500
+    Span:
+      type: object
+      required: [start, end]
+      properties:
+        start:
+          type: integer
+          minimum: 0
+        end:
+          type: integer
+          minimum: 0
+    RetrievalResult:
+      type: object
+      required: [index_version, retriever_version, top_k]
+      properties:
+        index_version:
+          type: string
+        retriever_version:
+          type: string
+        top_k:
+          type: integer
+          minimum: 1
+    Trace:
+      type: object
+      required: [trace_id, tenant_id, workspace_id, events]
+      properties:
+        trace_id:
+          type: string
+        tenant_id:
+          type: string
+        workspace_id:
+          type: string
+        events:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    EvalRunCreateRequest:
+      type: object
+      required: [tenant_id, dataset_id, candidate_config, expected_metrics]
+      properties:
+        tenant_id:
+          type: string
+        dataset_id:
+          type: string
+        candidate_config:
+          type: object
+          additionalProperties: true
+        expected_metrics:
+          type: array
+          minItems: 1
+          items:
+            type: string
+    EvalRun:
+      type: object
+      required: [id, tenant_id, dataset_id, expected_metrics, status]
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        dataset_id:
+          type: string
+        expected_metrics:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        status:
+          type: string
+          enum: [queued, running, passed, failed, error]
+        scores:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvalScoreFact'
+    EvalScoreFact:
+      type: object
+      required: [case_id, metric, score, metric_status, reason, evidence]
+      properties:
+        case_id:
+          type: string
+        metric:
+          type: string
+        score:
+          type: number
+          minimum: 0
+          maximum: 1
+        metric_status:
+          type: string
+          enum: [scored, missing, skipped, error, absent]
+        reason:
+          type: string
+        evidence:
+          type: object
+          additionalProperties: true
+    ToolInvokeRequest:
+      type: object
+      required: [tenant_id, input]
+      properties:
+        tenant_id:
+          type: string
+        input:
+          type: object
+          additionalProperties: true
+        approval_id:
+          type: string
+    ToolInvokeResponse:
+      type: object
+      required: [trace_id, tool_call_id, decision, output]
+      properties:
+        trace_id:
+          type: string
+        tool_call_id:
+          type: string
+        decision:
+          type: string
+          enum: [allow, deny, error]
+        output:
+          type: object
+          additionalProperties: true
+    AuditEvent:
+      type: object
+      required: [id, tenant_id, actor_id, action, resource, created_at]
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        actor_id:
+          type: string
+        action:
+          type: string
+        resource:
+          type: object
+          additionalProperties: true
+        trace_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      required: [error, trace_id]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+        trace_id:
+          type: string

@@ -98,4 +98,10 @@ Do not start with a giant open-ended domain. Start with a topic that can converg
 - Then read [goal-managed-agent-framework-v2-additions.md](goal-managed-agent-framework-v2-additions.md) for the critique-to-spec patch history around measurement, budget, and judge calibration
 - Then read [goal-managed-agent-protocol-spec.md](goal-managed-agent-protocol-spec.md) for the implementation-facing protocol draft
 - Then read [goal-managed-agent-testing-strategy.md](goal-managed-agent-testing-strategy.md) for the layered testing and eval strategy
+- Then read [enterprise-knowledge-base-design.md](enterprise-knowledge-base-design.md) for the evidence-grounded enterprise RAG knowledge-base design covering multi-tenancy, authorization, APIs, CLI, MCP, and metrics loops
+- Then read [ekb-research/tech-spec.md](ekb-research/tech-spec.md) for the final subsystem-level EKB technical spec
+- Then read [ekb-research/benchmark/capability-grid.md](ekb-research/benchmark/capability-grid.md), [ekb-research/comparison-matrix.md](ekb-research/comparison-matrix.md), and [ekb-research/extraction-map.md](ekb-research/extraction-map.md) for the benchmark synthesis and donor decisions
+- Then read [ekb-research/wiring-audit.md](ekb-research/wiring-audit.md) for contract-to-benchmark coverage and known gaps
+- Then inspect the contract artifacts: [ekb-research/contracts/schema.sql](ekb-research/contracts/schema.sql), [ekb-research/contracts/authz.fga](ekb-research/contracts/authz.fga), [ekb-research/contracts/openapi.yaml](ekb-research/contracts/openapi.yaml), and [ekb-research/contracts/mcp-tools.md](ekb-research/contracts/mcp-tools.md)
+- Then use the seven dossiers under [ekb-research/dossiers/](ekb-research/dossiers/) when you need framework-specific evidence
 - Then adapt the example run into your own topic
